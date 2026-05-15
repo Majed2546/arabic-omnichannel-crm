@@ -1,12 +1,12 @@
 import { InjectQueue } from '@nestjs/bullmq'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { MessageStatus, MessageType, Prisma } from '@prisma/client'
 import type { Queue } from 'bullmq'
 import { PrismaService } from '../../database/prisma.service'
 import { WHATSAPP_OUTBOUND_QUEUE } from '../../events/queue.constants'
 import { MessageService } from '../messages/message.service'
-import { SendWhatsAppMessageDto, WhatsAppOutboundMessageType } from './whatsapp-send.dto'
+import { DirectWhatsAppTestDto, SendWhatsAppMessageDto, WhatsAppOutboundMessageType } from './whatsapp-send.dto'
 import type { WhatsAppOutboundJob } from './whatsapp-send.types'
 
 type ChannelConfig = {
@@ -81,6 +81,40 @@ export class WhatsAppSendService {
 
   sendTest(dto: SendWhatsAppMessageDto) {
     return this.send({ ...dto, testMode: true })
+  }
+
+  async sendDirectTest(dto: DirectWhatsAppTestDto) {
+    const accessToken = this.config.get<string>('whatsapp.accessToken')
+    const phoneNumberId = this.config.get<string>('whatsapp.phoneNumberId')
+    const apiVersion = this.config.get<string>('whatsapp.apiVersion') ?? 'v21.0'
+
+    if (!accessToken) throw new BadRequestException('Missing WHATSAPP_ACCESS_TOKEN')
+    if (!phoneNumberId) throw new BadRequestException('Missing WHATSAPP_PHONE_NUMBER_ID')
+
+    const response = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: dto.to,
+        type: 'text',
+        text: {
+          preview_url: false,
+          body: dto.message,
+        },
+      }),
+    })
+
+    const body = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new HttpException(body, response.status)
+    }
+
+    return body
   }
 
   private mapMessageType(type: WhatsAppOutboundMessageType) {

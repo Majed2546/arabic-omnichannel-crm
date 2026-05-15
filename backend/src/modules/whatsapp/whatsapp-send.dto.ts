@@ -27,3 +27,11 @@ export class SendWhatsAppMessageDto {
   @IsBoolean()
   testMode?: boolean
 }
+
+export class DirectWhatsAppTestDto {
+  @IsString()
+  to!: string
+
+  @IsString()
+  message!: string
+}

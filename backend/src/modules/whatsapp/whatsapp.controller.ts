@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common'
-import { SendWhatsAppMessageDto } from './whatsapp-send.dto'
+import { DirectWhatsAppTestDto, SendWhatsAppMessageDto } from './whatsapp-send.dto'
 import { WhatsAppSendService } from './whatsapp-send.service'
 
 @Controller('whatsapp')
@@ -24,5 +24,10 @@ export class WhatsAppController {
   @Post('send/test')
   sendTest(@Body() body: SendWhatsAppMessageDto) {
     return this.sendService.sendTest(body)
+  }
+
+  @Post('send/direct-test')
+  sendDirectTest(@Body() body: DirectWhatsAppTestDto) {
+    return this.sendService.sendDirectTest(body)
   }
 }

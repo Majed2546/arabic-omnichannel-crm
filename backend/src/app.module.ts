@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import configuration from './config/configuration'
+import { validateEnvironment } from './config/env.validation'
 import { CommonModule } from './common/common.module'
 import { DatabaseModule } from './database/database.module'
 import { EventsModule } from './events/events.module'
@@ -21,7 +22,8 @@ import { RealtimeModule } from './modules/realtime/realtime.module'
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: ['.env'],
+      envFilePath: '.env',
+      validate: validateEnvironment,
     }),
     CommonModule,
     DatabaseModule,
