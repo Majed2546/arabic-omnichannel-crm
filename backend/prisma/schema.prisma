@@ -1,0 +1,424 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DELETED
+}
+
+enum PermissionCategory {
+  DASHBOARD
+  TENANTS
+  USERS
+  INBOX
+  CHANNELS
+  WHATSAPP
+  AUTOMATION
+  NOTIFICATIONS
+  REPORTS
+  SYSTEM
+}
+
+enum ChannelType {
+  WHATSAPP
+  EMAIL
+  WEBCHAT
+  INSTAGRAM
+  X
+  SMS
+}
+
+enum ChannelStatus {
+  CONNECTED
+  PENDING
+  DISCONNECTED
+  FAILED
+  NEEDS_REVIEW
+}
+
+enum ConversationStatus {
+  OPEN
+  ASSIGNED
+  PENDING_CUSTOMER
+  PENDING_AGENT
+  SLA_WARNING
+  SLA_BREACHED
+  RESOLVED
+  CLOSED
+}
+
+enum ConversationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  VIP
+}
+
+enum MessageSenderType {
+  CUSTOMER
+  AGENT
+  SYSTEM
+  AUTOMATION
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  DOCUMENT
+  TEMPLATE
+  SYSTEM
+  INTERNAL_NOTE
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  CONVERSATION_ASSIGNED
+  SLA_WARNING
+  SLA_BREACHED
+  CUSTOMER_REPLIED
+  QUEUE_OVERLOADED
+  AUTOMATION_TRIGGERED
+  AGENT_MENTIONED
+  WEBHOOK_ISSUE
+  WHATSAPP_QUALITY_WARNING
+}
+
+enum NotificationPriority {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum WorkflowStatus {
+  ACTIVE
+  DISABLED
+  FAILED
+  TESTING
+}
+
+model Tenant {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  status        TenantStatus   @default(ACTIVE)
+  plan          String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  createdBy     String?        @map("created_by")
+  updatedBy     String?        @map("updated_by")
+  deletedAt     DateTime?      @map("deleted_at")
+  users         User[]
+  roles         Role[]
+  channels      Channel[]
+  customers     Customer[]
+  queues        Queue[]
+  conversations Conversation[]
+  messages      Message[]
+  notifications Notification[]
+  workflows     Workflow[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("tenants")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  tenantId     String         @map("tenant_id")
+  name         String
+  email        String
+  passwordHash String         @map("password_hash")
+  status       UserStatus     @default(ACTIVE)
+  avatar       String?
+  roleId       String?        @map("role_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  createdBy    String?        @map("created_by")
+  updatedBy    String?        @map("updated_by")
+  deletedAt    DateTime?      @map("deleted_at")
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role         Role?          @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  assigned     Conversation[] @relation("ConversationAssignedUser")
+  notifications Notification[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([roleId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(cuid())
+  tenantId        String           @map("tenant_id")
+  name            String
+  description     String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  createdBy       String?          @map("created_by")
+  updatedBy       String?          @map("updated_by")
+  deletedAt       DateTime?        @map("deleted_at")
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("roles")
+}
+
+model Permission {
+  id              String             @id @default(cuid())
+  key             String             @unique
+  category        PermissionCategory
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  rolePermissions RolePermission[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  createdBy    String?    @map("created_by")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model Channel {
+  id            String        @id @default(cuid())
+  tenantId      String        @map("tenant_id")
+  type          ChannelType
+  status        ChannelStatus @default(PENDING)
+  name          String
+  config        Json?
+  externalId    String?       @map("external_id")
+  connectedAt   DateTime?     @map("connected_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  createdBy     String?       @map("created_by")
+  updatedBy     String?       @map("updated_by")
+  deletedAt     DateTime?     @map("deleted_at")
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  messages      Message[]
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("channels")
+}
+
+model Customer {
+  id            String         @id @default(cuid())
+  tenantId      String         @map("tenant_id")
+  name          String
+  phone         String?
+  email         String?
+  tags          String[]       @default([])
+  metadata      Json?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  createdBy     String?        @map("created_by")
+  updatedBy     String?        @map("updated_by")
+  deletedAt     DateTime?      @map("deleted_at")
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@index([tenantId])
+  @@index([tenantId, phone])
+  @@index([tenantId, email])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("customers")
+}
+
+model Queue {
+  id            String         @id @default(cuid())
+  tenantId      String         @map("tenant_id")
+  name          String
+  slaPolicy     Json?          @map("sla_policy")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  createdBy     String?        @map("created_by")
+  updatedBy     String?        @map("updated_by")
+  deletedAt     DateTime?      @map("deleted_at")
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("queues")
+}
+
+model Conversation {
+  id             String               @id @default(cuid())
+  tenantId       String               @map("tenant_id")
+  channelId      String               @map("channel_id")
+  customerId     String               @map("customer_id")
+  assignedUserId String?              @map("assigned_user_id")
+  queueId        String?              @map("queue_id")
+  status         ConversationStatus   @default(OPEN)
+  priority       ConversationPriority @default(NORMAL)
+  slaDeadline    DateTime?            @map("sla_deadline")
+  slaWarnedAt     DateTime?            @map("sla_warned_at")
+  slaBreachedAt   DateTime?            @map("sla_breached_at")
+  lastMessageAt   DateTime?            @map("last_message_at")
+  lastMessagePreview String?           @map("last_message_preview")
+  unreadCount     Int                  @default(0) @map("unread_count")
+  metadata       Json?
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  createdBy      String?              @map("created_by")
+  updatedBy      String?              @map("updated_by")
+  deletedAt      DateTime?            @map("deleted_at")
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  channel        Channel              @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  customer       Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  assignedUser   User?                @relation("ConversationAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  queue          Queue?               @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  messages       Message[]
+  notifications  Notification[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, priority])
+  @@index([tenantId, queueId])
+  @@index([assignedUserId])
+  @@index([tenantId, assignedUserId, status])
+  @@index([tenantId, slaDeadline])
+  @@index([tenantId, lastMessageAt])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@index([deletedAt])
+  @@map("conversations")
+}
+
+model Message {
+  id                String            @id @default(cuid())
+  tenantId          String            @map("tenant_id")
+  conversationId    String            @map("conversation_id")
+  channelId         String            @map("channel_id")
+  senderType        MessageSenderType @map("sender_type")
+  senderId          String?           @map("sender_id")
+  content           String
+  messageType       MessageType       @default(TEXT) @map("message_type")
+  status            MessageStatus     @default(PENDING)
+  externalMessageId String?           @map("external_message_id")
+  metadata          Json?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  createdBy         String?           @map("created_by")
+  updatedBy         String?           @map("updated_by")
+  deletedAt         DateTime?         @map("deleted_at")
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation      Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  channel           Channel           @relation(fields: [channelId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, externalMessageId])
+  @@index([tenantId])
+  @@index([conversationId])
+  @@index([tenantId, conversationId, createdAt])
+  @@index([tenantId, senderId])
+  @@index([tenantId, status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("messages")
+}
+
+model Notification {
+  id             String               @id @default(cuid())
+  tenantId       String               @map("tenant_id")
+  userId         String?              @map("user_id")
+  conversationId String?              @map("conversation_id")
+  type           NotificationType
+  priority       NotificationPriority @default(INFO)
+  title          String
+  body           String
+  readAt         DateTime?            @map("read_at")
+  metadata       Json?
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  createdBy      String?              @map("created_by")
+  updatedBy      String?              @map("updated_by")
+  deletedAt      DateTime?            @map("deleted_at")
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation?        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, userId, readAt])
+  @@index([tenantId, type])
+  @@index([tenantId, priority])
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("notifications")
+}
+
+model Workflow {
+  id         String         @id @default(cuid())
+  tenantId   String         @map("tenant_id")
+  name       String
+  trigger    String
+  conditions Json?
+  actions    Json
+  enabled    Boolean        @default(false)
+  status     WorkflowStatus @default(TESTING)
+  lastRunAt  DateTime?      @map("last_run_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  createdBy  String?        @map("created_by")
+  updatedBy  String?        @map("updated_by")
+  deletedAt  DateTime?      @map("deleted_at")
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, enabled])
+  @@index([tenantId, status])
+  @@index([tenantId, trigger])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("workflows")
+}

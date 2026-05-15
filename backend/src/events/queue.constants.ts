@@ -1,0 +1,5 @@
+export const MESSAGE_QUEUE = 'messages'
+export const NOTIFICATION_QUEUE = 'notifications'
+export const AUTOMATION_QUEUE = 'automation'
+export const WHATSAPP_WEBHOOK_QUEUE = 'whatsapp-webhooks'
+export const WHATSAPP_MESSAGE_QUEUE = 'whatsapp-messages'
