@@ -70,6 +70,8 @@ The WhatsApp module is intentionally placeholder-only. It is ready for Meta Clou
 
 The webhook engine is available under `src/modules/whatsapp` with verification, ingestion, BullMQ queue handoff, message mapping, realtime publishing, diagnostics, and sample fixtures.
 
+Outgoing WhatsApp sending is available through `POST /whatsapp/send` and `POST /whatsapp/send/test`. It persists pending messages first, uses BullMQ for provider dispatch, calls Meta Cloud API through a dispatcher, and publishes realtime status updates after persistence.
+
 Message persistence is available under `src/modules/messages` with Prisma transactions, conversation summary updates, unread counts, BullMQ processing hooks, and realtime publication after durable writes.
 
 ## Database Architecture Decisions

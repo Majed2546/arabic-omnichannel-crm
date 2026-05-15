@@ -1,7 +1,11 @@
-import { Controller, Get } from '@nestjs/common'
+import { Body, Controller, Get, Post } from '@nestjs/common'
+import { SendWhatsAppMessageDto } from './whatsapp-send.dto'
+import { WhatsAppSendService } from './whatsapp-send.service'
 
 @Controller('whatsapp')
 export class WhatsAppController {
+  constructor(private readonly sendService: WhatsAppSendService) {}
+
   @Get('status')
   getStatus() {
     return {
@@ -10,5 +14,15 @@ export class WhatsAppController {
       embeddedSignupReady: false,
       webhookEngineReady: true,
     }
+  }
+
+  @Post('send')
+  send(@Body() body: SendWhatsAppMessageDto) {
+    return this.sendService.send(body)
+  }
+
+  @Post('send/test')
+  sendTest(@Body() body: SendWhatsAppMessageDto) {
+    return this.sendService.sendTest(body)
   }
 }

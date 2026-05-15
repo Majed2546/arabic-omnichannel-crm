@@ -185,6 +185,37 @@ export class MessageService {
     })
   }
 
+  async updateDelivery(input: {
+    tenantId: string
+    messageId: string
+    status: MessageStatus
+    externalMessageId?: string
+    deliveryLog?: Record<string, unknown>
+  }) {
+    const message = await this.prisma.message.update({
+      where: { id: input.messageId, tenantId: input.tenantId },
+      data: {
+        status: input.status,
+        externalMessageId: input.externalMessageId,
+        metadata: input.deliveryLog ? asJson({ delivery: input.deliveryLog }) : undefined,
+      },
+    })
+
+    this.realtime.publishDomainEvent(
+      input.status === MessageStatus.READ ? 'message.read' : 'message.updated',
+      message.tenantId,
+      {
+        id: message.id,
+        conversationId: message.conversationId,
+        externalMessageId: message.externalMessageId,
+        status: message.status,
+      },
+      'queue',
+    )
+
+    return message
+  }
+
   fetchConversationMessages(tenantId: string, conversationId: string, query: ListMessagesQueryDto) {
     const page = query.page ?? 1
     const pageSize = Math.min(query.pageSize ?? 50, 100)

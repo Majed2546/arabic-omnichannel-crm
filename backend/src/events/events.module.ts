@@ -6,6 +6,7 @@ import {
   MESSAGE_QUEUE,
   NOTIFICATION_QUEUE,
   WHATSAPP_MESSAGE_QUEUE,
+  WHATSAPP_OUTBOUND_QUEUE,
   WHATSAPP_WEBHOOK_QUEUE,
 } from './queue.constants'
 import { EventBusService } from './event-bus.service'
@@ -28,6 +29,7 @@ import { EventBusService } from './event-bus.service'
       { name: AUTOMATION_QUEUE },
       { name: WHATSAPP_WEBHOOK_QUEUE },
       { name: WHATSAPP_MESSAGE_QUEUE },
+      { name: WHATSAPP_OUTBOUND_QUEUE },
     ),
   ],
   providers: [EventBusService],

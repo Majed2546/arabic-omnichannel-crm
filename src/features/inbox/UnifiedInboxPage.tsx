@@ -123,7 +123,7 @@ export default function UnifiedInboxPage() {
   const [now, setNow] = useState(Date.now())
   const [search, setSearch] = useState('')
   const [reply, setReply] = useState('')
-  const [note, setNote] = useState('')
+  const [composerMode, setComposerMode] = useState<'reply' | 'internal'>('reply')
   const [profilePopupOpen, setProfilePopupOpen] = useState(false)
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
@@ -241,37 +241,43 @@ export default function UnifiedInboxPage() {
   function handleReplyChange(event: ChangeEvent<HTMLTextAreaElement>) {
     setReply(event.target.value)
     event.target.style.height = 'auto'
-    event.target.style.height = `${event.target.scrollHeight}px`
+    const nextHeight = Math.min(event.target.scrollHeight, 120)
+    event.target.style.height = `${nextHeight}px`
+    event.target.style.overflowY = event.target.scrollHeight > 120 ? 'auto' : 'hidden'
   }
 
-  function sendReply() {
+  function resetComposerHeight() {
+    if (!composerRef.current) return
+
+    composerRef.current.style.height = '52px'
+    composerRef.current.style.overflowY = 'hidden'
+  }
+
+  function submitComposer() {
     const body = reply.trim()
     if (!body || !selectedConversation) return
 
-    addOutgoingReply(selectedConversation.id, body, 'أحمد المدير')
+    if (composerMode === 'internal') {
+      addInternalNote(selectedConversation.id, body, 'أحمد المدير')
+      showToast('تمت إضافة الملاحظة الداخلية', 'success')
+    } else {
+      addOutgoingReply(selectedConversation.id, body, 'أحمد المدير')
+      showToast('تم إرسال الرد التجريبي', 'success')
+    }
+
     setReply('')
-    if (composerRef.current) composerRef.current.style.height = 'auto'
-    showToast('تم إرسال الرد التجريبي', 'success')
-  }
-
-  function saveInternalNote() {
-    const body = note.trim()
-    if (!body || !selectedConversation) return
-
-    addInternalNote(selectedConversation.id, body, 'أحمد المدير')
-    setNote('')
-    showToast('تمت إضافة الملاحظة الداخلية', 'success')
+    resetComposerHeight()
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    sendReply()
+    submitComposer()
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
-      sendReply()
+      submitComposer()
     }
   }
 
@@ -498,7 +504,7 @@ export default function UnifiedInboxPage() {
                   key={message.id}
                   className={`message-bubble ${message.direction} ${message.kind === 'internal_note' ? 'internal-note' : ''} ${grouped ? 'grouped' : ''} ${message.deliveryStatus ?? ''}`}
                 >
-                  {message.kind === 'internal_note' ? <b className="internal-note-badge">داخلي فقط</b> : null}
+                  {message.kind === 'internal_note' ? <b className="internal-note-badge">ملاحظة داخلية</b> : null}
                   <p>{message.body}</p>
                   <footer>
                     {!grouped ? <span>{message.author}</span> : null}
@@ -524,34 +530,42 @@ export default function UnifiedInboxPage() {
               ) : null}
             </div>
 
-            <form className="chat-composer" onSubmit={handleSubmit}>
+            <form className={`chat-composer ${composerMode === 'internal' ? 'internal-mode' : ''}`} onSubmit={handleSubmit}>
               <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('اختيار الرموز جاهز للربط', 'success')}>
                 🙂
               </AppButton>
               <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('إرفاق الملفات جاهز للربط', 'success')}>
                 📎
               </AppButton>
+              <div className="composer-mode-toggle" role="group" aria-label="نوع الرسالة">
+                <button
+                  type="button"
+                  className={composerMode === 'reply' ? 'active' : ''}
+                  onClick={() => setComposerMode('reply')}
+                >
+                  رد للعميل
+                </button>
+                <button
+                  type="button"
+                  className={composerMode === 'internal' ? 'active' : ''}
+                  onClick={() => setComposerMode('internal')}
+                >
+                  ملاحظة داخلية
+                </button>
+              </div>
               <textarea
                 ref={composerRef}
                 value={reply}
                 rows={1}
                 onChange={handleReplyChange}
                 onKeyDown={handleComposerKeyDown}
-                placeholder="اكتب رداً واضغط Enter للإرسال..."
-                aria-label="نص الرد"
+                placeholder={composerMode === 'internal' ? 'اكتب ملاحظة داخلية للفريق...' : 'اكتب رداً واضغط Enter للإرسال...'}
+                aria-label={composerMode === 'internal' ? 'نص الملاحظة الداخلية' : 'نص الرد'}
               />
-              <AppButton type="submit" variant="primary">إرسال</AppButton>
+              <AppButton type="submit" variant="primary" className="composer-send-button">
+                {composerMode === 'internal' ? 'حفظ' : 'إرسال'}
+              </AppButton>
             </form>
-
-            <div className="internal-note-composer">
-              <input
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="أضف ملاحظة داخلية للفريق"
-                aria-label="ملاحظة داخلية"
-              />
-              <AppButton variant="ghost" onClick={saveInternalNote}>ملاحظة</AppButton>
-            </div>
           </>
         ) : (
           <EmptyState title="اختر محادثة" message="حدد محادثة لعرض تفاصيل العميل والمعاينة." />

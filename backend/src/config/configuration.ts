@@ -17,6 +17,7 @@ export default () => ({
     apiVersion: process.env.WHATSAPP_API_VERSION ?? 'v21.0',
     appId: process.env.WHATSAPP_APP_ID,
     appSecret: process.env.WHATSAPP_APP_SECRET,
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
     webhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
   },
   socket: {

@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
-import { WHATSAPP_MESSAGE_QUEUE, WHATSAPP_WEBHOOK_QUEUE } from '../../events/queue.constants'
+import { WHATSAPP_MESSAGE_QUEUE, WHATSAPP_OUTBOUND_QUEUE, WHATSAPP_WEBHOOK_QUEUE } from '../../events/queue.constants'
 import { MessagesModule } from '../messages/messages.module'
 import { WhatsAppController } from './whatsapp.controller'
 import { WhatsAppEventPublisher } from './whatsapp-event.publisher'
 import { WhatsAppMessageMapper } from './whatsapp-message.mapper'
+import { WhatsAppMessageDispatcher } from './whatsapp-message.dispatcher'
+import { WhatsAppOutboundQueue } from './whatsapp-outbound.queue'
+import { WhatsAppSendService } from './whatsapp-send.service'
 import { WhatsAppWebhookController } from './whatsapp-webhook.controller'
 import { WhatsAppWebhookService } from './whatsapp-webhook.service'
 
@@ -13,10 +16,18 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service'
     BullModule.registerQueue(
       { name: WHATSAPP_WEBHOOK_QUEUE },
       { name: WHATSAPP_MESSAGE_QUEUE },
+      { name: WHATSAPP_OUTBOUND_QUEUE },
     ),
     MessagesModule,
   ],
   controllers: [WhatsAppController, WhatsAppWebhookController],
-  providers: [WhatsAppWebhookService, WhatsAppMessageMapper, WhatsAppEventPublisher],
+  providers: [
+    WhatsAppWebhookService,
+    WhatsAppMessageMapper,
+    WhatsAppEventPublisher,
+    WhatsAppSendService,
+    WhatsAppMessageDispatcher,
+    WhatsAppOutboundQueue,
+  ],
 })
 export class WhatsAppModule {}
