@@ -1,12 +1,20 @@
-import { ValidationPipe } from '@nestjs/common'
+import { Logger, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
+import { formatRedisTarget, sanitizeRedisUrl, type RedisConnectionConfig } from './config/redis.config'
 import { RedisIoAdapter } from './modules/realtime/redis.adapter'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   const config = app.get(ConfigService)
+  const logger = new Logger('Bootstrap')
+  const redis = config.getOrThrow<RedisConnectionConfig>('redis')
+
+  logger.log(
+    `Runtime Redis env REDIS_URL=${sanitizeRedisUrl(process.env.REDIS_URL)} REDIS_HOST=${process.env.REDIS_HOST ?? '(unset)'} REDIS_PORT=${process.env.REDIS_PORT ?? '(unset)'}`,
+  )
+  logger.log(`Resolved Redis target: ${formatRedisTarget(redis)}`)
 
   app.enableCors({
     origin: config.get<string>('socket.corsOrigin') ?? true,

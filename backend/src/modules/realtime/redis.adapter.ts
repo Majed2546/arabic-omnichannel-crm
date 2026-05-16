@@ -2,9 +2,8 @@ import { INestApplicationContext, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { IoAdapter } from '@nestjs/platform-socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
-import Redis from 'ioredis'
 import { ServerOptions } from 'socket.io'
-import { createRedisOptions, type RedisConnectionConfig } from '../../config/redis.config'
+import { createRedisClient, formatRedisTarget, type RedisConnectionConfig } from '../../config/redis.config'
 
 export class RedisIoAdapter extends IoAdapter {
   private readonly logger = new Logger(RedisIoAdapter.name)
@@ -16,9 +15,10 @@ export class RedisIoAdapter extends IoAdapter {
 
   async connectToRedis() {
     const config = this.app.get(ConfigService)
-    const connection = createRedisOptions(config.getOrThrow<RedisConnectionConfig>('redis'))
+    const redis = config.getOrThrow<RedisConnectionConfig>('redis')
 
-    const pubClient = new Redis(connection)
+    this.logger.log(`Socket.io Redis adapter target: ${formatRedisTarget(redis)}`)
+    const pubClient = createRedisClient(redis, 'omni-crm:socket.io:pub')
     const subClient = pubClient.duplicate()
 
     try {

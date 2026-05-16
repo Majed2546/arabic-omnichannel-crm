@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common'
+import { Logger, Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
 import { ConfigService } from '@nestjs/config'
-import { createRedisOptions, type RedisConnectionConfig } from '../config/redis.config'
+import { createRedisOptions, formatRedisTarget, type RedisConnectionConfig } from '../config/redis.config'
 import {
   AUTOMATION_QUEUE,
   MESSAGE_QUEUE,
@@ -16,9 +16,13 @@ import { EventBusService } from './event-bus.service'
   imports: [
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: createRedisOptions(config.getOrThrow<RedisConnectionConfig>('redis')),
-      }),
+      useFactory: (config: ConfigService) => {
+        const redis = config.getOrThrow<RedisConnectionConfig>('redis')
+        new Logger('BullMQ').log(`BullMQ Redis target: ${formatRedisTarget(redis)}`)
+        return {
+          connection: createRedisOptions(redis),
+        }
+      },
     }),
     BullModule.registerQueue(
       { name: MESSAGE_QUEUE },
