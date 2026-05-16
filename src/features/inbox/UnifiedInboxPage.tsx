@@ -7,6 +7,7 @@ import { realtimeEventBus } from '../../modules/realtime/eventBus'
 import { ConversationCard } from './ConversationCard'
 import { useInboxStore } from './inboxStore'
 import { fetchInboxConversations } from './inboxRest'
+import { sendConversationWhatsAppMessage } from './inboxSend'
 import {
   inboxRealtimeConfig,
   type AgentPresence,
@@ -123,6 +124,8 @@ export default function UnifiedInboxPage() {
   const [profilePopupOpen, setProfilePopupOpen] = useState(false)
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
   const [inboxLoadError, setInboxLoadError] = useState<string | null>(null)
+  const [composerError, setComposerError] = useState<string | null>(null)
+  const [isSendingReply, setSendingReply] = useState(false)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const showToast = useUiStore((state) => state.showToast)
@@ -281,31 +284,56 @@ export default function UnifiedInboxPage() {
     composerRef.current.style.overflowY = 'hidden'
   }
 
-  function submitComposer() {
+  async function submitComposer() {
     const body = reply.trim()
-    if (!body || !selectedConversation) return
+    if (!body || !selectedConversation || isSendingReply) return
+
+    setComposerError(null)
 
     if (composerMode === 'internal') {
       addInternalNote(selectedConversation.id, body, 'المستخدم الحالي')
       showToast('تمت إضافة الملاحظة الداخلية', 'success')
-    } else {
-      addOutgoingReply(selectedConversation.id, body, 'المستخدم الحالي')
-      showToast('تم تجهيز الرد للإرسال', 'success')
+      setReply('')
+      resetComposerHeight()
+      return
     }
 
-    setReply('')
-    resetComposerHeight()
+    try {
+      setSendingReply(true)
+      const result = await sendConversationWhatsAppMessage({
+        conversationId: selectedConversation.id,
+        recipient: selectedConversation.customerPhone,
+        message: body,
+      })
+
+      addOutgoingReply(
+        selectedConversation.id,
+        body,
+        'المستخدم الحالي',
+        result.messageId,
+        result.status === 'SENT' ? 'sent' : 'pending',
+      )
+      showToast('تم إرسال الرد عبر واتساب', 'success')
+      setReply('')
+      resetComposerHeight()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'تعذر إرسال الرسالة'
+      setComposerError(message)
+      showToast(message, 'warning')
+    } finally {
+      setSendingReply(false)
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    submitComposer()
+    void submitComposer()
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
-      submitComposer()
+      void submitComposer()
     }
   }
 
@@ -593,6 +621,7 @@ export default function UnifiedInboxPage() {
               <textarea
                 ref={composerRef}
                 value={reply}
+                disabled={isSendingReply}
                 rows={1}
                 onChange={handleReplyChange}
                 onKeyDown={handleComposerKeyDown}
@@ -600,9 +629,15 @@ export default function UnifiedInboxPage() {
                 aria-label={composerMode === 'internal' ? 'نص الملاحظة الداخلية' : 'نص الرد'}
               />
               <AppButton type="submit" variant="primary" className="composer-send-button">
-                {composerMode === 'internal' ? 'حفظ' : 'إرسال'}
+                {isSendingReply ? 'جار الإرسال' : composerMode === 'internal' ? 'حفظ' : 'إرسال'}
               </AppButton>
             </form>
+            {composerError ? (
+              <div className="inactive-tenant-banner soft-warning">
+                <strong>تعذر إرسال الرسالة</strong>
+                <p>{composerError}</p>
+              </div>
+            ) : null}
           </>
         ) : (
           <EmptyState title="اختر محادثة" message="حدد محادثة لعرض تفاصيل العميل والمعاينة." />
