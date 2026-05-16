@@ -1,4 +1,5 @@
 import { IsEnum, IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator'
+import { Type } from 'class-transformer'
 import { MessageSenderType, MessageStatus, MessageType } from '@prisma/client'
 
 export class CreateMessageDto {
@@ -47,12 +48,20 @@ export class UpdateMessageStatusDto {
 
 export class ListMessagesQueryDto {
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   pageSize?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number
 }

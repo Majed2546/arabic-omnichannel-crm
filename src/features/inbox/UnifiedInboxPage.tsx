@@ -122,6 +122,7 @@ export default function UnifiedInboxPage() {
   const [composerMode, setComposerMode] = useState<'reply' | 'internal'>('reply')
   const [profilePopupOpen, setProfilePopupOpen] = useState(false)
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
+  const [inboxLoadError, setInboxLoadError] = useState<string | null>(null)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const showToast = useUiStore((state) => state.showToast)
@@ -199,12 +200,16 @@ export default function UnifiedInboxPage() {
     const refreshInbox = () => {
       fetchInboxConversations().then((items) => {
         if (disposed) return
+        setInboxLoadError(null)
         replaceConversations(items)
       })
-        .catch(() => {
+        .catch((error: unknown) => {
           if (!disposed && !hasShownFallbackToast) {
             hasShownFallbackToast = true
-            showToast('تعذر تحميل المحادثات من REST، سيتم عرض صندوق وارد فارغ مؤقتاً', 'info')
+            showToast('تعذر تحميل المحادثات من REST، سنعيد المحاولة تلقائياً', 'info')
+          }
+          if (!disposed) {
+            setInboxLoadError(error instanceof Error ? error.message : 'تعذر تحميل المحادثات')
           }
         })
     }
@@ -411,6 +416,12 @@ export default function UnifiedInboxPage() {
         </div>
 
         <div className="conversation-list">
+          {inboxLoadError ? (
+            <div className="inactive-tenant-banner soft-warning">
+              <strong>تعذر تحميل صندوق الوارد</strong>
+              <p>سيتم إعادة المحاولة تلقائياً. تحقق من اتصال REST إذا استمر الخطأ.</p>
+            </div>
+          ) : null}
           {unreadTotal > 0 ? (
             <div className="unread-divider">
               <span>غير مقروءة</span>

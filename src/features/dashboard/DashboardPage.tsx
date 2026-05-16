@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
     async function loadDashboard() {
       const [nextConversations, nextNotifications, nextChannels] = await Promise.all([
-        fetchItems<DashboardConversation>('/conversations?pageSize=100'),
+        fetchItems<DashboardConversation>('/conversations?limit=100'),
         fetchItems<DashboardNotification>('/notifications'),
         fetchItems<DashboardChannel>('/channels'),
       ])

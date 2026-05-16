@@ -153,15 +153,18 @@ function mapConversation(conversation: RestConversation, messages: RestMessage[]
 
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await apiFetch(apiUrl(path))
-  if (!response.ok) throw new Error(`REST request failed: ${response.status}`)
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '')
+    throw new Error(`REST request failed: ${response.status}${detail ? ` ${detail}` : ''}`)
+  }
   return response.json() as Promise<T>
 }
 
 export async function fetchInboxConversations(): Promise<Conversation[]> {
-  const conversations = await fetchJson<RestConversation[]>('/conversations?pageSize=50')
+  const conversations = await fetchJson<RestConversation[]>('/conversations?limit=50')
   const conversationsWithMessages = await Promise.all(
     conversations.map(async (conversation) => {
-      const messages = await fetchJson<RestMessage[]>(`/messages/${conversation.id}?pageSize=50`)
+      const messages = await fetchJson<RestMessage[]>(`/messages/${conversation.id}?limit=50`)
       return mapConversation(conversation, messages)
     }),
   )

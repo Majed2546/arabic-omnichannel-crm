@@ -218,7 +218,7 @@ export class MessageService {
 
   fetchConversationMessages(tenantId: string, conversationId: string, query: ListMessagesQueryDto) {
     const page = query.page ?? 1
-    const pageSize = Math.min(query.pageSize ?? 50, 100)
+    const pageSize = Math.min(query.pageSize ?? query.limit ?? 50, 100)
 
     return this.prisma.message.findMany({
       where: { tenantId, conversationId, deletedAt: null },

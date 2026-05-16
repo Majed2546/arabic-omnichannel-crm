@@ -36,7 +36,7 @@ export class ConversationService {
 
   list(tenantId: string, query: ListConversationsQueryDto) {
     const page = query.page ?? 1
-    const pageSize = Math.min(query.pageSize ?? 25, 100)
+    const pageSize = Math.min(query.pageSize ?? query.limit ?? 25, 100)
 
     return this.prisma.conversation.findMany({
       where: { tenantId, deletedAt: null },

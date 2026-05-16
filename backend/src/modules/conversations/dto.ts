@@ -1,4 +1,5 @@
 import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator'
+import { Type } from 'class-transformer'
 import { ConversationPriority, ConversationStatus } from '@prisma/client'
 
 export class CreateConversationDto {
@@ -34,14 +35,22 @@ export class CreateConversationDto {
 
 export class ListConversationsQueryDto {
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   pageSize?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number
 }
 
 export class UpdateConversationSummaryDto {
