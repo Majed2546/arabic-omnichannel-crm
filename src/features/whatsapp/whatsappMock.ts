@@ -75,7 +75,7 @@ export type WhatsAppQualityAlert = {
   tone: CloudStatusTone
 }
 
-type WhatsAppOnboardingMock = {
+type WhatsAppOnboardingState = {
   progress: number
   connectionState: WhatsAppConnectionState
   businessNumber: string
@@ -84,19 +84,12 @@ type WhatsAppOnboardingMock = {
   steps: WhatsAppWizardStep[]
 }
 
-export const whatsappOnboardingMock: WhatsAppOnboardingMock = {
-  progress: 60,
-  connectionState: 'يحتاج مراجعة',
-  businessNumber: '+966 55 123 4567',
-  qualityRating: 'Green' satisfies QualityRating,
-  statuses: [
-    { label: 'حالة الاتصال', value: 'متصل تجريبياً', tone: 'success' },
-    { label: 'تحقق النشاط التجاري', value: 'قيد المراجعة', tone: 'warning' },
-    { label: 'Webhook', value: 'جاهز للاستقبال', tone: 'success' },
-    { label: 'حالة الرقم', value: 'نشط', tone: 'success' },
-    { label: 'تقييم الجودة', value: 'Green', tone: 'success' },
-    { label: 'حالة القوالب', value: '3 معتمدة', tone: 'info' },
-  ] satisfies WhatsAppWorkspaceStatus[],
+export const whatsappOnboardingState: WhatsAppOnboardingState = {
+  progress: 0,
+  connectionState: 'غير متصل',
+  businessNumber: '-',
+  qualityRating: 'Red' satisfies QualityRating,
+  statuses: [] satisfies WhatsAppWorkspaceStatus[],
   steps: [
     {
       id: 'connect-meta',
@@ -146,83 +139,21 @@ export const whatsappConnectionStates: WhatsAppConnectionState[] = [
 ]
 
 export const whatsappBusinessSummary: WhatsAppBusinessSummary = {
-  businessName: 'شركة الرؤيا للتجارة',
-  wabaId: '935014620118422',
-  phoneNumber: '+966 55 123 4567',
-  qualityRating: 'Green',
-  messagingTier: '1K محادثة / 24 ساعة',
+  businessName: '-',
+  wabaId: '-',
+  phoneNumber: '-',
+  qualityRating: 'Red',
+  messagingTier: '-',
 }
 
-export const whatsappSettings: WhatsAppSetting[] = [
-  { id: 'access-token', label: 'Access Token', value: 'EAAB...placeholder', masked: true },
-  { id: 'phone-number-id', label: 'Phone Number ID', value: '104928374650112' },
-  { id: 'business-account-id', label: 'Business Account ID', value: '935014620118422' },
-  { id: 'webhook-token', label: 'Webhook Verify Token', value: 'omni-chat-wa-verify', masked: true },
-  { id: 'api-version', label: 'API Version', value: 'v21.0' },
-]
+export const whatsappSettings: WhatsAppSetting[] = []
 
-export const whatsappTemplates: WhatsAppTemplate[] = [
-  { id: 'tpl-welcome', name: 'welcome_support_ar', category: 'خدمة العملاء', language: 'ar', approvalStatus: 'معتمد', tone: 'success' },
-  { id: 'tpl-sla', name: 'sla_followup_ar', category: 'تنبيه', language: 'ar', approvalStatus: 'قيد المراجعة', tone: 'warning' },
-  { id: 'tpl-otp', name: 'login_otp_ar', category: 'مصادقة', language: 'ar', approvalStatus: 'معتمد', tone: 'success' },
-  { id: 'tpl-promo', name: 'vip_offer_ar', category: 'تسويقي', language: 'ar', approvalStatus: 'مرفوض', tone: 'danger' },
-]
+export const whatsappTemplates: WhatsAppTemplate[] = []
 
-export const whatsappWebhookEvents: WhatsAppWebhookEvent[] = [
-  {
-    id: 'evt-1',
-    name: 'message.received',
-    mappedBusEvent: 'message.created',
-    payload: 'رسالة واردة من واتساب إلى صندوق الوارد الموحد.',
-    receivedAt: 'الآن',
-    status: 'تمت المعالجة',
-    tone: 'success',
-  },
-  {
-    id: 'evt-2',
-    name: 'message.sent',
-    mappedBusEvent: 'message.created',
-    payload: 'تأكيد إرسال رسالة صادرة من وكيل الدعم.',
-    receivedAt: 'قبل 4 دقائق',
-    status: 'تمت المعالجة',
-    tone: 'success',
-  },
-  {
-    id: 'evt-3',
-    name: 'template.status',
-    mappedBusEvent: 'conversation.status_changed',
-    payload: 'تحديث حالة قالب من Meta Business Manager.',
-    receivedAt: 'قبل 18 دقيقة',
-    status: 'بانتظار مراجعة',
-    tone: 'warning',
-  },
-  {
-    id: 'evt-4',
-    name: 'conversation.started',
-    mappedBusEvent: 'conversation.created',
-    payload: 'بدء محادثة واتساب جديدة وإرسالها لمفهوم صندوق الوارد.',
-    receivedAt: 'قبل 31 دقيقة',
-    status: 'تم إنشاء محادثة',
-    tone: 'info',
-  },
-]
+export const whatsappWebhookEvents: WhatsAppWebhookEvent[] = []
 
-export const whatsappDiagnostics: WhatsAppDiagnostic[] = [
-  { id: 'api', label: 'API reachable', status: 'ناجح', detail: 'نقطة Graph API جاهزة للفحص عند الربط.', tone: 'success' },
-  { id: 'webhook', label: 'webhook active', status: 'نشط', detail: 'مسار الاستقبال محفوظ كمعمارية مؤقتة.', tone: 'success' },
-  { id: 'token', label: 'token valid', status: 'قيد الاختبار', detail: 'التحقق الفعلي ينتظر خدمة الخلفية.', tone: 'warning' },
-  { id: 'rate-limit', label: 'rate limit', status: 'سليم', detail: 'لا توجد حدود مستهلكة في بيانات المحاكاة.', tone: 'info' },
-]
+export const whatsappDiagnostics: WhatsAppDiagnostic[] = []
 
-export const whatsappConnectionLogs: WhatsAppConnectionLog[] = [
-  { id: 'log-token', label: 'token refreshed', detail: 'تم تحديث رمز الوصول في نموذج المحاكاة.', occurredAt: 'قبل 3 دقائق', tone: 'success' },
-  { id: 'log-webhook', label: 'webhook verified', detail: 'تمت مطابقة verify token مع مسار الاستقبال المؤقت.', occurredAt: 'قبل 8 دقائق', tone: 'success' },
-  { id: 'log-test', label: 'message test success', detail: 'نجح سيناريو رسالة الاختبار داخل الواجهة فقط.', occurredAt: 'قبل 12 دقيقة', tone: 'info' },
-  { id: 'log-template', label: 'template sync', detail: 'تمت محاكاة مزامنة القوالب من Meta Business.', occurredAt: 'قبل 26 دقيقة', tone: 'warning' },
-]
+export const whatsappConnectionLogs: WhatsAppConnectionLog[] = []
 
-export const whatsappQualityAlerts: WhatsAppQualityAlert[] = [
-  { id: 'quality-low', label: 'low quality', detail: 'تنبيه معماري عند انخفاض تقييم جودة الرقم.', tone: 'warning' },
-  { id: 'quality-rate', label: 'rate limited', detail: 'إظهار قيود المعدل قبل إرسال دفعات كبيرة.', tone: 'info' },
-  { id: 'quality-restricted', label: 'restricted messaging', detail: 'حالة حرجة عند تقييد مراسلة العملاء من Meta.', tone: 'danger' },
-]
+export const whatsappQualityAlerts: WhatsAppQualityAlert[] = []

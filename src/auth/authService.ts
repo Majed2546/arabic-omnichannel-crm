@@ -1,21 +1,21 @@
 import type { AuthTokens, AuthUser } from './authTypes'
 import { loadPersistedAuth, savePersistedAuth, clearPersistedAuth } from './authStorage'
 
-function createMockAuthSession(email: string) {
+function createLocalAuthSession(email: string) {
   const user: AuthUser = {
     id: 'auth-1',
-    name: email.includes('admin') ? 'أحمد المدير' : 'ليلى الدعم',
+    name: 'المستخدم الحالي',
     email,
     role: email.includes('admin') ? 'admin' : email.includes('analyst') ? 'analyst' : 'support',
-    tenant: 'شركة الرؤيا',
+    tenant: 'المستأجر الافتراضي',
     permissions: email.includes('admin')
       ? ['read', 'write', 'manage']
       : ['read', 'write'],
   }
 
   const tokens: AuthTokens = {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
+    accessToken: 'local-access-token',
+    refreshToken: 'local-refresh-token',
   }
 
   return { user, tokens }
@@ -23,7 +23,7 @@ function createMockAuthSession(email: string) {
 
 export async function loginRequest(email: string, password: string) {
   void password
-  const session = createMockAuthSession(email)
+  const session = createLocalAuthSession(email)
   savePersistedAuth(session)
   return session
 }
@@ -35,7 +35,7 @@ export async function refreshTokenRequest() {
   }
 
   const tokens: AuthTokens = {
-    accessToken: `mock-access-token-${Date.now()}`,
+    accessToken: `local-access-token-${Date.now()}`,
     refreshToken: persisted.tokens.refreshToken,
   }
 

@@ -6,10 +6,10 @@ Modern Arabic RTL SaaS frontend for an omnichannel CRM platform.
 
 - React + TypeScript
 - Vite
-- Apollo Client GraphQL setup
 - Zustand UI store
 - Feature-based folder structure
-- Direct Twenty GraphQL connection
+- NestJS REST API integration
+- Socket.IO-ready realtime architecture
 
 ## Experience
 
@@ -28,16 +28,12 @@ npm run build
 npm run lint
 ```
 
-## Twenty GraphQL
+## API Configuration
 
-The frontend reads `VITE_GRAPHQL_API_URL` from `.env` and defaults to:
-
-```bash
-VITE_TWENTY_GRAPHQL_URL=http://localhost:3000/graphql
-```
-
-To read real Twenty records from the browser, add a Twenty API key:
+The frontend talks to the NestJS backend through REST routes and defaults to the Docker nginx proxy path:
 
 ```bash
-VITE_TWENTY_API_KEY=your_twenty_api_key
+VITE_API_BASE_URL=/api
 ```
+
+GraphQL is not required or exposed by the backend. Realtime transport is kept on the existing Socket.IO route at `/socket.io`.

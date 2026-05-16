@@ -1,60 +1,58 @@
-import { useQuery } from '@apollo/client/react'
-import { COMPANIES_QUERY } from '../../graphql/queries/companies'
-import { ErrorState } from '../../components/ui/ErrorState'
+import { useEffect, useState } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { LoadingState } from '../../components/ui/LoadingState'
 import { Card } from '../../components/ui/Card'
 import { DataTable, type DataTableColumn } from '../../components/ui/DataTable'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { useTenantQueryOptions } from '../../tenants/useTenantQueryOptions'
-import { getMockCompaniesFallback, normalizeCompaniesPayload } from '../../graphql/normalizeCompanies'
-import type { Company } from '../../graphql/types'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
+import { unwrapItems } from '../../lib/restUtils'
 
-type CompaniesData = {
-  companies: unknown
+type TenantRecord = {
+  id: string
+  name?: string
+  slug?: string
+  plan?: string
+  status?: string
+  createdAt?: string
 }
 
 export default function TenantsPage() {
-  const tenantQueryOptions = useTenantQueryOptions()
-  const { data, loading, error } = useQuery<CompaniesData>(COMPANIES_QUERY, tenantQueryOptions)
-  const realCompanies = normalizeCompaniesPayload(data)
-  const companies = Array.isArray(realCompanies) && realCompanies.length > 0
-    ? realCompanies
-    : error
-      ? getMockCompaniesFallback()
-      : []
+  const [tenants, setTenants] = useState<TenantRecord[]>([])
 
-  if (loading) {
-    return <LoadingState message="جاري تحميل بيانات الشركات..." />
-  }
+  useEffect(() => {
+    let disposed = false
 
-  if (error && !companies.length) {
-    return (
-      <ErrorState
-        title="تعذر تحميل الشركات"
-        message="لا يمكن الاتصال بخادم الشركات. يُعرض الآن محتوى تجريبي.
-"
-      />
-    )
-  }
+    apiFetch(apiUrl('/tenants'))
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!disposed) setTenants(unwrapItems<TenantRecord>(payload))
+      })
+      .catch(() => {
+        if (!disposed) setTenants([])
+      })
 
-  if (!companies.length) {
+    return () => {
+      disposed = true
+    }
+  }, [])
+
+  if (!tenants.length) {
     return (
       <EmptyState
-        title="لا توجد شركات بعد"
-        message="ابدأ بإضافة حسابات جديدة لمؤسساتك في هذه الصفحة."
+        title="لا توجد مستأجرين"
+        message="لا توجد سجلات مستأجرين راجعة من واجهة REST حالياً."
       />
     )
   }
 
-  const columns: Array<DataTableColumn<Company>> = [
-    { key: 'name', header: 'الشركة', render: (company) => company.name },
-    { key: 'domain', header: 'النطاق', render: (company) => company.domain ?? '-' },
-    { key: 'employees', header: 'عدد الموظفين', render: (company) => company.employees ?? '-' },
+  const columns: Array<DataTableColumn<TenantRecord>> = [
+    { key: 'name', header: 'المستأجر', render: (tenant) => tenant.name ?? tenant.id },
+    { key: 'slug', header: 'المعرف', render: (tenant) => tenant.slug ?? '-' },
+    { key: 'plan', header: 'الخطة', render: (tenant) => tenant.plan ?? '-' },
+    { key: 'status', header: 'الحالة', render: (tenant) => tenant.status ?? '-' },
     {
       key: 'createdAt',
       header: 'تاريخ الإنشاء',
-      render: (company) => company.createdAt ? new Date(company.createdAt).toLocaleDateString('ar-SA') : '-',
+      render: (tenant) => tenant.createdAt ? new Date(tenant.createdAt).toLocaleDateString('ar-SA') : '-',
     },
   ]
 
@@ -62,10 +60,10 @@ export default function TenantsPage() {
     <div className="page-layout">
       <Card>
         <PageHeader
-          title="الشركات من Twenty"
-          description="عرض مؤقت للشركات القادمة من Twenty مع إبقاء نموذج المستأجرين منفصلاً داخلياً."
+          title="المستأجرون"
+          description="سجلات المستأجرين الراجعة من واجهة REST."
         />
-        <DataTable columns={columns} rows={companies} getRowKey={(company) => company.id} />
+        <DataTable columns={columns} rows={tenants} getRowKey={(tenant) => tenant.id} />
       </Card>
     </div>
   )

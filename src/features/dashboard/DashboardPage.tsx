@@ -1,78 +1,112 @@
-import { useMemo } from 'react'
-import { useQuery } from '@apollo/client/react'
-import { DASHBOARD_OVERVIEW_QUERY } from '../../graphql/queries/dashboard'
-import type { Company } from '../../graphql/types'
-import { EmptyState } from '../../components/ui/EmptyState'
-import { LoadingState } from '../../components/ui/LoadingState'
+import { useEffect, useMemo, useState } from 'react'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useTenant } from '../../tenants/useTenant'
-import { useTenantQueryOptions } from '../../tenants/useTenantQueryOptions'
-import { getMockCompaniesFallback, normalizeCompaniesPayload } from '../../graphql/normalizeCompanies'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
+import { unwrapItems } from '../../lib/restUtils'
 
-type DashboardData = {
-  companies: unknown
+type DashboardConversation = {
+  id: string
+  status?: string
+  priority?: string
+  unreadCount?: number
+  channel?: { type?: string } | null
+  createdAt?: string
+  updatedAt?: string
+  lastMessageAt?: string | null
 }
 
-const EMPTY_COMPANIES: Company[] = []
+type DashboardNotification = {
+  id: string
+  priority?: string
+  readAt?: string | null
+}
+
+type DashboardChannel = {
+  id: string
+  type?: string
+  status?: string
+}
+
+async function fetchItems<T>(path: string): Promise<T[]> {
+  const response = await apiFetch(apiUrl(path))
+  if (!response.ok) return []
+  return unwrapItems<T>(await response.json())
+}
 
 export default function DashboardPage() {
   const { currentTenant } = useTenant()
-  const tenantQueryOptions = useTenantQueryOptions()
-  const { data, loading, error } = useQuery<DashboardData>(DASHBOARD_OVERVIEW_QUERY, tenantQueryOptions)
-  const realCompanies = normalizeCompaniesPayload(data)
-  const companies = Array.isArray(realCompanies) && realCompanies.length > 0
-    ? realCompanies
-    : error
-      ? getMockCompaniesFallback()
-      : EMPTY_COMPANIES
+  const [conversations, setConversations] = useState<DashboardConversation[]>([])
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([])
+  const [channels, setChannels] = useState<DashboardChannel[]>([])
+
+  useEffect(() => {
+    let disposed = false
+
+    async function loadDashboard() {
+      const [nextConversations, nextNotifications, nextChannels] = await Promise.all([
+        fetchItems<DashboardConversation>('/conversations?pageSize=100'),
+        fetchItems<DashboardNotification>('/notifications'),
+        fetchItems<DashboardChannel>('/channels'),
+      ])
+
+      if (disposed) return
+      setConversations(nextConversations)
+      setNotifications(nextNotifications)
+      setChannels(nextChannels)
+    }
+
+    loadDashboard()
+    const interval = window.setInterval(loadDashboard, 10_000)
+
+    return () => {
+      disposed = true
+      window.clearInterval(interval)
+    }
+  }, [])
 
   const metrics = useMemo(() => {
-    const safeCompanies = Array.isArray(companies) ? companies : EMPTY_COMPANIES
-    const totalCompanies = safeCompanies.length
-    const namedCompanies = safeCompanies.filter((company) => company.name.trim()).length
+    const activeConversations = conversations.filter((conversation) =>
+      !['CLOSED', 'RESOLVED'].includes(conversation.status ?? ''),
+    )
+    const unreadMessages = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0)
+    const slaAlerts = conversations.filter((conversation) =>
+      ['SLA_WARNING', 'SLA_BREACHED'].includes(conversation.status ?? ''),
+    ).length
+    const unreadNotifications = notifications.filter((notification) => !notification.readAt).length
+    const connectedChannels = channels.filter((channel) =>
+      ['ACTIVE', 'CONNECTED'].includes(channel.status ?? ''),
+    ).length
 
     return {
-      totalCompanies,
-      namedCompanies,
-      activeWorkflows: totalCompanies,
-      awaitingResponse: 0,
+      activeConversations: activeConversations.length,
+      unreadMessages,
+      slaAlerts,
+      unreadNotifications,
+      connectedChannels,
       inboxSummary: [
-        { label: 'الشركات من Twenty', value: totalCompanies },
-        { label: 'سجلات بأسماء', value: namedCompanies },
-        { label: 'اتصال GraphQL', value: realCompanies.length > 0 ? 1 : 0 },
+        { label: 'المحادثات', value: conversations.length },
+        { label: 'غير مقروء', value: unreadMessages },
+        { label: 'التنبيهات', value: unreadNotifications },
       ],
-      topChannels: [
-        { name: 'واتساب', percent: 42 },
-        { name: 'تويتر', percent: 25 },
-        { name: 'إنستغرام', percent: 18 },
-      ],
-      recentActivity:
-        safeCompanies.length > 0
-          ? safeCompanies.slice(0, 3).map((company) => ({
-              id: company.id,
-              text: `${error ? 'بيانات تجريبية للشركة' : 'تم تحميل شركة من Twenty'}: ${company.name}`,
-              time: 'الآن',
-            }))
-          : [
-              { id: '1', text: 'لم تصل بيانات شركات من Twenty بعد', time: 'الآن' },
-            ],
+      channelsByType: Array.from(
+        channels.reduce((counts, channel) => {
+          const type = channel.type || 'غير محدد'
+          counts.set(type, (counts.get(type) ?? 0) + 1)
+          return counts
+        }, new Map<string, number>()),
+      ).map(([name, count]) => ({ name, count })),
+      recentActivity: conversations
+        .filter((conversation) => conversation.lastMessageAt ?? conversation.updatedAt ?? conversation.createdAt)
+        .slice(0, 5)
+        .map((conversation) => ({
+          id: conversation.id,
+          text: `محادثة ${conversation.status ?? 'OPEN'}`,
+          time: new Date(conversation.lastMessageAt ?? conversation.updatedAt ?? conversation.createdAt ?? Date.now()).toLocaleString('ar-SA'),
+        })),
     }
-  }, [companies, error, realCompanies.length])
-
-  if (loading) {
-    return <LoadingState message="جاري تحميل لوحة القيادة..." />
-  }
-
-  if (!data && !error) {
-    return (
-      <EmptyState
-        title="لا توجد بيانات متاحة"
-        message="لم يتم العثور على معلومات عرض في لوحة القيادة حالياً."
-      />
-    )
-  }
+  }, [channels, conversations, notifications])
 
   return (
     <div className="page-layout">
@@ -83,10 +117,10 @@ export default function DashboardPage() {
             description={`نظرة خاصة بحساب ${currentTenant?.name ?? 'المستأجر الحالي'} على أداء الدعم والقنوات.`}
           />
           <div className="stats-grid">
-            <StatCard value={metrics.totalCompanies} label="الشركات من Twenty" />
-            <StatCard value={metrics.namedCompanies} label="شركات بأسماء" />
-            <StatCard value={metrics.awaitingResponse} label="في انتظار الرد" />
-            <StatCard value={metrics.activeWorkflows} label="سير عمل نشط" />
+            <StatCard value={metrics.activeConversations} label="محادثات نشطة" />
+            <StatCard value={metrics.unreadMessages} label="رسائل غير مقروءة" />
+            <StatCard value={metrics.slaAlerts} label="تنبيهات SLA" />
+            <StatCard value={metrics.connectedChannels} label="قنوات متصلة" />
           </div>
         </Card>
 
@@ -101,17 +135,18 @@ export default function DashboardPage() {
             ))}
           </ul>
           <div className="chart-card">
-            <h3>أداء القنوات</h3>
+            <h3>القنوات</h3>
             <ul className="channel-list">
-              {metrics.topChannels.map((channel) => (
+              {metrics.channelsByType.map((channel) => (
                 <li key={channel.name}>
                   <p>{channel.name}</p>
                   <div className="progress-bar">
-                    <span style={{ width: `${channel.percent}%` }} />
+                    <span style={{ width: metrics.connectedChannels ? `${Math.min(100, (channel.count / metrics.connectedChannels) * 100)}%` : '0%' }} />
                   </div>
-                  <strong>{channel.percent}%</strong>
+                  <strong>{channel.count}</strong>
                 </li>
               ))}
+              {!metrics.channelsByType.length ? <li><p>لا توجد قنوات مسجلة</p><strong>0</strong></li> : null}
             </ul>
           </div>
         </Card>
@@ -126,6 +161,7 @@ export default function DashboardPage() {
               <small>{activity.time}</small>
             </article>
           ))}
+          {!metrics.recentActivity.length ? <p className="notification-empty">لا يوجد نشاط بعد تنظيف قاعدة البيانات.</p> : null}
         </div>
       </Card>
     </div>

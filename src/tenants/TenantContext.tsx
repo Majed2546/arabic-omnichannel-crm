@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/useAuth'
-import { apolloClient } from '../lib/apollo'
 import { DEFAULT_TENANT_ID, TENANTS, findTenantById, findTenantByName } from './tenantRegistry'
 import { loadCurrentTenantId, saveCurrentTenantId } from './tenantStorage'
 import { TenantContext } from './tenantContextObject'
@@ -23,7 +22,6 @@ export function TenantProvider({ children }: TenantProviderProps) {
   useEffect(() => {
     if (!effectiveTenantId) return
     saveCurrentTenantId(effectiveTenantId)
-    void apolloClient.clearStore()
   }, [effectiveTenantId])
 
   const canAccessTenant = useCallback((tenantId: string) => {
@@ -36,7 +34,6 @@ export function TenantProvider({ children }: TenantProviderProps) {
     if (!canAccessTenant(tenantId)) return
     setCurrentTenantIdState(tenantId)
     saveCurrentTenantId(tenantId)
-    void apolloClient.clearStore()
   }, [canAccessTenant])
 
   const value = useMemo<TenantContextValue>(

@@ -6,7 +6,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUiStore } from '../../stores/uiStore'
-import { mockRoles, permissionDefinitions, type CrmRole, type PermissionKey } from './rolesMock'
+import { permissionDefinitions, type CrmRole, type PermissionKey } from './rolesMock'
 
 function permissionTone(enabled: boolean) {
   return enabled ? 'success' : 'muted'
@@ -27,11 +27,11 @@ const matrixPermissions = permissionDefinitions.filter((permission) =>
 )
 
 export default function RolesPage() {
-  const [selectedRole, setSelectedRole] = useState<CrmRole | null>(mockRoles[0] ?? null)
+  const [selectedRole, setSelectedRole] = useState<CrmRole | null>(null)
   const [isLoading] = useState(false)
   const showToast = useUiStore((state) => state.showToast)
 
-  const roles = mockRoles
+  const roles: CrmRole[] = []
   const enabledCount = useMemo(
     () => selectedRole ? Object.values(selectedRole.permissions).filter(Boolean).length : 0,
     [selectedRole],
@@ -55,7 +55,7 @@ export default function RolesPage() {
       <AppCard>
         <PageHeader
           title="الأدوار والصلاحيات"
-          description="مصفوفة RBAC مختصرة وجاهزة للربط لاحقاً مع GraphQL وخدمة الصلاحيات."
+          description="مصفوفة RBAC مختصرة وجاهزة للربط لاحقاً مع REST وخدمة الصلاحيات."
           actions={(
             <AppButton onClick={() => showToast('تم تجهيز هيكل RBAC للربط الخلفي', 'success')}>
               اختبار التنبيه

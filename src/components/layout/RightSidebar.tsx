@@ -1,6 +1,15 @@
 import { RealtimeDebugPanel } from './RealtimeDebugPanel'
+import { useInboxStore } from '../../features/inbox/inboxStore'
+import { useNotificationStore } from '../../features/notifications/notificationStore'
 
 export function RightSidebar() {
+  const conversations = useInboxStore((state) => state.conversations)
+  const notifications = useNotificationStore((state) => state.notifications)
+  const activeConversations = conversations.filter((conversation) =>
+    !conversation.archived && conversation.assignmentState !== 'مغلق'
+  ).length
+  const unreadNotifications = notifications.filter((notification) => !notification.read).length
+
   return (
     <aside className="right-sidebar">
       <div className="panel-card card-safe">
@@ -12,25 +21,23 @@ export function RightSidebar() {
       </div>
       <div className="panel-card panel-stats card-safe">
         <div className="card-safe">
-          <span>١٢</span>
-          <p className="text-safe">قناة نشطة</p>
+          <span>{activeConversations}</span>
+          <p className="text-safe">محادثات نشطة</p>
         </div>
         <div className="card-safe">
-          <span>٢٨</span>
-          <p className="text-safe">مستخدم نشط</p>
+          <span>{unreadNotifications}</span>
+          <p className="text-safe">تنبيهات غير مقروءة</p>
         </div>
         <div className="card-safe">
-          <span>٩٤%</span>
-          <p className="text-safe">توافر الخدمة</p>
+          <span>{conversations.length}</span>
+          <p className="text-safe">إجمالي المحادثات</p>
         </div>
       </div>
       <div className="panel-card panel-actions card-safe">
-        <h3 className="text-safe">أهم الخطوات</h3>
-        <ul>
-          <li>تأكيد ربط واتساب</li>
-          <li>إعداد صلاحيات الفرق</li>
-          <li>مراجعة عملاء التجربة</li>
-        </ul>
+        <h3 className="text-safe">الحالة التشغيلية</h3>
+        <p className="panel-copy text-safe">
+          {activeConversations > 0 ? 'توجد محادثات تحتاج متابعة.' : 'لا توجد محادثات نشطة حالياً.'}
+        </p>
       </div>
       <RealtimeDebugPanel />
     </aside>

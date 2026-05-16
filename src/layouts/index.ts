@@ -4,5 +4,4 @@ export { Sidebar } from '../components/layout/Sidebar'
 export { Topbar } from '../components/layout/Topbar'
 export { RightSidebar } from '../components/layout/RightSidebar'
 export { UserCard } from '../components/layout/UserCard'
-export { GraphqlStatusIndicator } from '../components/layout/GraphqlStatusIndicator'
-
+export { BackendStatusIndicator } from '../components/layout/BackendStatusIndicator'

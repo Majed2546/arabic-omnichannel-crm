@@ -2,9 +2,7 @@
 
 declare global {
   interface ImportMetaEnv {
-    readonly VITE_GRAPHQL_API_URL?: string
-    readonly VITE_TWENTY_GRAPHQL_URL?: string
-    readonly VITE_TWENTY_API_KEY?: string
+    readonly VITE_API_BASE_URL?: string
     readonly DEV: boolean
   }
 

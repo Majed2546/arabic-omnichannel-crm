@@ -15,13 +15,8 @@ import type {
   SlaWarningPayload,
 } from './realtimeEvents'
 import { useInboxStore } from '../../features/inbox/inboxStore'
-import { supportQueues, type SupportQueue } from '../../features/inbox/inboxMock'
 import { useNotificationStore } from '../../features/notifications/notificationStore'
 import { usePresenceStore } from './presenceStore'
-
-function resolveSupportQueue(queue: string): SupportQueue {
-  return supportQueues.find((item) => item === queue) ?? 'الدعم'
-}
 
 function toLegacyEvent(event: RealtimeEnvelope): RealtimeEvent | null {
   const updatedAt = 'الآن'
@@ -112,7 +107,7 @@ function toLegacyEvent(event: RealtimeEnvelope): RealtimeEvent | null {
     const payload = event.payload as QueueUpdatedPayload
     return {
       type: 'queue.overloaded',
-      queue: resolveSupportQueue(payload.queue),
+      queue: payload.queue || 'غير مصنف',
       activeCount: payload.activeCount,
       updatedAt,
     }

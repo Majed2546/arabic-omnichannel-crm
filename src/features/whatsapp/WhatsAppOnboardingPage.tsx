@@ -11,7 +11,7 @@ import {
   whatsappConnectionLogs,
   whatsappConnectionStates,
   whatsappDiagnostics,
-  whatsappOnboardingMock,
+  whatsappOnboardingState,
   whatsappQualityAlerts,
   whatsappSettings,
   whatsappTemplates,
@@ -38,10 +38,10 @@ const alertToneLabels: Record<CloudStatusTone, string> = {
 
 export default function WhatsAppOnboardingPage() {
   const showToast = useUiStore((state) => state.showToast)
-  const [testRecipient, setTestRecipient] = useState('+966 55 000 0000')
-  const [testBody, setTestBody] = useState('مرحباً، هذه رسالة اختبار من أومني تشات.')
+  const [testRecipient, setTestRecipient] = useState('')
+  const [testBody, setTestBody] = useState('')
   const [isSignupOpen, setSignupOpen] = useState(false)
-  const onboarding = whatsappOnboardingMock
+  const onboarding = whatsappOnboardingState
 
   const templateColumns = useMemo<Array<DataTableColumn<WhatsAppTemplate>>>(() => [
     { key: 'name', header: 'اسم القالب', render: (template) => template.name },
@@ -104,6 +104,7 @@ export default function WhatsAppOnboardingPage() {
           {onboarding.statuses.map((status) => (
             <IntegrationStatusCard key={status.label} status={status} />
           ))}
+          {!onboarding.statuses.length ? <p className="notification-empty">لا توجد حالة ربط مسجلة حالياً.</p> : null}
         </div>
 
         <div className="whatsapp-quality-strip">
@@ -165,11 +166,12 @@ export default function WhatsAppOnboardingPage() {
                 <AppInput value={setting.masked ? '••••••••••••••••' : setting.value} readOnly />
               </label>
             ))}
+            {!whatsappSettings.length ? <p className="notification-empty">لا توجد إعدادات محفوظة في الواجهة حالياً.</p> : null}
           </div>
         </AppCard>
 
         <AppCard>
-          <PageHeader title="سجل الربط" description="أحداث محاكاة من رحلة Embedded Signup والمزامنة." />
+          <PageHeader title="سجل الربط" description="أحداث الربط الراجعة من الخلفية عند توفرها." />
           <div className="connection-logs-list">
             {whatsappConnectionLogs.map((log) => (
               <article key={log.id}>
@@ -180,6 +182,7 @@ export default function WhatsAppOnboardingPage() {
                 <span>{log.occurredAt}</span>
               </article>
             ))}
+            {!whatsappConnectionLogs.length ? <p className="notification-empty">لا توجد أحداث ربط حالياً.</p> : null}
           </div>
         </AppCard>
       </div>
@@ -188,6 +191,7 @@ export default function WhatsAppOnboardingPage() {
         <AppCard>
           <PageHeader title="إدارة القوالب" description="قوالب الرسائل المرسلة للمراجعة والاعتماد داخل Meta." />
           <DataTable columns={templateColumns} rows={whatsappTemplates} getRowKey={(template) => template.id} />
+          {!whatsappTemplates.length ? <p className="notification-empty">لا توجد قوالب مسجلة حالياً.</p> : null}
         </AppCard>
 
         <AppCard>
@@ -196,6 +200,7 @@ export default function WhatsAppOnboardingPage() {
             {whatsappDiagnostics.map((diagnostic) => (
               <DiagnosticItem key={diagnostic.id} item={diagnostic} />
             ))}
+            {!whatsappDiagnostics.length ? <p className="notification-empty">لا توجد فحوصات Webhook مسجلة حالياً.</p> : null}
           </div>
         </AppCard>
       </div>
@@ -210,6 +215,7 @@ export default function WhatsAppOnboardingPage() {
               <p>{alert.detail}</p>
             </article>
           ))}
+          {!whatsappQualityAlerts.length ? <p className="notification-empty">لا توجد تنبيهات جودة حالياً.</p> : null}
         </div>
       </AppCard>
 
@@ -219,6 +225,7 @@ export default function WhatsAppOnboardingPage() {
           description="أحداث Meta المتوقعة مع ربطها المفاهيمي بحافلة الأحداث الحالية."
         />
         <DataTable columns={webhookColumns} rows={whatsappWebhookEvents} getRowKey={(event) => event.id} />
+        {!whatsappWebhookEvents.length ? <p className="notification-empty">لا توجد أحداث Webhook محفوظة حالياً.</p> : null}
       </AppCard>
 
       <AppCard>
@@ -228,7 +235,7 @@ export default function WhatsAppOnboardingPage() {
           actions={(
             <AppButton
               variant="secondary"
-              onClick={() => showToast('تمت محاكاة إرسال رسالة الاختبار بدون الاتصال بـ Meta', 'info')}
+              onClick={() => showToast('لم يتم إرسال رسالة لأن الربط المباشر غير مفعل من هذه الواجهة', 'info')}
             >
               إرسال اختبار
             </AppButton>
@@ -246,7 +253,7 @@ export default function WhatsAppOnboardingPage() {
           <div className="test-message-preview">
             <small>معاينة صندوق الوارد</small>
             <p>{testBody}</p>
-            <StatusBadge label="محاكاة فقط" tone="info" />
+            <StatusBadge label="غير مرسل" tone="muted" />
           </div>
         </div>
       </AppCard>
@@ -256,7 +263,7 @@ export default function WhatsAppOnboardingPage() {
           <section className="signup-modal" role="dialog" aria-modal="true" aria-labelledby="embedded-signup-title">
             <PageHeader
               title="معالج Embedded Signup"
-              description="محاكاة تدفق Meta Embedded Signup بدون SDK أو OAuth حقيقي."
+              description="تدفق واجهة مهيأ لربط Meta Embedded Signup عند تفعيل SDK وOAuth."
               actions={(
                 <AppButton variant="ghost" onClick={() => setSignupOpen(false)}>
                   إغلاق
@@ -272,11 +279,11 @@ export default function WhatsAppOnboardingPage() {
               <StatusBadge label={onboarding.connectionState} tone={connectionTone(onboarding.connectionState)} />
             </div>
             <div className="signup-modal-actions">
-              <AppButton variant="secondary" onClick={() => showToast('تمت محاكاة خطوة Meta Embedded Signup', 'info')}>
+              <AppButton variant="secondary" onClick={() => showToast('خطوة Meta غير مفعلة بعد', 'info')}>
                 متابعة الخطوة
               </AppButton>
               <AppButton variant="primary" onClick={() => setSignupOpen(false)}>
-                إنهاء المحاكاة
+                إغلاق المعالج
               </AppButton>
             </div>
           </section>

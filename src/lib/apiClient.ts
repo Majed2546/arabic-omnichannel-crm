@@ -1,4 +1,5 @@
 import { createTenantHeaders, withTenantScope } from '../tenants/tenantUtils'
+import { REST_API_BASE_URL } from './apiConfig'
 
 type ApiFetchOptions = RequestInit & {
   tenantScopedBody?: Record<string, unknown>
@@ -25,4 +26,10 @@ export function apiFetch(input: RequestInfo | URL, options: ApiFetchOptions = {}
     body: scopedBody,
     headers: createServiceHeaders(headers),
   })
+}
+
+export function apiUrl(path: string) {
+  const base = REST_API_BASE_URL.replace(/\/$/, '')
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${base}${normalizedPath}`
 }

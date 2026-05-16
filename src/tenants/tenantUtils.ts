@@ -16,14 +16,6 @@ export function createTenantHeaders(tenantId = getCurrentTenantId()): Record<str
     : {}
 }
 
-export function createTenantApolloContext(tenantId = getCurrentTenantId()) {
-  return {
-    tenantId,
-    tenant_id: tenantId,
-    headers: createTenantHeaders(tenantId),
-  }
-}
-
 export function withTenantScope<T extends object>(payload: T, tenantId = getCurrentTenantId()): T & Partial<TenantScoped> {
   return tenantId ? { ...payload, tenant_id: tenantId } : payload
 }

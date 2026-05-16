@@ -16,80 +16,9 @@ type NotificationState = {
   clearAll: () => void
 }
 
-const initialTimestamp = Date.now()
-
 export const useNotificationStore = create<NotificationState>((set) => ({
-  notifications: [
-    {
-      id: 'seed-sla',
-      type: 'sla_warning',
-      priority: 'warning',
-      category: 'sla',
-      title: 'تحذير SLA',
-      message: 'محادثة VIP تقترب من حد الاستجابة.',
-      timestamp: initialTimestamp - 8 * 60_000,
-      read: false,
-      source: 'mock-event-bus',
-      relatedConversationId: 'conv-1',
-    },
-    {
-      id: 'seed-queue',
-      type: 'queue_overload',
-      priority: 'critical',
-      category: 'queue',
-      title: 'ضغط على قائمة الفواتير',
-      message: 'عدد المحادثات النشطة أعلى من الحد التشغيلي.',
-      timestamp: initialTimestamp - 14 * 60_000,
-      read: false,
-      source: 'operations-monitor',
-    },
-    {
-      id: 'seed-whatsapp-quality',
-      type: 'whatsapp_quality_warning',
-      priority: 'warning',
-      category: 'whatsapp',
-      title: 'جودة واتساب تحتاج مراجعة',
-      message: 'تقييم الرقم قريب من المنطقة الصفراء.',
-      timestamp: initialTimestamp - 22 * 60_000,
-      read: true,
-      source: 'whatsapp-cloud-placeholder',
-    },
-  ],
-  activities: [
-    {
-      id: 'activity-seed-sla',
-      category: 'sla',
-      icon: '!',
-      title: 'تحذير SLA',
-      description: 'محادثة VIP تقترب من حد الاستجابة.',
-      timestamp: initialTimestamp - 8 * 60_000,
-      priority: 'warning',
-      source: 'mock-event-bus',
-      type: 'sla_warning',
-    },
-    {
-      id: 'activity-seed-queue',
-      category: 'queue',
-      icon: '#',
-      title: 'ضغط قائمة',
-      description: 'قائمة الفواتير تجاوزت الحد التشغيلي.',
-      timestamp: initialTimestamp - 14 * 60_000,
-      priority: 'critical',
-      source: 'operations-monitor',
-      type: 'queue_overload',
-    },
-    {
-      id: 'activity-seed-automation',
-      category: 'automation',
-      icon: 'A',
-      title: 'تشغيل أتمتة',
-      description: 'تم تشغيل قاعدة تحويل واتساب للدعم.',
-      timestamp: initialTimestamp - 30 * 60_000,
-      priority: 'info',
-      source: 'automation-engine',
-      type: 'automation_triggered',
-    },
-  ],
+  notifications: [],
+  activities: [],
   addAwarenessEvent: (input) =>
     set((state) => {
       const timestamp = Date.now()

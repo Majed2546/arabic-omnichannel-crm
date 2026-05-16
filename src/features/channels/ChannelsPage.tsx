@@ -1,26 +1,55 @@
+import { useEffect, useState } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUiStore } from '../../stores/uiStore'
-import { mockChannels, type ChannelStatus } from './channelsMock'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
+import { unwrapItems } from '../../lib/restUtils'
 
-function channelTone(status: ChannelStatus) {
-  if (status === 'متصل') return 'success'
-  if (status === 'بحاجة لإعداد') return 'warning'
+type ChannelRecord = {
+  id: string
+  type?: string
+  status?: string
+  name?: string
+  label?: string
+  connectedAt?: string | null
+  updatedAt?: string | null
+}
+
+function channelTone(status?: string) {
+  if (status === 'ACTIVE' || status === 'CONNECTED') return 'success'
+  if (status === 'PENDING' || status === 'NEEDS_SETUP') return 'warning'
   return 'danger'
 }
 
 export default function ChannelsPage() {
   const showToast = useUiStore((state) => state.showToast)
-  const channels = mockChannels
+  const [channels, setChannels] = useState<ChannelRecord[]>([])
+
+  useEffect(() => {
+    let disposed = false
+
+    apiFetch(apiUrl('/channels'))
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!disposed) setChannels(unwrapItems<ChannelRecord>(payload))
+      })
+      .catch(() => {
+        if (!disposed) setChannels([])
+      })
+
+    return () => {
+      disposed = true
+    }
+  }, [])
 
   if (!channels.length) {
     return (
       <EmptyState
         title="لا توجد قنوات"
-        message="أضف قنوات جديدة مثل واتساب أو البريد أو المحادثة المباشرة."
+        message="لا توجد قنوات راجعة من واجهة REST حالياً."
       />
     )
   }
@@ -30,7 +59,7 @@ export default function ChannelsPage() {
       <AppCard>
         <PageHeader
           title="القنوات"
-          description="قنوات أومني تشانل جاهزة للربط لاحقاً مع مزودي WhatsApp والبريد والرسائل."
+          description="القنوات المسجلة في backend."
           actions={(
             <AppButton
               variant="primary"
@@ -44,18 +73,18 @@ export default function ChannelsPage() {
           {channels.map((channel) => (
             <article key={channel.id} className="channel-card">
               <div className="channel-meta">
-                <span>{channel.type}</span>
-                <StatusBadge label={channel.status} tone={channelTone(channel.status)} />
+                <span>{channel.type ?? '-'}</span>
+                <StatusBadge label={channel.status ?? 'UNKNOWN'} tone={channelTone(channel.status)} />
               </div>
-              <h3>{channel.label}</h3>
+              <h3>{channel.label ?? channel.name ?? channel.id}</h3>
               <dl className="meta-list">
                 <div>
-                  <dt>آخر مزامنة</dt>
-                  <dd>{new Date(channel.lastSyncAt).toLocaleString('ar-SA')}</dd>
+                  <dt>تاريخ الربط</dt>
+                  <dd>{channel.connectedAt ? new Date(channel.connectedAt).toLocaleString('ar-SA') : '-'}</dd>
                 </div>
                 <div>
-                  <dt>الفريق المسؤول</dt>
-                  <dd>{channel.assignedTeam}</dd>
+                  <dt>آخر تحديث</dt>
+                  <dd>{channel.updatedAt ? new Date(channel.updatedAt).toLocaleString('ar-SA') : '-'}</dd>
                 </div>
               </dl>
             </article>

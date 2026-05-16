@@ -3,7 +3,7 @@ import { useUiStore } from '../../stores/uiStore'
 import { useAuth } from '../../auth/useAuth'
 import { TenantSwitcher } from '../tenants/TenantSwitcher'
 import { useTenant } from '../../tenants/useTenant'
-import { GraphqlStatusIndicator } from './GraphqlStatusIndicator'
+import { BackendStatusIndicator } from './BackendStatusIndicator'
 import { TopbarControl } from '../ui/TopbarControl'
 import { UserCard } from './UserCard'
 import { AppButton } from '../ui/AppButton'
@@ -61,7 +61,7 @@ export function Topbar() {
           aria-label="بحث"
         />
         <TenantSwitcher />
-        <GraphqlStatusIndicator />
+        <BackendStatusIndicator />
         <RealtimeHealthIndicator />
         <NotificationCenter />
         <TopbarControl className="tenant-chip card-safe">

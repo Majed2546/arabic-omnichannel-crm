@@ -6,9 +6,9 @@ import { useUiStore } from '../../stores/uiStore'
 import { realtimeEventBus } from '../../modules/realtime/eventBus'
 import { ConversationCard } from './ConversationCard'
 import { useInboxStore } from './inboxStore'
+import { fetchInboxConversations } from './inboxRest'
 import {
   inboxRealtimeConfig,
-  supportQueues,
   type AgentPresence,
   type Conversation,
   type ConversationPriority,
@@ -50,11 +50,6 @@ const filterLabels: Record<InboxFilter, string> = {
 
 const queueFilterLabels: Record<QueueFilter, string> = {
   all: 'كل القوائم',
-  الدعم: 'الدعم',
-  المبيعات: 'المبيعات',
-  التقنية: 'التقنية',
-  الفواتير: 'الفواتير',
-  VIP: 'VIP',
 }
 
 function priorityTone(priority: ConversationPriority) {
@@ -118,6 +113,7 @@ export default function UnifiedInboxPage() {
   const cyclePriority = useInboxStore((state) => state.cyclePriority)
   const archiveConversation = useInboxStore((state) => state.archiveConversation)
   const applyRealtimeEvent = useInboxStore((state) => state.applyRealtimeEvent)
+  const replaceConversations = useInboxStore((state) => state.replaceConversations)
   const [activeFilter, setActiveFilter] = useState<InboxFilter>('all')
   const [activeQueue, setActiveQueue] = useState<QueueFilter>('all')
   const [now, setNow] = useState(Date.now())
@@ -145,6 +141,11 @@ export default function UnifiedInboxPage() {
     [activeFilter, activeQueue, conversations, search],
   )
 
+  const queueNames = useMemo(
+    () => Array.from(new Set(conversations.map((conversation) => conversation.queue).filter(Boolean))),
+    [conversations],
+  )
+
   const activeConversations = useMemo(
     () => conversations.filter((conversation) => !conversation.archived && conversation.assignmentState !== 'مغلق'),
     [conversations],
@@ -168,7 +169,7 @@ export default function UnifiedInboxPage() {
   }, [activeConversations.length, agents, conversations, now])
 
   const queueStats = useMemo(
-    () => supportQueues.map((queue) => {
+    () => queueNames.map((queue) => {
       const queueConversations = conversations.filter((conversation) => !conversation.archived && conversation.queue === queue)
       return {
         queue,
@@ -177,7 +178,7 @@ export default function UnifiedInboxPage() {
         slaAlerts: queueConversations.filter((conversation) => getSlaState(conversation, now) !== 'ok').length,
       }
     }),
-    [conversations, now],
+    [conversations, now, queueNames],
   )
 
   const workload = useMemo(() => ({
@@ -190,6 +191,32 @@ export default function UnifiedInboxPage() {
     const interval = window.setInterval(() => setNow(Date.now()), 30_000)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    let disposed = false
+    let hasShownFallbackToast = false
+
+    const refreshInbox = () => {
+      fetchInboxConversations().then((items) => {
+        if (disposed) return
+        replaceConversations(items)
+      })
+        .catch(() => {
+          if (!disposed && !hasShownFallbackToast) {
+            hasShownFallbackToast = true
+            showToast('تعذر تحميل المحادثات من REST، سيتم عرض صندوق وارد فارغ مؤقتاً', 'info')
+          }
+        })
+    }
+
+    refreshInbox()
+    const interval = window.setInterval(refreshInbox, 5_000)
+
+    return () => {
+      disposed = true
+      window.clearInterval(interval)
+    }
+  }, [replaceConversations, showToast])
 
   useEffect(() => {
     const unsubscribe = realtimeEventBus.subscribe((event) => {
@@ -208,12 +235,8 @@ export default function UnifiedInboxPage() {
 
       applyRealtimeEvent(event)
     })
-
-    const stopMockStream = realtimeEventBus.startMockInboxStream(() => useInboxStore.getState().conversations)
-
     return () => {
       unsubscribe()
-      stopMockStream()
     }
   }, [applyRealtimeEvent, showToast])
 
@@ -258,11 +281,11 @@ export default function UnifiedInboxPage() {
     if (!body || !selectedConversation) return
 
     if (composerMode === 'internal') {
-      addInternalNote(selectedConversation.id, body, 'أحمد المدير')
+      addInternalNote(selectedConversation.id, body, 'المستخدم الحالي')
       showToast('تمت إضافة الملاحظة الداخلية', 'success')
     } else {
-      addOutgoingReply(selectedConversation.id, body, 'أحمد المدير')
-      showToast('تم إرسال الرد التجريبي', 'success')
+      addOutgoingReply(selectedConversation.id, body, 'المستخدم الحالي')
+      showToast('تم تجهيز الرد للإرسال', 'success')
     }
 
     setReply('')
@@ -279,10 +302,6 @@ export default function UnifiedInboxPage() {
       event.preventDefault()
       submitComposer()
     }
-  }
-
-  if (!conversations.length) {
-    return <EmptyState title="صندوق الوارد فارغ" message="لا توجد محادثات جديدة حتى الآن." />
   }
 
   return (
@@ -325,6 +344,13 @@ export default function UnifiedInboxPage() {
           <small>{item.unassigned} غير مسندة · {item.slaAlerts} SLA</small>
         </button>
       ))}
+      {!queueStats.length ? (
+        <div className="card-safe">
+          <strong>لا توجد قوائم</strong>
+          <span>0</span>
+          <small>لا توجد محادثات مصنفة حالياً</small>
+        </div>
+      ) : null}
     </section>
 
     <div className="page-layout inbox-layout queue-inbox-layout">
@@ -359,14 +385,14 @@ export default function UnifiedInboxPage() {
         </label>
 
         <div className="inbox-status-tabs">
-          {(['all', ...supportQueues] as QueueFilter[]).map((queue) => (
+          {(['all', ...queueNames] as QueueFilter[]).map((queue) => (
             <AppButton
               key={queue}
               variant="ghost"
               className={activeQueue === queue ? 'active' : ''}
               onClick={() => setActiveQueue(queue)}
             >
-              {queueFilterLabels[queue]}
+              {queueFilterLabels[queue] ?? queue}
             </AppButton>
           ))}
         </div>
@@ -460,9 +486,9 @@ export default function UnifiedInboxPage() {
                   onChange={(event) => assignConversationToAgent(selectedConversation.id, event.target.value)}
                   aria-label="إسناد إلى وكيل"
                 >
-                  {agents.map((agent) => (
+                  {agents.length ? agents.map((agent) => (
                     <option key={agent.id} value={agent.id}>{agent.name}</option>
-                  ))}
+                  )) : <option value="unassigned">غير مسند</option>}
                 </select>
                 <select
                   className="ops-select"
@@ -470,7 +496,7 @@ export default function UnifiedInboxPage() {
                   onChange={(event) => moveConversationQueue(selectedConversation.id, event.target.value as SupportQueue)}
                   aria-label="نقل القائمة"
                 >
-                  {supportQueues.map((queue) => (
+                  {queueNames.map((queue) => (
                     <option key={queue} value={queue}>{queue}</option>
                   ))}
                 </select>
@@ -609,6 +635,7 @@ export default function UnifiedInboxPage() {
                 </div>
               </article>
             ))}
+            {!agents.length ? <p className="notification-empty">لا يوجد حضور وكلاء مسجل حالياً.</p> : null}
           </div>
         </div>
 

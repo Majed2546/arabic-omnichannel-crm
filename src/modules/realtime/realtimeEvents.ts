@@ -15,7 +15,7 @@ export type RealtimeEventType =
   | 'notification.created'
   | 'queue.updated'
 
-export type RealtimeEventSource = 'socket.io' | 'redis-pubsub' | 'nestjs-gateway' | 'mock-websocket'
+export type RealtimeEventSource = 'socket.io' | 'redis-pubsub' | 'nestjs-gateway'
 
 export type RealtimeEnvelope<TPayload = Record<string, unknown>> = {
   id: string

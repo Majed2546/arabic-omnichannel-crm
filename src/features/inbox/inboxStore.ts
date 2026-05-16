@@ -1,8 +1,6 @@
 import { create } from 'zustand'
 import type { RealtimeEvent } from '../../modules/realtime/eventBus'
 import {
-  mockConversations,
-  mockQueueAgents,
   type Conversation,
   type ConversationPriority,
   type MessageDeliveryStatus,
@@ -14,6 +12,7 @@ type InboxState = {
   conversations: Conversation[]
   agents: QueueAgent[]
   selectedId: string
+  replaceConversations: (conversations: Conversation[]) => void
   selectConversation: (conversationId: string) => void
   clearSelection: () => void
   addOutgoingReply: (conversationId: string, body: string, author: string) => void
@@ -182,9 +181,16 @@ function setMessageDeliveryState(
 }
 
 export const useInboxStore = create<InboxState>((set, get) => ({
-  conversations: mockConversations,
-  agents: mockQueueAgents,
-  selectedId: mockConversations[0]?.id ?? '',
+  conversations: [],
+  agents: [],
+  selectedId: '',
+  replaceConversations: (conversations) =>
+    set((state) => ({
+      conversations,
+      selectedId: conversations.some((conversation) => conversation.id === state.selectedId)
+        ? state.selectedId
+        : conversations[0]?.id ?? '',
+    })),
   selectConversation: (conversationId) =>
     set((state) => ({
       selectedId: conversationId,
@@ -264,11 +270,11 @@ export const useInboxStore = create<InboxState>((set, get) => ({
               ...conversation,
               status: 'assigned',
               assignmentState: 'مسند',
-              assignee: { ...conversation.assignee, id: 'agent-layla', name: 'ليلى الحسن', presence: 'online' },
+              assignee: { ...conversation.assignee, id: 'current-user', name: 'المستخدم الحالي', presence: 'online' },
               updatedAt: 'الآن',
               timeline: [
                 ...conversation.timeline,
-                { id: `tl-${Date.now()}`, type: 'assigned', label: 'تم إسناد المحادثة إلى ليلى', actor: 'أحمد المدير', occurredAt: 'الآن' },
+                { id: `tl-${Date.now()}`, type: 'assigned', label: 'تم إسناد المحادثة إلى المستخدم الحالي', actor: 'النظام', occurredAt: 'الآن' },
               ],
             }
           : conversation,
@@ -276,7 +282,8 @@ export const useInboxStore = create<InboxState>((set, get) => ({
     })),
   assignConversationToAgent: (conversationId, agentId) =>
     set((state) => {
-      const agent = state.agents.find((item) => item.id === agentId) ?? state.agents[0]
+      const agent = state.agents.find((item) => item.id === agentId)
+      if (!agent) return {}
 
       return {
         conversations: state.conversations.map((conversation) =>
@@ -299,7 +306,7 @@ export const useInboxStore = create<InboxState>((set, get) => ({
                     id: `tl-${Date.now()}`,
                     type: 'assigned',
                     label: `تم إسناد المحادثة إلى ${agent.name}`,
-                    actor: 'أحمد المدير',
+                    actor: 'النظام',
                     occurredAt: 'الآن',
                   },
                 ],
@@ -322,7 +329,7 @@ export const useInboxStore = create<InboxState>((set, get) => ({
                   id: `tl-${Date.now()}`,
                   type: 'reopened',
                   label: `نقلت المحادثة إلى قائمة ${queue}`,
-                  actor: 'أحمد المدير',
+                  actor: 'النظام',
                   occurredAt: 'الآن',
                 },
               ],
@@ -336,18 +343,16 @@ export const useInboxStore = create<InboxState>((set, get) => ({
         conversation.id === conversationId
           ? {
               ...conversation,
-              queue: 'VIP',
               status: 'sla_warning',
               assignmentState: 'مصعد',
-              priority: 'VIP',
               updatedAt: 'الآن',
               timeline: [
                 ...conversation.timeline,
                 {
                   id: `tl-${Date.now()}`,
                   type: 'sla_warning',
-                  label: 'تم تصعيد المحادثة إلى VIP',
-                  actor: 'أحمد المدير',
+                  label: 'تم تصعيد المحادثة',
+                  actor: 'النظام',
                   occurredAt: 'الآن',
                 },
               ],
@@ -367,7 +372,7 @@ export const useInboxStore = create<InboxState>((set, get) => ({
               updatedAt: 'الآن',
               timeline: [
                 ...conversation.timeline,
-                { id: `tl-${Date.now()}`, type: 'resolved', label: 'تم حل المحادثة', actor: 'أحمد المدير', occurredAt: 'الآن' },
+                { id: `tl-${Date.now()}`, type: 'resolved', label: 'تم حل المحادثة', actor: 'النظام', occurredAt: 'الآن' },
               ],
             }
           : conversation,

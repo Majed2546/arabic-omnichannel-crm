@@ -1,48 +1,37 @@
-import { useQuery } from '@apollo/client/react'
-import { PEOPLE_QUERY } from '../../graphql/queries/people'
-import { ErrorState } from '../../components/ui/ErrorState'
+import { useEffect, useState } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { LoadingState } from '../../components/ui/LoadingState'
 import { Card } from '../../components/ui/Card'
 import { DataTable, type DataTableColumn } from '../../components/ui/DataTable'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { useTenantQueryOptions } from '../../tenants/useTenantQueryOptions'
-import { getMockPeopleFallback, normalizePeoplePayload } from '../../graphql/normalizePeople'
-import type { Person } from '../../graphql/types'
-
-type PeopleData = {
-  people: unknown
-}
+import type { Person } from '../../data/types'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
+import { unwrapItems } from '../../lib/restUtils'
 
 export default function UsersPage() {
-  const tenantQueryOptions = useTenantQueryOptions()
-  const { data, loading, error } = useQuery<PeopleData>(PEOPLE_QUERY, tenantQueryOptions)
-  const realPeople = normalizePeoplePayload(data)
-  const people = realPeople.length > 0
-    ? realPeople
-    : error
-      ? getMockPeopleFallback()
-      : []
+  const [people, setPeople] = useState<Person[]>([])
 
-  if (loading) {
-    return <LoadingState message="جاري تحميل المستخدمين..." />
-  }
+  useEffect(() => {
+    let disposed = false
 
-  if (error && !people.length) {
-    return (
-      <ErrorState
-        title="تعذر تحميل المستخدمين"
-        message="لا يمكن الاتصال بخادم الأشخاص من Twenty. يُعرض الآن محتوى تجريبي.
-"
-      />
-    )
-  }
+    apiFetch(apiUrl('/users'))
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!disposed) setPeople(unwrapItems<Person>(payload))
+      })
+      .catch(() => {
+        if (!disposed) setPeople([])
+      })
+
+    return () => {
+      disposed = true
+    }
+  }, [])
 
   if (!people.length) {
     return (
       <EmptyState
         title="لا توجد مستخدمين"
-        message="أضف أعضاء فريق الدعم والعمليات لتفعيل إدارة المستخدمين."
+        message="لا توجد سجلات مستخدمين راجعة من واجهة REST حالياً."
       />
     )
   }
@@ -69,8 +58,8 @@ export default function UsersPage() {
     <div className="page-layout">
       <Card>
         <PageHeader
-          title="الأشخاص من Twenty"
-          description="عرض مؤقت لسجلات الأشخاص القادمة من Twenty داخل صفحة المستخدمين."
+          title="الأشخاص"
+          description="سجلات المستخدمين الراجعة من واجهة REST."
         />
         <DataTable columns={columns} rows={people} getRowKey={(person) => person.id} />
       </Card>

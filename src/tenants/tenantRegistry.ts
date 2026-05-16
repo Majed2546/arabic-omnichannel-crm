@@ -1,17 +1,7 @@
 import type { Tenant } from './tenantTypes'
 
 export const TENANTS: Tenant[] = [
-  { id: 't-1', name: 'شركة الرؤيا', plan: 'Enterprise', status: 'active', contacts: 42 },
-  { id: 't-2', name: 'نماء للحلول', plan: 'Business', status: 'active', contacts: 18 },
-  {
-    id: 't-3',
-    name: 'سحاب للخدمات',
-    plan: 'Starter',
-    status: 'suspended',
-    contacts: 7,
-    inactiveReason: 'تم تعليق الاشتراك مؤقتاً بانتظار مراجعة الفوترة.',
-    lastActivityAt: '2026-05-09T16:30:00+03:00',
-  },
+  { id: 'default-tenant', name: 'المستأجر الافتراضي', plan: 'Enterprise', status: 'active', contacts: 0 },
 ]
 
 export const DEFAULT_TENANT_ID = TENANTS[0]?.id ?? null

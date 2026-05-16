@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
 import { AppSelect } from '../../components/ui/AppSelect'
@@ -6,11 +6,10 @@ import { DataTable, type DataTableColumn } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUiStore } from '../../stores/uiStore'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
 import {
   workflowActions,
   workflowConditions,
-  workflowExecutionLogs,
-  workflowRules,
   workflowTriggers,
   type WorkflowAction,
   type WorkflowCondition,
@@ -48,6 +47,27 @@ export default function WorkflowsPage() {
   const [selectedCondition, setSelectedCondition] = useState<WorkflowCondition>(workflowConditions[0])
   const [selectedAction, setSelectedAction] = useState<WorkflowAction>(workflowActions[0])
   const [enabled, setEnabled] = useState(true)
+  const [workflowRules, setWorkflowRules] = useState<WorkflowRule[]>([])
+  const [workflowExecutionLogs] = useState<WorkflowExecutionLog[]>([])
+
+  useEffect(() => {
+    let disposed = false
+
+    apiFetch(apiUrl('/automation/workflows'))
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (disposed || typeof payload !== 'object' || payload === null) return
+        const workflows = (payload as { workflows?: WorkflowRule[] }).workflows
+        setWorkflowRules(Array.isArray(workflows) ? workflows : [])
+      })
+      .catch(() => {
+        if (!disposed) setWorkflowRules([])
+      })
+
+    return () => {
+      disposed = true
+    }
+  }, [])
 
   const activeRulesCount = workflowRules.filter((rule) => rule.enabled).length
 
@@ -170,18 +190,20 @@ export default function WorkflowsPage() {
         <AppCard>
           <PageHeader
             title="القواعد الحالية"
-            description="قائمة قواعد التشغيل التجريبية بدون تغييرات على الخلفية."
+            description="قواعد الأتمتة الراجعة من واجهة REST."
           />
           <DataTable columns={workflowColumns} rows={workflowRules} getRowKey={(rule) => rule.id} />
+          {!workflowRules.length ? <p className="notification-empty">لا توجد قواعد أتمتة محفوظة حالياً.</p> : null}
         </AppCard>
       </div>
 
       <AppCard>
         <PageHeader
           title="سجل التنفيذ"
-          description="سجل محاكاة يوضح التشغيل، التنفيذ، التخطي، والفشل."
+          description="أحداث التنفيذ الراجعة من الخلفية عند توفرها."
         />
         <DataTable columns={logColumns} rows={workflowExecutionLogs} getRowKey={(log) => log.id} />
+        {!workflowExecutionLogs.length ? <p className="notification-empty">لا توجد أحداث تنفيذ حالياً.</p> : null}
       </AppCard>
     </div>
   )

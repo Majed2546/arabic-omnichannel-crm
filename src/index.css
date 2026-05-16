@@ -399,7 +399,7 @@ button {
   white-space: normal;
 }
 
-.graphql-status {
+.api-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -425,7 +425,7 @@ button {
   overflow: hidden;
 }
 
-.graphql-status span,
+.api-status span,
 .realtime-health span {
   width: 9px;
   height: 9px;
@@ -433,11 +433,11 @@ button {
   background: var(--warning);
 }
 
-.graphql-status.success {
+.api-status.success {
   color: #bbf7d0;
 }
 
-.graphql-status.success span,
+.api-status.success span,
 .realtime-health.success span {
   background: var(--success);
 }
@@ -446,14 +446,23 @@ button {
   color: #bbf7d0;
 }
 
-.graphql-status.error,
+.api-status.error,
 .realtime-health.error {
   color: #fecaca;
 }
 
-.graphql-status.error span,
+.api-status.error span,
 .realtime-health.error span {
   background: #ef4444;
+}
+
+.api-status.pending {
+  color: #fde68a;
+}
+
+.api-status.pending span {
+  background: var(--warning);
+  animation: livePulse 1.6s ease-out infinite;
 }
 
 .realtime-health.pending {
@@ -3663,7 +3672,7 @@ td {
 
   .tenant-switcher,
   .tenant-chip,
-  .graphql-status,
+  .api-status,
   .realtime-health,
   .notification-center,
   .topbar-search,
