@@ -5,6 +5,7 @@ import { ChannelType, MessageStatus, MessageType } from '@prisma/client'
 import type { Queue } from 'bullmq'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { WHATSAPP_MESSAGE_QUEUE, WHATSAPP_WEBHOOK_QUEUE } from '../../events/queue.constants'
+import { createQueueJobId } from '../../events/queue-job-id'
 import { PrismaService } from '../../database/prisma.service'
 import { MessageService } from '../messages/message.service'
 import { WhatsAppEventPublisher } from './whatsapp-event.publisher'
@@ -106,7 +107,7 @@ export class WhatsAppWebhookService {
           await this.messageQueue.add(
             'whatsapp.message.process',
             mapped,
-            { jobId: `wa-message:${mapped.tenantId}:${mapped.externalMessageId}`, attempts: 5, backoff: { type: 'exponential', delay: 5_000 } },
+            { jobId: createQueueJobId('wa-message', mapped.tenantId, mapped.externalMessageId), attempts: 5, backoff: { type: 'exponential', delay: 5_000 } },
           )
 
           const persisted = await this.messages.createIncomingWhatsApp({
@@ -215,7 +216,7 @@ export class WhatsAppWebhookService {
     const firstChange = firstEntry?.changes?.[0]
     const firstMessageId = firstChange?.value.messages?.[0]?.id
     const firstStatusId = firstChange?.value.statuses?.[0]?.id
-    return `wa-webhook:${firstEntry?.id ?? 'unknown'}:${firstMessageId ?? firstStatusId ?? Date.now()}`
+    return createQueueJobId('wa-webhook', firstEntry?.id ?? 'unknown', firstMessageId ?? firstStatusId ?? Date.now())
   }
 
   private validateSignaturePlaceholder(headers: Record<string, string | string[] | undefined>) {

@@ -5,6 +5,7 @@ import { MessageStatus, MessageType, Prisma } from '@prisma/client'
 import type { Queue } from 'bullmq'
 import { PrismaService } from '../../database/prisma.service'
 import { WHATSAPP_OUTBOUND_QUEUE } from '../../events/queue.constants'
+import { createQueueJobId } from '../../events/queue-job-id'
 import { MessageService } from '../messages/message.service'
 import { DirectWhatsAppTestDto, SendWhatsAppMessageDto, WhatsAppOutboundMessageType } from './whatsapp-send.dto'
 import type { WhatsAppOutboundJob } from './whatsapp-send.types'
@@ -65,7 +66,7 @@ export class WhatsAppSendService {
     }
 
     await this.outboundQueue.add('whatsapp.outbound.send', job, {
-      jobId: `whatsapp-outbound:${message.id}`,
+      jobId: createQueueJobId('whatsapp-outbound', message.id),
       attempts: 5,
       backoff: { type: 'exponential', delay: 5_000 },
       removeOnComplete: 500,

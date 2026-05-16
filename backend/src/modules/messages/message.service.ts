@@ -4,6 +4,7 @@ import { MessageSenderType, MessageStatus, MessageType, Prisma } from '@prisma/c
 import type { Queue } from 'bullmq'
 import { PrismaService } from '../../database/prisma.service'
 import { MESSAGE_QUEUE } from '../../events/queue.constants'
+import { createQueueJobId } from '../../events/queue-job-id'
 import { RealtimeService } from '../realtime/realtime.service'
 import { ConversationService } from '../conversations/conversation.service'
 import type { CreateMessageDto, ListMessagesQueryDto, UpdateMessageStatusDto } from './dto'
@@ -57,7 +58,7 @@ export class MessageService {
     })
 
     await this.messageQueue.add('message.persisted', { messageId: message.id, tenantId: message.tenantId }, {
-      jobId: `message:${message.id}:persisted`,
+      jobId: createQueueJobId('message', message.id, 'persisted'),
       attempts: 3,
       backoff: { type: 'exponential', delay: 2_000 },
     })
