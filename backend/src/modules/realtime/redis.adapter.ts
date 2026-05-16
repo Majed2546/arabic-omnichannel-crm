@@ -4,6 +4,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
 import Redis from 'ioredis'
 import { ServerOptions } from 'socket.io'
+import { createRedisOptions, type RedisConnectionConfig } from '../../config/redis.config'
 
 export class RedisIoAdapter extends IoAdapter {
   private readonly logger = new Logger(RedisIoAdapter.name)
@@ -15,12 +16,7 @@ export class RedisIoAdapter extends IoAdapter {
 
   async connectToRedis() {
     const config = this.app.get(ConfigService)
-    const connection = {
-      host: config.get<string>('redis.host'),
-      port: config.get<number>('redis.port'),
-      password: config.get<string>('redis.password'),
-      maxRetriesPerRequest: null,
-    }
+    const connection = createRedisOptions(config.getOrThrow<RedisConnectionConfig>('redis'))
 
     const pubClient = new Redis(connection)
     const subClient = pubClient.duplicate()

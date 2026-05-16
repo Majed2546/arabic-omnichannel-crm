@@ -16,5 +16,16 @@ export function validateEnvironment(config: Environment) {
     }
   }
 
+  if (config.REDIS_URL?.trim()) {
+    try {
+      const parsed = new URL(config.REDIS_URL)
+      if (!['redis:', 'rediss:'].includes(parsed.protocol)) {
+        throw new Error('invalid protocol')
+      }
+    } catch {
+      throw new Error('Environment variable REDIS_URL must be a valid redis:// or rediss:// URL')
+    }
+  }
+
   return config
 }

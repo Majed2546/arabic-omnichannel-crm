@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
 import { ConfigService } from '@nestjs/config'
+import { createRedisOptions, type RedisConnectionConfig } from '../config/redis.config'
 import {
   AUTOMATION_QUEUE,
   MESSAGE_QUEUE,
@@ -16,11 +17,7 @@ import { EventBusService } from './event-bus.service'
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('redis.host'),
-          port: config.get<number>('redis.port'),
-          password: config.get<string>('redis.password'),
-        },
+        connection: createRedisOptions(config.getOrThrow<RedisConnectionConfig>('redis')),
       }),
     }),
     BullModule.registerQueue(
