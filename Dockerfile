@@ -15,4 +15,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD wget -qO- http://localhost/health >/dev/null 2>&1 || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1
