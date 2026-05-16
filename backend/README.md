@@ -18,6 +18,7 @@ docker compose up -d postgres redis
 npm install
 npm run prisma:generate
 npm run prisma:validate
+npm run prisma:seed
 npm run build
 npm run start:dev
 ```
@@ -90,3 +91,18 @@ Core design choices:
 - JSON fields are reserved for provider payloads, workflow rule expressions, and operational metadata; hot query paths remain normalized and indexed.
 
 The schema is PostgreSQL-compatible and intentionally modular so future services can split around inbox, realtime, automation, WhatsApp, and analytics boundaries without rewriting core identifiers.
+
+## Production Seed
+
+Run the production seed after migrations whenever a deployment needs to register the Meta WhatsApp number for webhook ingestion:
+
+```bash
+npm run prisma:seed
+```
+
+The seed is idempotent. It upserts a default active tenant and a WhatsApp channel using:
+
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_BUSINESS_ACCOUNT_ID`
+
+The channel stores the Meta phone number ID in `Channel.externalId`, which is what the webhook engine uses to resolve incoming `phone_number_id` values to the tenant channel.
