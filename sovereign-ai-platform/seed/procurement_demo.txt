@@ -1,0 +1,7 @@
+Procurement Department owns Strategic Sourcing, Purchase Requisition Management, and Supplier Performance Management.
+The Source-to-Pay process is enabled by ERP Procurement and the Supplier Portal.
+The eProcurement Modernization project overlaps with Vendor Portal Upgrade because both target supplier onboarding, requisition workflow, purchase order approvals, and ERP integrations.
+Contract Digitization supports Contract Lifecycle Management and improves Contract Compliance Rate.
+Finance Department governs budget control and invoice matching for procurement.
+IT Department manages integration, identity access management, and ERP platform reliability.
+

@@ -1,0 +1,20 @@
+Sovereign AI Platform Procurement Transformation Demo Corpus
+
+This mixed Arabic-English demo package is designed for testing capability extraction, overlap detection, knowledge graph relationships, and AI Copilot reasoning.
+
+Key capabilities included:
+Strategic Sourcing, Category Planning, Tender Management, Purchase Requisition Management, Purchase Order Management, Vendor Registration, Supplier Master Data Management, Supplier Performance Management, Supplier Relationship Management, Vendor Risk Management, Contract Lifecycle Management, Contract Repository Management, Contract Compliance Management, Budget Control, Commitment Accounting, Invoice Matching, Invoice Exception Management, Spend Analytics, KPI Management, Data Governance, Integration Management, Identity Access Management, Service Catalog Management, Procurement Compliance, Segregation of Duties, Demand Forecasting.
+
+Key overlaps:
+1. ERP Procurement and eProcurement Portal both support requisition intake, approvals, purchase order workflow, and supplier collaboration.
+2. Supplier Portal and Vendor Registration System both collect supplier profile, bank details, certificates, onboarding workflow, and risk flags.
+3. Contract Archive and Contract Lifecycle Portal both store contract metadata, renewal dates, and compliance evidence.
+4. eProcurement Modernization and Vendor Portal Upgrade both target supplier collaboration and onboarding workflow.
+5. Procurement Department and Shared Services Center both support purchase requisition assistance and operational procurement service requests.
+
+Orphan capabilities:
+- Demand Forecasting / إدارة توقعات الطلب is required for category planning but has no clear owner.
+- Category Planning is performed by category managers but is not formally assigned in the organization structure.
+
+Finance relationships:
+Finance Department governs Budget Control, Commitment Accounting, Invoice Matching, Spend Analytics, and payment readiness. Budget System supports ERP Procurement checks. Data Warehouse consumes procurement and finance data for KPI reporting.

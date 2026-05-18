@@ -13,6 +13,7 @@ const navigation: Array<{ path: string; label: string; allowedRoles: AuthUserRol
   { path: '/inbox', label: 'صندوق الوارد', allowedRoles: ['admin', 'support', 'analyst'] },
   { path: '/activity', label: 'سجل النشاط', allowedRoles: ['admin', 'support', 'analyst'] },
   { path: '/whatsapp', label: 'واتساب', allowedRoles: ['admin', 'support'] },
+  { path: '/pplus-observations', label: 'ملاحظات P+', allowedRoles: ['admin', 'support', 'analyst'] },
 ]
 
 export function Sidebar() {

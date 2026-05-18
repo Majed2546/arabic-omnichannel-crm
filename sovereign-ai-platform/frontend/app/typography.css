@@ -1,0 +1,174 @@
+:root {
+  --font-arabic: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Tajawal", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-english: "Inter", "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --type-page-title-size: 36px;
+  --type-page-title-weight: 700;
+  --type-page-title-leading: 1.4;
+  --type-section-title-size: 24px;
+  --type-section-title-weight: 600;
+  --type-section-title-leading: 1.5;
+  --type-card-title-size: 20px;
+  --type-card-title-weight: 600;
+  --type-card-title-leading: 1.5;
+  --type-body-size: 16px;
+  --type-body-weight: 400;
+  --type-body-leading: 1.8;
+  --type-meta-size: 14px;
+  --type-meta-weight: 500;
+  --type-meta-leading: 1.7;
+  --type-sidebar-size: 17px;
+  --type-sidebar-weight: 600;
+  --type-sidebar-leading: 1.6;
+  --type-badge-size: 13px;
+  --type-badge-weight: 600;
+  --type-badge-leading: 1.4;
+  --type-button-size: 15px;
+  --type-button-weight: 600;
+  --type-button-leading: 1.45;
+  --type-relationship-size: 15px;
+  --type-relationship-weight: 500;
+  --type-relationship-leading: 1.7;
+  --type-ai-summary-size: 16px;
+  --type-ai-summary-leading: 1.9;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 800;
+  --tracking-ui: 0;
+}
+
+html {
+  font-family: var(--font-arabic);
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-arabic);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-leading);
+  font-weight: var(--type-body-weight);
+  letter-spacing: var(--tracking-ui);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: 0;
+  font-weight: var(--weight-bold);
+}
+
+p,
+li,
+dd,
+td,
+th {
+  line-height: var(--type-body-leading);
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+  font-weight: var(--weight-medium);
+}
+
+[dir="ltr"],
+.ltr,
+.en,
+.english,
+:lang(en) {
+  direction: ltr;
+  text-align: left;
+  font-family: var(--font-english);
+  letter-spacing: 0;
+}
+
+.type-page-title {
+  font-size: var(--type-page-title-size);
+  line-height: var(--type-page-title-leading);
+  font-weight: var(--type-page-title-weight);
+  color: #18202b;
+}
+
+.type-section-title {
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-leading);
+  font-weight: var(--type-section-title-weight);
+  color: #18202b;
+}
+
+.type-card-title {
+  font-size: var(--type-card-title-size);
+  line-height: var(--type-card-title-leading);
+  font-weight: var(--type-card-title-weight);
+  color: #18202b;
+}
+
+.type-body {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-leading);
+  font-weight: var(--type-body-weight);
+  color: #334155;
+}
+
+.type-meta {
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-leading);
+  font-weight: var(--type-meta-weight);
+  color: #475569;
+}
+
+.type-badge {
+  font-size: var(--type-badge-size);
+  line-height: var(--type-badge-leading);
+  font-weight: var(--type-badge-weight);
+}
+
+.type-ai-summary {
+  font-size: var(--type-ai-summary-size);
+  line-height: var(--type-ai-summary-leading);
+  color: #334155;
+}
+
+.type-english-subtle {
+  font-family: var(--font-english);
+  direction: ltr;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 500;
+  color: #475569;
+}
+
+.type-sidebar-nav {
+  font-size: var(--type-sidebar-size);
+  line-height: var(--type-sidebar-leading);
+  font-weight: var(--type-sidebar-weight);
+}
+
+.type-button {
+  font-size: var(--type-button-size);
+  line-height: var(--type-button-leading);
+  font-weight: var(--type-button-weight);
+}
+
+.type-relationship-label {
+  font-size: var(--type-relationship-size);
+  line-height: var(--type-relationship-leading);
+  font-weight: var(--type-relationship-weight);
+  color: #334155;
+}
