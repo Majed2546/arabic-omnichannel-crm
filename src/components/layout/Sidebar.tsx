@@ -23,10 +23,10 @@ export function Sidebar() {
   return (
     <aside className={`sidebar ${isPanelOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-brand">
-        <span className="brand-mark">أ</span>
+        <span className="brand-mark">ذ</span>
         <div>
-          <p>أومني تشات</p>
-          <small>CRM بالعربية</small>
+          <p>ذكاء بلا حدود</p>
+          <small>Intelligence Without Limits</small>
         </div>
       </div>
       <nav className="sidebar-nav" aria-label="التنقل الرئيسي">

@@ -38,10 +38,10 @@ export default function LoginPage() {
     <div className="auth-shell">
       <section className="auth-card">
         <div className="auth-brand">
-          <span>أ</span>
+          <span>ذ</span>
           <div>
-            <p>أومني تشات</p>
-            <small>تسجيل الدخول</small>
+            <p>ذكاء بلا حدود</p>
+            <small>Intelligence Without Limits</small>
           </div>
         </div>
         <h1>مرحباً بك مجدداً</h1>

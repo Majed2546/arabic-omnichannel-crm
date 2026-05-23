@@ -48,7 +48,7 @@ export function Topbar() {
           ☰
         </button>
         <div className="topbar-title">
-          <p className="topbar-overline">مرحباً بك في منصة أومني تشات</p>
+          <p className="topbar-overline">مرحباً بك في منصة ذكاء بلا حدود · Intelligence Without Limits</p>
           <h1>{pageTitles[location.pathname] ?? 'لوحة القيادة'}</h1>
         </div>
       </div>
