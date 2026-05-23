@@ -5,7 +5,7 @@ import type { AuthUserRole } from '../../auth/authTypes'
 
 const navigation: Array<{ path: string; label: string; allowedRoles: AuthUserRole[] }> = [
   { path: '/', label: 'لوحة القيادة', allowedRoles: ['admin', 'support', 'analyst'] },
-  { path: '/tenants', label: 'المستأجرون', allowedRoles: ['admin', 'support'] },
+  { path: '/tenants', label: 'المستشارون والوكلاء', allowedRoles: ['admin', 'support'] },
   { path: '/users', label: 'المستخدمون', allowedRoles: ['admin', 'support'] },
   { path: '/roles', label: 'الأدوار والصلاحيات', allowedRoles: ['admin'] },
   { path: '/channels', label: 'القنوات', allowedRoles: ['admin', 'support'] },
@@ -13,7 +13,6 @@ const navigation: Array<{ path: string; label: string; allowedRoles: AuthUserRol
   { path: '/inbox', label: 'صندوق الوارد', allowedRoles: ['admin', 'support', 'analyst'] },
   { path: '/activity', label: 'سجل النشاط', allowedRoles: ['admin', 'support', 'analyst'] },
   { path: '/whatsapp', label: 'واتساب', allowedRoles: ['admin', 'support'] },
-  { path: '/pplus-observations', label: 'ملاحظات P+', allowedRoles: ['admin', 'support', 'analyst'] },
 ]
 
 export function Sidebar() {
@@ -23,10 +22,12 @@ export function Sidebar() {
   return (
     <aside className={`sidebar ${isPanelOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-brand">
-        <span className="brand-mark">ذ</span>
+        <span className="brand-mark official-logo-mark">
+          <img src="/brand-logo.png" alt="ذكاء بلا حدود" />
+        </span>
         <div>
           <p>ذكاء بلا حدود</p>
-          <small>Intelligence Without Limits</small>
+          <small>Unlimited Intelligence</small>
         </div>
       </div>
       <nav className="sidebar-nav" aria-label="التنقل الرئيسي">

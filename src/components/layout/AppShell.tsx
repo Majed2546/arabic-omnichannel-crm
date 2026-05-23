@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
-import { RightSidebar } from './RightSidebar'
 import { Topbar } from './Topbar'
 import { ToastViewport } from '../ui/ToastViewport'
 import { useNotificationRealtime } from '../../features/notifications'
@@ -19,7 +18,6 @@ export function AppShell() {
           <Outlet />
         </div>
       </section>
-      <RightSidebar />
       <ToastViewport />
     </div>
   )

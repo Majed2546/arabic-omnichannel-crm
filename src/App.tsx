@@ -10,7 +10,6 @@ import {
   UsersPage,
   WhatsAppOnboardingPage,
   WorkflowsPage,
-  PplusObservationsPage,
 } from './modules'
 import { LoginPage, RequireAuth, UnauthorizedPage } from './pages'
 import { RequireTenant } from './tenants/RequireTenant'
@@ -38,7 +37,6 @@ function App() {
         <Route path="inbox" element={<RequireTenant><UnifiedInboxPage /></RequireTenant>} />
         <Route path="activity" element={<RequireTenant><ActivityFeedPage /></RequireTenant>} />
         <Route path="whatsapp" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support']}><WhatsAppOnboardingPage /></RequireAuth></RequireTenant>} />
-        <Route path="pplus-observations" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support', 'analyst']}><PplusObservationsPage /></RequireAuth></RequireTenant>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

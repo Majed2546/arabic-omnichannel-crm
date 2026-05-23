@@ -14,7 +14,7 @@ import { RealtimeHealthIndicator } from './RealtimeHealthIndicator'
 const pageTitles: Record<string, string> = {
   '/': 'لوحة القيادة',
   '/dashboard': 'لوحة القيادة',
-  '/tenants': 'المستأجرون',
+  '/tenants': 'المستشارون والوكلاء',
   '/users': 'المستخدمون',
   '/roles': 'الأدوار والصلاحيات',
   '/channels': 'القنوات',
@@ -48,7 +48,7 @@ export function Topbar() {
           ☰
         </button>
         <div className="topbar-title">
-          <p className="topbar-overline">مرحباً بك في منصة ذكاء بلا حدود · Intelligence Without Limits</p>
+          <p className="topbar-overline">مرحباً بك في منصة ذكاء بلا حدود · Unlimited Intelligence</p>
           <h1>{pageTitles[location.pathname] ?? 'لوحة القيادة'}</h1>
         </div>
       </div>

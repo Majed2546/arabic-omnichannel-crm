@@ -38,14 +38,14 @@ export default function TenantsPage() {
   if (!tenants.length) {
     return (
       <EmptyState
-        title="لا توجد مستأجرين"
-        message="لا توجد سجلات مستأجرين راجعة من واجهة REST حالياً."
+        title="لا يوجد مستشارون أو وكلاء"
+        message="لا توجد سجلات مستشارين أو وكلاء راجعة من واجهة REST حالياً."
       />
     )
   }
 
   const columns: Array<DataTableColumn<TenantRecord>> = [
-    { key: 'name', header: 'المستأجر', render: (tenant) => tenant.name ?? tenant.id },
+    { key: 'name', header: 'المستشار / الوكيل', render: (tenant) => tenant.name ?? tenant.id },
     { key: 'slug', header: 'المعرف', render: (tenant) => tenant.slug ?? '-' },
     { key: 'plan', header: 'الخطة', render: (tenant) => tenant.plan ?? '-' },
     { key: 'status', header: 'الحالة', render: (tenant) => tenant.status ?? '-' },
@@ -60,8 +60,8 @@ export default function TenantsPage() {
     <div className="page-layout">
       <Card>
         <PageHeader
-          title="المستأجرون"
-          description="سجلات المستأجرين الراجعة من واجهة REST."
+          title="المستشارون والوكلاء"
+          description="سجلات المستشارين والوكلاء الراجعة من واجهة REST."
         />
         <DataTable columns={columns} rows={tenants} getRowKey={(tenant) => tenant.id} />
       </Card>

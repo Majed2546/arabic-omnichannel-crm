@@ -38,10 +38,12 @@ export default function LoginPage() {
     <div className="auth-shell">
       <section className="auth-card">
         <div className="auth-brand">
-          <span>ذ</span>
+          <span className="official-logo-mark auth-logo-mark">
+            <img src="/brand-logo.png" alt="ذكاء بلا حدود" />
+          </span>
           <div>
             <p>ذكاء بلا حدود</p>
-            <small>Intelligence Without Limits</small>
+            <small>Unlimited Intelligence</small>
           </div>
         </div>
         <h1>مرحباً بك مجدداً</h1>
