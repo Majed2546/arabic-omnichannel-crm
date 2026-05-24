@@ -6370,3 +6370,630 @@ body {
     grid-template-columns: minmax(220px, 0.55fr) minmax(0, 1fr) minmax(220px, 0.7fr);
   }
 }
+
+/* Clean SaaS dashboard pass */
+:root {
+  --saas-bg: #f5f7fb;
+  --saas-surface: #ffffff;
+  --saas-soft: #f8fafc;
+  --saas-border: #e5eaf1;
+  --saas-border-strong: #d7e0ea;
+  --saas-text: #14213d;
+  --saas-muted: #667085;
+  --saas-navy: #1d3561;
+  --saas-green: #11835b;
+  --saas-green-soft: #e8f6ef;
+  --saas-navy-soft: #edf2f8;
+  --saas-shadow: 0 10px 28px rgba(20, 33, 61, 0.07);
+  --saas-shadow-hover: 0 16px 34px rgba(20, 33, 61, 0.1);
+  --surface: var(--saas-surface);
+  --surface-strong: var(--saas-soft);
+  --text: var(--saas-text);
+  --muted: var(--saas-muted);
+  --border: var(--saas-border);
+  --border-strong: rgba(17, 131, 91, 0.32);
+  --accent: var(--saas-green);
+  --accent-strong: #0d6949;
+  --accent-warm: var(--saas-navy);
+  --radius-card: 14px;
+  --radius-control: 12px;
+  --shadow-soft: var(--saas-shadow);
+  --shadow: 0 24px 58px rgba(20, 33, 61, 0.12);
+  --focus-ring: 0 0 0 3px rgba(17, 131, 91, 0.16);
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(29, 53, 97, 0.055), transparent 28%),
+    radial-gradient(circle at 92% 10%, rgba(17, 131, 91, 0.055), transparent 26%),
+    var(--saas-bg);
+  color: var(--saas-text);
+}
+
+.app-shell {
+  grid-template-columns: 268px minmax(0, 1fr);
+  grid-template-areas: "nav main";
+  gap: 22px;
+  padding: 22px;
+  background: transparent;
+}
+
+.app-main {
+  max-width: 1500px;
+  gap: 18px;
+}
+
+.app-content,
+.page-layout {
+  gap: 18px;
+}
+
+.sidebar {
+  width: 268px;
+  min-height: calc(100vh - 44px);
+  max-height: calc(100vh - 44px);
+  top: 22px;
+  padding: 16px;
+  border: 1px solid var(--saas-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--saas-shadow);
+}
+
+.sidebar-brand {
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 14px;
+  background: var(--saas-soft);
+}
+
+.sidebar-brand .official-logo-mark {
+  flex: 0 0 76px;
+  width: 76px;
+  height: 58px;
+  padding: 7px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--saas-border);
+  box-shadow: 0 8px 18px rgba(20, 33, 61, 0.08);
+}
+
+.sidebar-brand p {
+  color: var(--saas-navy);
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.sidebar-brand small {
+  color: var(--saas-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sidebar-nav {
+  gap: 6px;
+}
+
+.sidebar-link {
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #475467;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.sidebar-link::after {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #f1f5f9;
+  color: var(--saas-navy);
+  box-shadow: none;
+}
+
+.sidebar-link:hover {
+  background: #f7fafc;
+  border-color: var(--saas-border);
+  color: var(--saas-navy);
+  box-shadow: none;
+}
+
+.sidebar-link.active {
+  background: var(--saas-green-soft);
+  border-color: rgba(17, 131, 91, 0.2);
+  color: var(--saas-green);
+  box-shadow: none;
+}
+
+.sidebar-link.active::before {
+  display: none;
+}
+
+.sidebar-link.active::after {
+  background: var(--saas-green);
+  color: #ffffff;
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 13px;
+  background: var(--saas-soft);
+  box-shadow: none;
+}
+
+.topbar {
+  padding: 16px 18px;
+  border: 1px solid var(--saas-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--saas-shadow);
+  backdrop-filter: blur(10px);
+}
+
+.topbar-title-row {
+  margin-bottom: 12px;
+}
+
+.topbar h1 {
+  color: var(--saas-navy);
+  font-size: clamp(1.55rem, 1.9vw, 2.25rem);
+  font-weight: 900;
+}
+
+.topbar-overline {
+  color: var(--saas-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.topbar-controls-row {
+  gap: 10px;
+}
+
+.topbar-control,
+.icon-button,
+.app-input,
+.app-select,
+.tenant-switcher,
+.profile-chip,
+.ops-select,
+.composer-mode-toggle,
+.chat-composer textarea,
+.auth-form input,
+.test-message-panel textarea {
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--saas-text);
+  box-shadow: none;
+}
+
+.topbar-control:hover,
+.icon-button:hover,
+.app-input:hover,
+.app-select:hover,
+.tenant-switcher:hover,
+.profile-chip:hover {
+  border-color: var(--saas-border-strong);
+  background: #ffffff;
+}
+
+.topbar-search {
+  flex: 1 1 360px;
+  max-width: 460px;
+}
+
+.app-button,
+.secondary-button,
+.logout-button,
+.primary-button,
+.empty-action {
+  border-radius: 12px;
+  box-shadow: none;
+  transform: none;
+}
+
+.app-button:hover,
+.secondary-button:hover,
+.logout-button:hover,
+.primary-button:hover,
+.empty-action:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.app-button-primary,
+.primary-button,
+.empty-action {
+  background: var(--saas-green);
+  color: #ffffff;
+}
+
+.app-button-primary:hover,
+.primary-button:hover,
+.empty-action:hover {
+  background: #0d724f;
+}
+
+.app-button-secondary,
+.app-button-ghost,
+.secondary-button,
+.logout-button {
+  background: #ffffff;
+  border: 1px solid var(--saas-border);
+  color: var(--saas-navy);
+}
+
+.app-button-ghost:hover,
+.secondary-button:hover,
+.logout-button:hover {
+  background: var(--saas-soft);
+  border-color: var(--saas-border-strong);
+  color: var(--saas-navy);
+}
+
+.panel-panel,
+.loading-state,
+.empty-state,
+.stat-card,
+.summary-list li,
+.chart-card,
+.activity-item,
+.conversation-item,
+.ops-widget,
+.meta-list div,
+.profile-section,
+.customer-profile-head,
+.notification-item,
+.activity-event,
+.role-card,
+.channel-card,
+.permission-group,
+.workflow-toggle,
+.diagnostic-item,
+.diagnostics-grid article,
+.business-summary-card div,
+.connection-logs-list article,
+.quality-alerts-grid article {
+  border: 1px solid var(--saas-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: var(--saas-shadow);
+}
+
+.panel-panel {
+  padding: 22px;
+}
+
+.page-header h2,
+.panel-header h2,
+.panel-card h2,
+.panel-card h3,
+.activity-timeline h3,
+.empty-state h2,
+.conversation-card-title strong,
+.customer-profile-trigger,
+.customer-profile-head h3,
+.ops-widget-header h3,
+.profile-section h4,
+.role-card h3,
+.channel-list p,
+.activity-item p,
+td,
+.summary-list span,
+.summary-list small {
+  color: var(--saas-text);
+}
+
+.page-header p,
+.panel-label,
+.panel-card p,
+.notification-item p,
+.activity-event p,
+.conversation-preview,
+.conversation-card-title small,
+.conversation-card-header time,
+.profile-chip small,
+.tenant-chip small,
+.notification-empty,
+.meta-list dt,
+.profile-section small,
+.agent-presence-list small {
+  color: var(--saas-muted);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.stats-grid {
+  gap: 14px;
+}
+
+.stat-card {
+  min-height: 112px;
+  padding: 20px;
+}
+
+.stat-card::before {
+  display: none;
+}
+
+.stat-card h3 {
+  color: var(--saas-navy);
+  font-size: 2rem;
+}
+
+.stat-card p {
+  color: var(--saas-muted);
+}
+
+.summary-list li {
+  padding: 13px 14px;
+  box-shadow: none;
+}
+
+.chart-card {
+  padding: 18px;
+  box-shadow: none;
+}
+
+.progress-bar {
+  background: #eef2f6;
+  box-shadow: none;
+}
+
+.progress-bar span,
+.onboarding-progress span {
+  background: var(--saas-green);
+}
+
+.status-badge,
+.badge,
+.priority-badge,
+.filter-chip,
+.status-pill {
+  border: 1px solid var(--saas-border);
+  background: var(--saas-soft);
+  color: #475467;
+}
+
+.status-badge.success,
+.status-pill.success,
+.conversation-sla-strip,
+.realtime-indicator {
+  background: var(--saas-green-soft);
+  color: var(--saas-green);
+  border-color: rgba(17, 131, 91, 0.18);
+}
+
+.status-badge.info,
+.channel-icon,
+.timeline-event.assigned {
+  background: var(--saas-navy-soft);
+  color: var(--saas-navy);
+  border-color: rgba(29, 53, 97, 0.14);
+}
+
+.auth-shell {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(17, 131, 91, 0.09), transparent 26%),
+    radial-gradient(circle at 82% 14%, rgba(29, 53, 97, 0.09), transparent 28%),
+    var(--saas-bg);
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  padding: 34px;
+  border: 1px solid var(--saas-border);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(20, 33, 61, 0.12);
+}
+
+.auth-brand {
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.auth-brand .official-logo-mark {
+  flex: 0 0 112px;
+  width: 112px;
+  height: 82px;
+  padding: 9px;
+  border: 1px solid var(--saas-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(20, 33, 61, 0.08);
+}
+
+.auth-brand p,
+.auth-card h1 {
+  color: var(--saas-navy);
+}
+
+.auth-brand small {
+  color: var(--saas-green);
+}
+
+.auth-card p,
+.auth-form label {
+  color: var(--saas-muted);
+}
+
+.inbox-layout,
+.queue-inbox-layout {
+  grid-template-columns: minmax(292px, 340px) minmax(620px, 1fr) minmax(230px, 278px);
+  gap: 14px;
+}
+
+.conversation-list-panel,
+.conversation-detail-panel,
+.customer-profile-panel {
+  border: 1px solid var(--saas-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--saas-shadow);
+}
+
+.conversation-list-panel,
+.customer-profile-panel {
+  padding: 12px;
+}
+
+.inbox-panel-header p {
+  display: none;
+}
+
+.inbox-panel-header h2 {
+  color: var(--saas-navy);
+}
+
+.inbox-search-control input {
+  background: var(--saas-soft);
+}
+
+.inbox-status-tabs.compact button {
+  background: #ffffff;
+  border-color: var(--saas-border);
+}
+
+.inbox-status-tabs.compact button.active {
+  background: var(--saas-green-soft);
+  color: var(--saas-green);
+  border-color: rgba(17, 131, 91, 0.2);
+}
+
+.conversation-item {
+  box-shadow: none;
+}
+
+.conversation-item:hover,
+.conversation-item.active {
+  background: var(--saas-soft);
+  border-color: var(--saas-border-strong);
+  box-shadow: none;
+}
+
+.conversation-detail-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.chat-window-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--saas-border);
+}
+
+.chat-thread {
+  background: #f7f9fc;
+}
+
+.message-bubble {
+  box-shadow: none;
+}
+
+.message-bubble.incoming {
+  background: #ffffff;
+}
+
+.message-bubble.outgoing {
+  background: #e6f5ed;
+}
+
+.message-bubble.failed {
+  background: #fff4f2;
+  border-color: rgba(194, 65, 59, 0.28);
+}
+
+.chat-composer {
+  background: #ffffff;
+  border-top: 1px solid var(--saas-border);
+}
+
+.customer-profile-panel {
+  background: #fbfcfe;
+}
+
+.customer-profile-panel::before {
+  display: none;
+}
+
+.customer-profile-head,
+.customer-profile-panel .meta-list div,
+.customer-profile-panel .profile-section,
+.context-activity-list article {
+  box-shadow: none;
+  background: #ffffff;
+}
+
+@media (max-width: 1280px) {
+  .app-shell {
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .sidebar {
+    width: 248px;
+    min-height: calc(100vh - 36px);
+    max-height: calc(100vh - 36px);
+    top: 18px;
+  }
+
+  .dashboard-grid,
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .conversation-list-panel,
+  .conversation-detail-panel,
+  .customer-profile-panel {
+    min-height: auto;
+    max-height: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .sidebar {
+    width: min(284px, 86vw);
+    top: 0;
+    min-height: 100vh;
+    max-height: 100vh;
+  }
+
+  .topbar-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topbar-search,
+  .tenant-switcher,
+  .tenant-chip,
+  .api-status,
+  .realtime-health,
+  .notification-center,
+  .profile-chip,
+  .logout-button {
+    width: 100%;
+    max-width: none;
+  }
+
+  .auth-card {
+    padding: 26px;
+  }
+}
