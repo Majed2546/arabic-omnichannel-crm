@@ -120,6 +120,8 @@ export default function UnifiedInboxPage() {
   const [isSendingReply, setSendingReply] = useState(false)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
+  const threadRef = useRef<HTMLDivElement | null>(null)
+  const threadWasNearBottomRef = useRef(true)
   const showToast = useUiStore((state) => state.showToast)
 
   const selectedConversation = useMemo(
@@ -219,6 +221,33 @@ export default function UnifiedInboxPage() {
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [clearSelection])
+
+  function scrollThreadToBottom(behavior: ScrollBehavior = 'auto') {
+    window.requestAnimationFrame(() => {
+      const thread = threadRef.current
+      if (!thread) return
+      thread.scrollTo({ top: thread.scrollHeight, behavior })
+    })
+  }
+
+  function handleThreadScroll() {
+    const thread = threadRef.current
+    if (!thread) return
+
+    const distanceFromBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight
+    threadWasNearBottomRef.current = distanceFromBottom < 96
+  }
+
+  useEffect(() => {
+    threadWasNearBottomRef.current = true
+    scrollThreadToBottom('auto')
+  }, [selectedConversation?.id])
+
+  useEffect(() => {
+    if (threadWasNearBottomRef.current) {
+      scrollThreadToBottom('smooth')
+    }
+  }, [selectedConversation?.messages.length, selectedConversation?.timeline.length, typingConversationId])
 
   function handleSelectConversation(conversationId: string) {
     selectConversation(conversationId)
@@ -448,7 +477,7 @@ export default function UnifiedInboxPage() {
               </div>
             </div>
 
-            <div className="chat-thread" aria-live="polite">
+            <div ref={threadRef} className="chat-thread" aria-live="polite" onScroll={handleThreadScroll}>
               {selectedConversation.timeline.map((event) => (
                 <article key={event.id} className={`timeline-event ${event.type}`}>
                   <span>{event.label}</span>

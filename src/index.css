@@ -5654,6 +5654,50 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* Inbox context panel light treatment */
+.customer-profile-panel {
+  background:
+    linear-gradient(180deg, #f7fbff 0%, #eef5f8 100%);
+  border: 1px solid rgba(29, 53, 97, 0.13);
+  border-radius: 16px;
+  box-shadow:
+    0 16px 38px rgba(29, 53, 97, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.customer-profile-panel::before {
+  content: "";
+  height: 4px;
+  min-height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--crm-navy), var(--crm-green));
+}
+
+.customer-profile-head,
+.customer-profile-panel .meta-list div,
+.customer-profile-panel .profile-section,
+.context-activity-list article {
+  background:
+    linear-gradient(180deg, #ffffff, #fbfcfd);
+  border-color: rgba(29, 53, 97, 0.12);
+  box-shadow:
+    0 8px 20px rgba(29, 53, 97, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.customer-profile-panel dt,
+.customer-profile-panel .profile-section small,
+.context-activity-list small {
+  color: #68778d;
+}
+
+.customer-profile-panel dd,
+.customer-profile-panel h3,
+.customer-profile-panel h4,
+.context-activity-list strong {
+  color: var(--crm-text);
+}
+
 /* Inbox workspace refinement */
 .app-main:has(.inbox-layout) {
   max-width: 1680px;
