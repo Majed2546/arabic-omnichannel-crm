@@ -16,10 +16,7 @@ import {
   type SupportQueue,
 } from './inboxMock'
 
-type InboxFilter = 'all' | 'unread' | 'assigned' | 'pending' | 'resolved'
-type QueueFilter = 'all' | SupportQueue
-
-const currentAgentId = 'agent-layla'
+type InboxFilter = 'all' | 'unread' | 'pending' | 'resolved' | 'unclassified'
 
 const priorityLabels: Record<ConversationPriority, string> = {
   VIP: 'VIP',
@@ -44,13 +41,9 @@ const deliveryLabels = {
 const filterLabels: Record<InboxFilter, string> = {
   all: 'الكل',
   unread: 'غير مقروء',
-  assigned: 'مسند لي',
   pending: 'بانتظار',
   resolved: 'تم الحل',
-}
-
-const queueFilterLabels: Record<QueueFilter, string> = {
-  all: 'كل القوائم',
+  unclassified: 'غير مصنف',
 }
 
 function priorityTone(priority: ConversationPriority) {
@@ -62,7 +55,7 @@ function priorityTone(priority: ConversationPriority) {
 function conversationMatchesFilter(conversation: Conversation, filter: InboxFilter) {
   if (filter === 'all') return true
   if (filter === 'unread') return conversation.unreadCount > 0 || conversation.status === 'unread'
-  if (filter === 'assigned') return conversation.assignee.id === currentAgentId
+  if (filter === 'unclassified') return conversation.assignmentState === 'غير مسند'
   return conversation.status === filter
 }
 
@@ -116,7 +109,6 @@ export default function UnifiedInboxPage() {
   const applyRealtimeEvent = useInboxStore((state) => state.applyRealtimeEvent)
   const replaceConversations = useInboxStore((state) => state.replaceConversations)
   const [activeFilter, setActiveFilter] = useState<InboxFilter>('all')
-  const [activeQueue, setActiveQueue] = useState<QueueFilter>('all')
   const [now, setNow] = useState(Date.now())
   const [search, setSearch] = useState('')
   const [reply, setReply] = useState('')
@@ -138,11 +130,10 @@ export default function UnifiedInboxPage() {
   const filteredConversations = useMemo(
     () => conversations.filter((conversation) =>
       !conversation.archived &&
-      (activeQueue === 'all' || conversation.queue === activeQueue) &&
       conversationMatchesFilter(conversation, activeFilter) &&
       conversationMatchesSearch(conversation, search),
     ),
-    [activeFilter, activeQueue, conversations, search],
+    [activeFilter, conversations, search],
   )
 
   const queueNames = useMemo(
@@ -150,46 +141,10 @@ export default function UnifiedInboxPage() {
     [conversations],
   )
 
-  const activeConversations = useMemo(
-    () => conversations.filter((conversation) => !conversation.archived && conversation.assignmentState !== 'مغلق'),
-    [conversations],
-  )
-
   const unreadTotal = useMemo(
     () => filteredConversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
     [filteredConversations],
   )
-
-  const operationalStats = useMemo(() => {
-    const visibleConversations = conversations.filter((conversation) => !conversation.archived)
-    const slaAlerts = visibleConversations.filter((conversation) => getSlaState(conversation, now) !== 'ok').length
-
-    return {
-      active: activeConversations.length,
-      unassigned: visibleConversations.filter((conversation) => conversation.assignmentState === 'غير مسند').length,
-      slaAlerts,
-      onlineAgents: agents.filter((agent) => agent.presence === 'online').length,
-    }
-  }, [activeConversations.length, agents, conversations, now])
-
-  const queueStats = useMemo(
-    () => queueNames.map((queue) => {
-      const queueConversations = conversations.filter((conversation) => !conversation.archived && conversation.queue === queue)
-      return {
-        queue,
-        total: queueConversations.length,
-        unassigned: queueConversations.filter((conversation) => conversation.assignmentState === 'غير مسند').length,
-        slaAlerts: queueConversations.filter((conversation) => getSlaState(conversation, now) !== 'ok').length,
-      }
-    }),
-    [conversations, now, queueNames],
-  )
-
-  const workload = useMemo(() => ({
-    activeChats: agents.reduce((total, agent) => total + agent.activeChats, 0),
-    slaWarnings: agents.reduce((total, agent) => total + agent.slaWarnings, 0),
-    onlineAgents: agents.filter((agent) => agent.presence === 'online').length,
-  }), [agents])
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 30_000)
@@ -339,53 +294,6 @@ export default function UnifiedInboxPage() {
 
   return (
     <>
-    <header className="operational-header">
-      <div>
-        <p className="panel-label">مركز العمليات</p>
-        <h2>إدارة القوائم والإسناد</h2>
-      </div>
-      <div className="operational-metrics">
-        <article>
-          <span>{operationalStats.active}</span>
-          <small>محادثات نشطة</small>
-        </article>
-        <article>
-          <span>{operationalStats.unassigned}</span>
-          <small>غير مسندة</small>
-        </article>
-        <article className={operationalStats.slaAlerts > 0 ? 'warning' : ''}>
-          <span>{operationalStats.slaAlerts}</span>
-          <small>تنبيهات SLA</small>
-        </article>
-        <article>
-          <span>{operationalStats.onlineAgents}</span>
-          <small>وكلاء متصلون</small>
-        </article>
-      </div>
-    </header>
-
-    <section className="queue-stats-grid" aria-label="إحصائيات القوائم">
-      {queueStats.map((item) => (
-        <button
-          key={item.queue}
-          type="button"
-          className={activeQueue === item.queue ? 'active' : ''}
-          onClick={() => setActiveQueue(item.queue)}
-        >
-          <strong>{item.queue}</strong>
-          <span>{item.total}</span>
-          <small>{item.unassigned} غير مسندة · {item.slaAlerts} SLA</small>
-        </button>
-      ))}
-      {!queueStats.length ? (
-        <div className="card-safe">
-          <strong>لا توجد قوائم</strong>
-          <span>0</span>
-          <small>لا توجد محادثات مصنفة حالياً</small>
-        </div>
-      ) : null}
-    </section>
-
     <div className="page-layout inbox-layout queue-inbox-layout">
       <section className="panel-panel conversation-list-panel">
         <div className="panel-header inbox-panel-header">
@@ -416,19 +324,6 @@ export default function UnifiedInboxPage() {
             </button>
           ) : null}
         </label>
-
-        <div className="inbox-status-tabs">
-          {(['all', ...queueNames] as QueueFilter[]).map((queue) => (
-            <AppButton
-              key={queue}
-              variant="ghost"
-              className={activeQueue === queue ? 'active' : ''}
-              onClick={() => setActiveQueue(queue)}
-            >
-              {queueFilterLabels[queue] ?? queue}
-            </AppButton>
-          ))}
-        </div>
 
         <div className="inbox-status-tabs compact">
           {(Object.keys(filterLabels) as InboxFilter[]).map((filter) => (
@@ -645,46 +540,6 @@ export default function UnifiedInboxPage() {
       </section>
 
       <aside className="customer-profile-panel">
-        <div className="ops-widget">
-          <div className="ops-widget-header">
-            <h3>عبء العمل</h3>
-            <span>{workload.onlineAgents} متصل</span>
-          </div>
-          <div className="workload-grid">
-            <article>
-              <b>{workload.activeChats}</b>
-              <small>محادثات نشطة</small>
-            </article>
-            <article>
-              <b>{workload.slaWarnings}</b>
-              <small>تحذيرات SLA</small>
-            </article>
-            <article>
-              <b>{workload.onlineAgents}</b>
-              <small>وكلاء متصلون</small>
-            </article>
-          </div>
-        </div>
-
-        <div className="ops-widget">
-          <div className="ops-widget-header">
-            <h3>حضور الوكلاء</h3>
-            <span>{agents.length}</span>
-          </div>
-          <div className="agent-presence-list">
-            {agents.map((agent) => (
-              <article key={agent.id}>
-                <span className={`presence-dot ${agent.presence}`} />
-                <div>
-                  <strong>{agent.name}</strong>
-                  <small>{agent.queue} · {agent.activeChats} نشطة · {agent.slaWarnings} SLA</small>
-                </div>
-              </article>
-            ))}
-            {!agents.length ? <p className="notification-empty">لا يوجد حضور وكلاء مسجل حالياً.</p> : null}
-          </div>
-        </div>
-
         {selectedConversation ? (
           <>
             <div className="customer-profile-head">
@@ -742,8 +597,15 @@ export default function UnifiedInboxPage() {
             </div>
 
             <div className="profile-section">
-              <h4>قنوات الوقت الفعلي</h4>
-              <small>{inboxRealtimeConfig.channels.join(' · ')}</small>
+              <h4>النشاط الأخير</h4>
+              <div className="context-activity-list">
+                {selectedConversation.timeline.slice(-4).map((event) => (
+                  <article key={event.id}>
+                    <strong>{event.label}</strong>
+                    <small>{event.actor} · {event.occurredAt}</small>
+                  </article>
+                ))}
+              </div>
             </div>
           </>
         ) : (

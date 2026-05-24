@@ -48,7 +48,7 @@ const priorityLabels: Record<ConversationPriority, string> = {
 }
 
 const channelBadges: Record<ConversationChannel, string> = {
-  WhatsApp: 'WA',
+  WhatsApp: 'واتساب',
   Telegram: 'TG',
   Email: 'EM',
   'Web Chat': 'WEB',

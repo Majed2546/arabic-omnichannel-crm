@@ -30,6 +30,10 @@ const roleLabels: Record<string, string> = {
   analyst: 'محلل بيانات',
 }
 
+const pageSubtitles: Record<string, string> = {
+  '/inbox': 'مساحة موحدة لمحادثات العملاء عبر القنوات.',
+}
+
 export function Topbar() {
   const location = useLocation()
   const { isPanelOpen, setPanelOpen } = useUiStore()
@@ -48,7 +52,7 @@ export function Topbar() {
           ☰
         </button>
         <div className="topbar-title">
-          <p className="topbar-overline">مرحباً بك في منصة ذكاء بلا حدود · Unlimited Intelligence</p>
+          <p className="topbar-overline">{pageSubtitles[location.pathname] ?? 'مرحباً بك في منصة ذكاء بلا حدود · Unlimited Intelligence'}</p>
           <h1>{pageTitles[location.pathname] ?? 'لوحة القيادة'}</h1>
         </div>
       </div>
