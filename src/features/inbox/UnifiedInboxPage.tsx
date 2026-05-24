@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
@@ -121,6 +121,7 @@ export default function UnifiedInboxPage() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const threadRef = useRef<HTMLDivElement | null>(null)
+  const threadEndRef = useRef<HTMLDivElement | null>(null)
   const threadWasNearBottomRef = useRef(true)
   const showToast = useUiStore((state) => state.showToast)
 
@@ -224,9 +225,7 @@ export default function UnifiedInboxPage() {
 
   function scrollThreadToBottom(behavior: ScrollBehavior = 'auto') {
     window.requestAnimationFrame(() => {
-      const thread = threadRef.current
-      if (!thread) return
-      thread.scrollTo({ top: thread.scrollHeight, behavior })
+      threadEndRef.current?.scrollIntoView({ block: 'end', behavior })
     })
   }
 
@@ -238,7 +237,7 @@ export default function UnifiedInboxPage() {
     threadWasNearBottomRef.current = distanceFromBottom < 96
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     threadWasNearBottomRef.current = true
     scrollThreadToBottom('auto')
   }, [selectedConversation?.id])
@@ -517,6 +516,7 @@ export default function UnifiedInboxPage() {
                   {selectedConversation.customerName} تكتب الآن...
                 </article>
               ) : null}
+              <div ref={threadEndRef} className="thread-scroll-anchor" aria-hidden="true" />
             </div>
 
             <form className={`chat-composer ${composerMode === 'internal' ? 'internal-mode' : ''}`} onSubmit={handleSubmit}>
