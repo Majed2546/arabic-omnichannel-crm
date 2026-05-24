@@ -7232,3 +7232,49 @@ td,
     grid-template-columns: 1fr;
   }
 }
+
+/* RTL shell placement: main navigation belongs on the right edge. */
+.app-shell {
+  direction: rtl;
+  grid-template-columns: 268px minmax(0, 1fr);
+  grid-template-areas: "nav main";
+}
+
+.sidebar {
+  grid-area: nav;
+  justify-self: stretch;
+}
+
+.app-main {
+  grid-area: main;
+  min-width: 0;
+}
+
+@media (max-width: 1280px) {
+  .app-shell {
+    grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-areas: "nav main";
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas: "main";
+  }
+
+  .app-main {
+    grid-area: main;
+  }
+
+  .sidebar {
+    grid-area: main;
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    transform: translateX(110%);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+}
