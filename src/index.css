@@ -7641,3 +7641,209 @@ body,
     min-height: 220px;
   }
 }
+
+/* Inbox responsive contract: stable columns, one chat scroller, no page overflow. */
+body:has(.inbox-layout) {
+  overflow: hidden;
+}
+
+.app-shell:has(.inbox-layout) {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.app-main:has(.inbox-layout) {
+  height: calc(100dvh - (var(--shell-padding) * 2));
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-main:has(.inbox-layout) .app-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-main:has(.inbox-layout) .topbar {
+  flex: 0 0 auto;
+}
+
+.inbox-layout,
+.queue-inbox-layout {
+  --inbox-h: minmax(0, calc(100dvh - (var(--shell-padding) * 2) - 118px));
+  grid-template-columns: minmax(300px, 320px) minmax(520px, 1fr) minmax(280px, 300px);
+  grid-auto-rows: var(--inbox-h);
+  min-height: 0;
+  height: calc(100dvh - (var(--shell-padding) * 2) - 118px);
+  max-height: calc(100dvh - (var(--shell-padding) * 2) - 118px);
+  overflow: hidden;
+}
+
+.conversation-list-panel,
+.conversation-detail-panel,
+.customer-profile-panel {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+.conversation-list-panel {
+  overflow: hidden;
+}
+
+.conversation-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.conversation-detail-panel {
+  overflow: hidden;
+}
+
+.conversation-detail-panel:has(.chat-window-header) {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.chat-thread {
+  min-height: 0;
+  height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.chat-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+.customer-profile-panel {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inbox-status-tabs.compact {
+  display: flex;
+  flex-wrap: wrap;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+@media (min-width: 1440px) {
+  .app-shell:has(.inbox-layout) {
+    --sidebar-width: 260px;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: minmax(320px, 320px) minmax(520px, 1fr) minmax(300px, 300px);
+  }
+}
+
+@media (max-width: 1439px) {
+  .app-shell:has(.inbox-layout) {
+    --sidebar-width: 230px;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: minmax(300px, 300px) minmax(0, 1fr) minmax(250px, 260px);
+  }
+
+  .message-bubble {
+    max-width: min(76%, 560px);
+  }
+}
+
+@media (max-width: 1180px) {
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: minmax(290px, 300px) minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 1fr) auto;
+  }
+
+  .customer-profile-panel {
+    grid-column: 1 / -1;
+    height: auto;
+    min-height: 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 1099px) {
+  .app-main:has(.inbox-layout) {
+    height: calc(100dvh - (var(--shell-padding) * 2));
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    height: calc(100dvh - (var(--shell-padding) * 2) - 108px);
+    max-height: calc(100dvh - (var(--shell-padding) * 2) - 108px);
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  }
+
+  .conversation-list-panel,
+  .conversation-detail-panel {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .customer-profile-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  body:has(.inbox-layout) {
+    overflow: auto;
+  }
+
+  .app-shell:has(.inbox-layout),
+  .app-main:has(.inbox-layout) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .app-main:has(.inbox-layout) .app-content {
+    overflow: visible;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    height: auto;
+    max-height: none;
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    overflow: visible;
+  }
+
+  .conversation-list-panel {
+    height: auto;
+    max-height: none;
+  }
+
+  .conversation-list {
+    max-height: min(58dvh, 480px);
+  }
+
+  .conversation-detail-panel {
+    height: min(78dvh, 680px);
+    min-height: 520px;
+    max-height: min(78dvh, 680px);
+  }
+
+  .customer-profile-panel {
+    display: flex;
+    max-height: none;
+    overflow: visible;
+  }
+}
