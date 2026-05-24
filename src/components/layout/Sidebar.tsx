@@ -1,4 +1,21 @@
 import { NavLink } from 'react-router-dom'
+import {
+  BarChart3,
+  Bot,
+  Cable,
+  CalendarDays,
+  Headset,
+  Inbox,
+  KeyRound,
+  LayoutDashboard,
+  MessageSquareText,
+  Settings,
+  ShieldCheck,
+  Ticket,
+  Users,
+  Video,
+  type LucideIcon,
+} from 'lucide-react'
 import { useUiStore } from '../../stores/uiStore'
 import { useAuth } from '../../auth/useAuth'
 import { ROLE_LABELS } from '../../auth/permissions'
@@ -7,19 +24,24 @@ import type { AuthUserRole, CrmPermission } from '../../auth/authTypes'
 const navigation: Array<{
   path: string
   label: string
+  icon: LucideIcon
   allowedRoles: AuthUserRole[]
   permission: CrmPermission
 }> = [
-  { path: '/', label: 'لوحة القيادة', allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
-  { path: '/tenants', label: 'المستشارون والوكلاء', allowedRoles: ['admin', 'support'], permission: 'settings.view' },
-  { path: '/users', label: 'المستخدمون', allowedRoles: ['admin', 'support'], permission: 'agents.view' },
-  { path: '/roles', label: 'الأدوار والصلاحيات', allowedRoles: ['admin'], permission: 'roles.view' },
-  { path: '/identity', label: 'إدارة الهوية والتكاملات', allowedRoles: ['admin'], permission: 'settings.manage' },
-  { path: '/channels', label: 'القنوات', allowedRoles: ['admin', 'support'], permission: 'channels.view' },
-  { path: '/workflows', label: 'الأتمتة', allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
-  { path: '/inbox', label: 'صندوق الوارد', allowedRoles: ['admin', 'support', 'analyst'], permission: 'inbox.view' },
-  { path: '/activity', label: 'سجل النشاط', allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
-  { path: '/whatsapp', label: 'واتساب', allowedRoles: ['admin', 'support'], permission: 'channels.view' },
+  { path: '/', label: 'لوحة القيادة', icon: LayoutDashboard, allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
+  { path: '/inbox', label: 'صندوق الوارد', icon: Inbox, allowedRoles: ['admin', 'support', 'analyst'], permission: 'inbox.view' },
+  { path: '/customers', label: 'العملاء', icon: Users, allowedRoles: ['admin', 'support', 'analyst'], permission: 'customers.view' },
+  { path: '/appointments', label: 'المواعيد والتقويم', icon: CalendarDays, allowedRoles: ['admin', 'support', 'analyst'], permission: 'appointments.view' },
+  { path: '/meetings', label: 'الاجتماعات المرئية', icon: Video, allowedRoles: ['admin', 'support', 'analyst'], permission: 'meetings.view' },
+  { path: '/tickets', label: 'التذاكر', icon: Ticket, allowedRoles: ['admin', 'support', 'analyst'], permission: 'tickets.view' },
+  { path: '/channels', label: 'القنوات', icon: Cable, allowedRoles: ['admin', 'support', 'analyst'], permission: 'channels.view' },
+  { path: '/templates', label: 'القوالب والردود', icon: MessageSquareText, allowedRoles: ['admin', 'support', 'analyst'], permission: 'templates.view' },
+  { path: '/tenants', label: 'المستشارون والوكلاء', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'agents.view' },
+  { path: '/workflows', label: 'الأتمتة', icon: Bot, allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
+  { path: '/reports', label: 'التقارير', icon: BarChart3, allowedRoles: ['admin', 'analyst'], permission: 'reports.view' },
+  { path: '/roles', label: 'الأدوار والصلاحيات', icon: ShieldCheck, allowedRoles: ['admin'], permission: 'roles.view' },
+  { path: '/identity', label: 'إدارة الهوية والتكاملات', icon: KeyRound, allowedRoles: ['admin'], permission: 'settings.manage' },
+  { path: '/settings', label: 'الإعدادات', icon: Settings, allowedRoles: ['admin'], permission: 'settings.view' },
 ]
 
 export function Sidebar() {
@@ -40,7 +62,9 @@ export function Sidebar() {
       <nav className="sidebar-nav" aria-label="التنقل الرئيسي">
         {navigation
           .filter((item) => canAccess(item.allowedRoles) && can(item.permission))
-          .map((item) => (
+          .map((item) => {
+            const Icon = item.icon
+            return (
             <NavLink
               key={item.path}
               to={item.path}
@@ -50,9 +74,13 @@ export function Sidebar() {
               }
               onClick={() => setPanelOpen(false)}
             >
-              {item.label}
+              <span className="sidebar-icon" aria-hidden="true">
+                <Icon size={18} strokeWidth={2.2} />
+              </span>
+              <span className="sidebar-label">{item.label}</span>
             </NavLink>
-          ))}
+            )
+          })}
       </nav>
       <div className="sidebar-footer">
         <div>

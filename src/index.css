@@ -6487,12 +6487,33 @@ body {
 }
 
 .sidebar-link::after {
+  content: none;
+  display: none;
+}
+
+.sidebar-icon {
+  order: -1;
+  flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
   background: #f1f5f9;
-  color: var(--saas-navy);
+  color: #475467;
   box-shadow: none;
+}
+
+.sidebar-icon svg {
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+}
+
+.sidebar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-link:hover {
@@ -6513,7 +6534,12 @@ body {
   display: none;
 }
 
-.sidebar-link.active::after {
+.sidebar-link:hover .sidebar-icon {
+  background: #e8f6ef;
+  color: var(--saas-navy);
+}
+
+.sidebar-link.active .sidebar-icon {
   background: var(--saas-green);
   color: #ffffff;
 }

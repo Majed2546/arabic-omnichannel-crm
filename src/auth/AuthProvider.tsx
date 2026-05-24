@@ -9,6 +9,7 @@ import {
   getCurrentUserFromStorage,
 } from './authService'
 import { AuthContext } from './authContext'
+import { AUTH_MODE } from './authConfig'
 import type { CrmPermission } from './permissions'
 
 type AuthProviderProps = {
@@ -75,11 +76,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [logout])
 
   const canAccess = useCallback((allowedRoles?: AuthUser['role'][]) => {
+    if (AUTH_MODE === 'local') return Boolean(user)
     if (!allowedRoles || !user) return Boolean(user)
     return allowedRoles.includes(user.role)
   }, [user])
 
   const can = useCallback((permission: CrmPermission) => {
+    if (AUTH_MODE === 'local') return Boolean(user)
     return Boolean(user?.permissions.includes(permission))
   }, [user])
 

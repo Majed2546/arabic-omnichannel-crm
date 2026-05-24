@@ -1,7 +1,7 @@
 import type { AuthTokens, AuthUser } from './authTypes'
 import { loadPersistedAuth, savePersistedAuth, clearPersistedAuth } from './authStorage'
 import { AUTH_MODE, isKeycloakConfigured, keycloakConfig } from './authConfig'
-import { ROLE_PERMISSIONS, mapExternalRolesToLocalRole } from './permissions'
+import { CRM_PERMISSIONS, ROLE_PERMISSIONS, mapExternalRolesToLocalRole } from './permissions'
 
 const KEYCLOAK_PKCE_KEY = 'arabic-crm-keycloak-pkce'
 
@@ -20,9 +20,10 @@ function createLocalAuthSession(email: string) {
     id: 'auth-1',
     name: 'المستخدم الحالي',
     email,
-    role: email.includes('admin') ? 'admin' : email.includes('analyst') ? 'analyst' : 'support',
+    role: 'admin',
+    roles: ['admin', 'local-admin'],
     tenant: 'المستأجر الافتراضي',
-    permissions: ROLE_PERMISSIONS[email.includes('admin') ? 'admin' : email.includes('analyst') ? 'analyst' : 'support'],
+    permissions: [...CRM_PERMISSIONS],
   }
 
   const tokens: AuthTokens = {
@@ -54,12 +55,14 @@ export async function refreshTokenRequest() {
     return persisted
   }
 
+  const user = ensureLocalAdminUser(persisted.user)
+
   const tokens: AuthTokens = {
     accessToken: `local-access-token-${Date.now()}`,
     refreshToken: persisted.tokens.refreshToken,
   }
 
-  const session = { user: persisted.user, tokens }
+  const session = { user, tokens }
   savePersistedAuth(session)
   return session
 }
@@ -69,7 +72,8 @@ export function logoutRequest() {
 }
 
 export function getCurrentUserFromStorage(): AuthUser | null {
-  return loadPersistedAuth()?.user ?? null
+  const user = loadPersistedAuth()?.user ?? null
+  return AUTH_MODE === 'local' && user ? ensureLocalAdminUser(user) : user
 }
 
 export function getCurrentAccessToken(): string | null {
@@ -163,6 +167,15 @@ function createUserFromKeycloakToken(token: string): AuthUser {
     roles,
     tenant: 'Keycloak',
     permissions: ROLE_PERMISSIONS[role],
+  }
+}
+
+function ensureLocalAdminUser(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    role: 'admin',
+    roles: Array.from(new Set([...(user.roles ?? []), 'admin', 'local-admin'])),
+    permissions: [...CRM_PERMISSIONS],
   }
 }
 
