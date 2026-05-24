@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common'
 import { ConversationService } from './conversation.service'
 import { CreateConversationDto, ListConversationsQueryDto } from './dto'
+import { RequirePermissions } from '../auth/auth.decorators'
 
+@RequirePermissions('inbox.view')
 @Controller('conversations')
 export class ConversationsController {
   constructor(private readonly conversations: ConversationService) {}
@@ -20,6 +22,7 @@ export class ConversationsController {
   }
 
   @Post()
+  @RequirePermissions('customers.manage')
   create(@Body() dto: CreateConversationDto) {
     return this.conversations.create(dto)
   }

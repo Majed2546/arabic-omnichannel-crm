@@ -37,3 +37,61 @@ VITE_API_BASE_URL=/api
 ```
 
 GraphQL is not required or exposed by the backend. Realtime transport is kept on the existing Socket.IO route at `/socket.io`.
+
+## Authentication and RBAC
+
+The CRM supports a phased auth model:
+
+- `AUTH_MODE=local` keeps the current development login active and does not require Keycloak.
+- `AUTH_MODE=keycloak` validates API bearer tokens with Keycloak JWKS and maps Keycloak roles/groups to CRM roles.
+
+Backend environment variables:
+
+```bash
+AUTH_MODE=local
+KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_REALM=arabic-crm
+KEYCLOAK_CLIENT_ID=crm-api
+KEYCLOAK_CLIENT_SECRET=
+KEYCLOAK_ISSUER=http://localhost:8080/realms/arabic-crm
+```
+
+Frontend environment variables:
+
+```bash
+VITE_AUTH_MODE=local
+VITE_KEYCLOAK_URL=http://localhost:8080
+VITE_KEYCLOAK_REALM=arabic-crm
+VITE_KEYCLOAK_CLIENT_ID=crm-web
+VITE_KEYCLOAK_ISSUER=http://localhost:8080/realms/arabic-crm
+```
+
+Local mode:
+
+```bash
+AUTH_MODE=local
+VITE_AUTH_MODE=local
+npm run dev
+cd backend && npm run start:dev
+```
+
+Keycloak mode:
+
+```bash
+docker compose --profile keycloak up keycloak keycloak-db
+```
+
+Create a realm named `arabic-crm`, a public frontend client such as `crm-web`, and an API client/audience such as `crm-api`. Add one or more roles or groups that map to CRM roles:
+
+- `admin`, `crm-admin`, or `crm_admin` -> CRM admin
+- `support`, `crm-support`, `crm_support`, or `agent` -> CRM support
+- `analyst`, `crm-analyst`, `crm_analyst`, or `reports` -> CRM analyst
+
+Then run the frontend/backend with:
+
+```bash
+AUTH_MODE=keycloak
+VITE_AUTH_MODE=keycloak
+```
+
+CRM permissions are defined consistently in the backend and frontend, including `dashboard.view`, `inbox.view`, `inbox.reply`, `inbox.assign`, `roles.manage`, and `settings.manage`. In local mode, backend guards allow the existing development flow; in Keycloak mode, API routes require a valid bearer token except public health/auth status and WhatsApp webhook endpoints.

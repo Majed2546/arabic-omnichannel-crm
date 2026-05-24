@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { AuthContextValue, AuthUser } from './authTypes'
-import { loginRequest, logoutRequest, refreshTokenRequest, getCurrentAccessToken, getCurrentUserFromStorage } from './authService'
+import {
+  beginKeycloakLogin,
+  loginRequest,
+  logoutRequest,
+  refreshTokenRequest,
+  getCurrentAccessToken,
+  getCurrentUserFromStorage,
+} from './authService'
 import { AuthContext } from './authContext'
+import type { CrmPermission } from './permissions'
 
 type AuthProviderProps = {
   children: ReactNode
@@ -44,6 +52,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setStatus('authenticated')
   }, [])
 
+  const loginWithKeycloak = useCallback(async () => {
+    await beginKeycloakLogin()
+  }, [])
+
   const logout = useCallback(() => {
     logoutRequest()
     setUser(null)
@@ -67,17 +79,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return allowedRoles.includes(user.role)
   }, [user])
 
+  const can = useCallback((permission: CrmPermission) => {
+    return Boolean(user?.permissions.includes(permission))
+  }, [user])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
       user,
       token,
       login,
+      loginWithKeycloak,
       logout,
       refreshAuth,
       canAccess,
+      can,
     }),
-    [status, user, token, login, logout, refreshAuth, canAccess],
+    [status, user, token, login, loginWithKeycloak, logout, refreshAuth, canAccess, can],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

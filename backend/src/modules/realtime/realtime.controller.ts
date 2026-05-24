@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { RequirePermissions } from '../auth/auth.decorators'
 import { RealtimeService } from './realtime.service'
 
+@RequirePermissions('inbox.view')
 @Controller('realtime')
 export class RealtimeController {
   constructor(private readonly realtime: RealtimeService) {}

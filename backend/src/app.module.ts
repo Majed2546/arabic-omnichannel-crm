@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common'
+import { APP_GUARD } from '@nestjs/core'
 import { ConfigModule } from '@nestjs/config'
 import configuration from './config/configuration'
 import { validateEnvironment } from './config/env.validation'
 import { CommonModule } from './common/common.module'
+import { JwtAuthGuard } from './guards/jwt-auth.guard'
+import { RolesGuard } from './guards/roles.guard'
+import { PermissionGuard } from './guards/permission.guard'
 import { DatabaseModule } from './database/database.module'
 import { EventsModule } from './events/events.module'
 import { AuthModule } from './modules/auth/auth.module'
@@ -39,6 +43,11 @@ import { RealtimeModule } from './modules/realtime/realtime.module'
     NotificationsModule,
     AutomationModule,
     RealtimeModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: PermissionGuard },
   ],
 })
 export class AppModule {}

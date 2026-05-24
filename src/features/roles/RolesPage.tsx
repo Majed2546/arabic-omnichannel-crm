@@ -6,20 +6,21 @@ import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUiStore } from '../../stores/uiStore'
-import { permissionDefinitions, type CrmRole, type PermissionKey } from './rolesMock'
+import { crmRoles, permissionDefinitions, type CrmRole, type PermissionKey } from './rolesMock'
 
 function permissionTone(enabled: boolean) {
   return enabled ? 'success' : 'muted'
 }
 
 const matrixPermissionKeys: PermissionKey[] = [
-  'dashboard',
-  'tenants',
-  'users',
-  'channels',
-  'inbox',
-  'whatsapp',
-  'reports',
+  'dashboard.view',
+  'inbox.view',
+  'inbox.reply',
+  'inbox.assign',
+  'channels.view',
+  'automation.view',
+  'reports.view',
+  'roles.manage',
 ]
 
 const matrixPermissions = permissionDefinitions.filter((permission) =>
@@ -31,7 +32,7 @@ export default function RolesPage() {
   const [isLoading] = useState(false)
   const showToast = useUiStore((state) => state.showToast)
 
-  const roles: CrmRole[] = []
+  const roles: CrmRole[] = crmRoles
   const enabledCount = useMemo(
     () => selectedRole ? Object.values(selectedRole.permissions).filter(Boolean).length : 0,
     [selectedRole],
@@ -55,7 +56,7 @@ export default function RolesPage() {
       <AppCard>
         <PageHeader
           title="الأدوار والصلاحيات"
-          description="مصفوفة RBAC مختصرة وجاهزة للربط لاحقاً مع REST وخدمة الصلاحيات."
+          description="هيكل RBAC المؤسسي وربط أدوار Keycloak بصلاحيات CRM."
           actions={(
             <AppButton onClick={() => showToast('تم تجهيز هيكل RBAC للربط الخلفي', 'success')}>
               اختبار التنبيه
@@ -68,7 +69,7 @@ export default function RolesPage() {
             <div className="permissions-matrix-row permissions-matrix-header" role="row">
               <div className="matrix-cell matrix-role-name" role="columnheader">الدور</div>
               <div className="matrix-cell matrix-users-count" role="columnheader">المستخدمون</div>
-              <div className="matrix-cell matrix-description" role="columnheader">الوصف</div>
+              <div className="matrix-cell matrix-description" role="columnheader">أدوار Keycloak</div>
               {matrixPermissions.map((permission) => (
                 <div key={permission.key} className="matrix-cell matrix-permission" role="columnheader">
                   {permission.label}
@@ -91,7 +92,7 @@ export default function RolesPage() {
                 </div>
                 <div className="matrix-cell matrix-users-count" role="gridcell">{role.usersCount}</div>
                 <div className="matrix-cell matrix-description" role="gridcell">
-                  <span className="text-safe">{role.description}</span>
+                  <span className="text-safe">{role.keycloakRoles.join(' · ')}</span>
                 </div>
                 {matrixPermissions.map((permission) => (
                   <div key={permission.key} className="matrix-cell matrix-permission" role="gridcell">
@@ -128,7 +129,7 @@ export default function RolesPage() {
             <div className="drawer-permissions">
               {permissionDefinitions.map((permission) => (
                 <div key={permission.key}>
-                  <span>{permission.label}</span>
+                  <span>{permission.group} · {permission.label}</span>
                   <StatusBadge
                     label={selectedRole.permissions[permission.key] ? 'مفعل' : 'غير مفعل'}
                     tone={permissionTone(selectedRole.permissions[permission.key])}

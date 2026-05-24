@@ -1,5 +1,5 @@
 import { createTenantHeaders, withTenantScope } from '../tenants/tenantUtils'
-import { REST_API_BASE_URL } from './apiConfig'
+import { getAuthToken, REST_API_BASE_URL } from './apiConfig'
 
 type ApiFetchOptions = RequestInit & {
   tenantScopedBody?: Record<string, unknown>
@@ -7,6 +7,12 @@ type ApiFetchOptions = RequestInit & {
 
 export function createServiceHeaders(headers?: HeadersInit): Headers {
   const serviceHeaders = new Headers(headers)
+  const authToken = getAuthToken()
+
+  if (authToken && !serviceHeaders.has('Authorization')) {
+    serviceHeaders.set('Authorization', `Bearer ${authToken}`)
+  }
+
   Object.entries(createTenantHeaders()).forEach(([key, value]) => {
     serviceHeaders.set(key, value)
   })

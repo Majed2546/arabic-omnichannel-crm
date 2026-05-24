@@ -2,3 +2,44 @@ services:
   backend:
     ports:
       - "4000:4000"
+    environment:
+      AUTH_MODE: ${AUTH_MODE:-local}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-arabic-crm}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-crm-api}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://keycloak:8080/realms/arabic-crm}
+
+  keycloak-db:
+    image: postgres:16-alpine
+    profiles: ["keycloak"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_POSTGRES_DB:-keycloak}
+      POSTGRES_USER: ${KEYCLOAK_POSTGRES_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_POSTGRES_PASSWORD:-keycloak}
+    volumes:
+      - keycloak_data:/var/lib/postgresql/data
+    networks:
+      - production
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    profiles: ["keycloak"]
+    restart: unless-stopped
+    command: ["start-dev"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_POSTGRES_DB:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_POSTGRES_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_POSTGRES_PASSWORD:-keycloak}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - keycloak-db
+    networks:
+      - production
+
+volumes:
+  keycloak_data:

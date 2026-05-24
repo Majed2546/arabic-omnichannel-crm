@@ -3,6 +3,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { useUiStore } from '../../stores/uiStore'
+import { useAuth } from '../../auth/useAuth'
 import { realtimeEventBus } from '../../modules/realtime/eventBus'
 import { ConversationCard } from './ConversationCard'
 import { useInboxStore } from './inboxStore'
@@ -124,6 +125,10 @@ export default function UnifiedInboxPage() {
   const threadEndRef = useRef<HTMLDivElement | null>(null)
   const threadWasNearBottomRef = useRef(true)
   const showToast = useUiStore((state) => state.showToast)
+  const { can } = useAuth()
+  const canReply = can('inbox.reply')
+  const canAssign = can('inbox.assign')
+  const canManageInbox = canAssign || canReply
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedId),
@@ -396,6 +401,8 @@ export default function UnifiedInboxPage() {
               timestamp={conversation.updatedAt}
               selected={conversation.id === selectedId}
               assignedAgent={conversation.assignee}
+              canAssign={canAssign}
+              canManage={canManageInbox}
               onClick={() => handleSelectConversation(conversation.id)}
               onAssign={assignConversation}
               onResolve={resolveConversation}
@@ -444,37 +451,41 @@ export default function UnifiedInboxPage() {
                   label={`SLA ${formatSlaCountdown(selectedConversation, now)}`}
                   tone={getSlaState(selectedConversation, now) === 'breached' ? 'danger' : getSlaState(selectedConversation, now) === 'warning' ? 'warning' : 'success'}
                 />
-                <select
-                  className="ops-select"
-                  value={selectedConversation.assignee.id}
-                  onChange={(event) => assignConversationToAgent(selectedConversation.id, event.target.value)}
-                  aria-label="إسناد إلى وكيل"
-                >
-                  {agents.length ? agents.map((agent) => (
-                    <option key={agent.id} value={agent.id}>{agent.name}</option>
-                  )) : <option value="unassigned">غير مسند</option>}
-                </select>
-                <select
-                  className="ops-select"
-                  value={selectedConversation.queue}
-                  onChange={(event) => moveConversationQueue(selectedConversation.id, event.target.value as SupportQueue)}
-                  aria-label="نقل القائمة"
-                >
-                  {queueNames.map((queue) => (
-                    <option key={queue} value={queue}>{queue}</option>
-                  ))}
-                </select>
-                <AppButton
-                  onClick={() => assignConversation(selectedConversation.id)}
-                >
-                  إسناد لي
-                </AppButton>
-                <AppButton
-                  variant="ghost"
-                  onClick={() => escalateConversation(selectedConversation.id)}
-                >
-                  تصعيد
-                </AppButton>
+                {canAssign ? (
+                  <>
+                    <select
+                      className="ops-select"
+                      value={selectedConversation.assignee.id}
+                      onChange={(event) => assignConversationToAgent(selectedConversation.id, event.target.value)}
+                      aria-label="إسناد إلى وكيل"
+                    >
+                      {agents.length ? agents.map((agent) => (
+                        <option key={agent.id} value={agent.id}>{agent.name}</option>
+                      )) : <option value="unassigned">غير مسند</option>}
+                    </select>
+                    <select
+                      className="ops-select"
+                      value={selectedConversation.queue}
+                      onChange={(event) => moveConversationQueue(selectedConversation.id, event.target.value as SupportQueue)}
+                      aria-label="نقل القائمة"
+                    >
+                      {queueNames.map((queue) => (
+                        <option key={queue} value={queue}>{queue}</option>
+                      ))}
+                    </select>
+                    <AppButton
+                      onClick={() => assignConversation(selectedConversation.id)}
+                    >
+                      إسناد لي
+                    </AppButton>
+                    <AppButton
+                      variant="ghost"
+                      onClick={() => escalateConversation(selectedConversation.id)}
+                    >
+                      تصعيد
+                    </AppButton>
+                  </>
+                ) : null}
               </div>
             </div>
 
@@ -521,43 +532,45 @@ export default function UnifiedInboxPage() {
               <div ref={threadEndRef} className="thread-scroll-anchor" aria-hidden="true" />
             </div>
 
-            <form className={`chat-composer ${composerMode === 'internal' ? 'internal-mode' : ''}`} onSubmit={handleSubmit}>
-              <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('اختيار الرموز جاهز للربط', 'success')}>
-                🙂
-              </AppButton>
-              <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('إرفاق الملفات جاهز للربط', 'success')}>
-                📎
-              </AppButton>
-              <div className="composer-mode-toggle" role="group" aria-label="نوع الرسالة">
-                <button
-                  type="button"
-                  className={composerMode === 'reply' ? 'active' : ''}
-                  onClick={() => setComposerMode('reply')}
-                >
-                  رد للعميل
-                </button>
-                <button
-                  type="button"
-                  className={composerMode === 'internal' ? 'active' : ''}
-                  onClick={() => setComposerMode('internal')}
-                >
-                  ملاحظة داخلية
-                </button>
-              </div>
-              <textarea
-                ref={composerRef}
-                value={reply}
-                disabled={isSendingReply}
-                rows={1}
-                onChange={handleReplyChange}
-                onKeyDown={handleComposerKeyDown}
-                placeholder={composerMode === 'internal' ? 'اكتب ملاحظة داخلية للفريق...' : 'اكتب رداً واضغط Enter للإرسال...'}
-                aria-label={composerMode === 'internal' ? 'نص الملاحظة الداخلية' : 'نص الرد'}
-              />
-              <AppButton type="submit" variant="primary" className="composer-send-button">
-                {isSendingReply ? 'جار الإرسال' : composerMode === 'internal' ? 'حفظ' : 'إرسال'}
-              </AppButton>
-            </form>
+            {canReply ? (
+              <form className={`chat-composer ${composerMode === 'internal' ? 'internal-mode' : ''}`} onSubmit={handleSubmit}>
+                <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('اختيار الرموز جاهز للربط', 'success')}>
+                  🙂
+                </AppButton>
+                <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('إرفاق الملفات جاهز للربط', 'success')}>
+                  📎
+                </AppButton>
+                <div className="composer-mode-toggle" role="group" aria-label="نوع الرسالة">
+                  <button
+                    type="button"
+                    className={composerMode === 'reply' ? 'active' : ''}
+                    onClick={() => setComposerMode('reply')}
+                  >
+                    رد للعميل
+                  </button>
+                  <button
+                    type="button"
+                    className={composerMode === 'internal' ? 'active' : ''}
+                    onClick={() => setComposerMode('internal')}
+                  >
+                    ملاحظة داخلية
+                  </button>
+                </div>
+                <textarea
+                  ref={composerRef}
+                  value={reply}
+                  disabled={isSendingReply}
+                  rows={1}
+                  onChange={handleReplyChange}
+                  onKeyDown={handleComposerKeyDown}
+                  placeholder={composerMode === 'internal' ? 'اكتب ملاحظة داخلية للفريق...' : 'اكتب رداً واضغط Enter للإرسال...'}
+                  aria-label={composerMode === 'internal' ? 'نص الملاحظة الداخلية' : 'نص الرد'}
+                />
+                <AppButton type="submit" variant="primary" className="composer-send-button">
+                  {isSendingReply ? 'جار الإرسال' : composerMode === 'internal' ? 'حفظ' : 'إرسال'}
+                </AppButton>
+              </form>
+            ) : null}
             {composerError ? (
               <div className="inactive-tenant-banner soft-warning">
                 <strong>تعذر إرسال الرسالة</strong>

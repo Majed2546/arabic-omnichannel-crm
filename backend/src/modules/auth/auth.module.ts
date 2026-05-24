@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import type { StringValue } from 'ms'
 import { AuthController } from './auth.controller'
+import { KeycloakAuthService } from './keycloak-auth.service'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuthController } from './auth.controller'
     }),
   ],
   controllers: [AuthController],
-  exports: [JwtModule],
+  providers: [KeycloakAuthService],
+  exports: [JwtModule, KeycloakAuthService],
 })
 export class AuthModule {}

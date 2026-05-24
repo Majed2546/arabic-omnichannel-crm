@@ -24,6 +24,8 @@ type ConversationCardProps = {
   timestamp: string
   selected: boolean
   assignedAgent: InboxAssignee
+  canAssign: boolean
+  canManage: boolean
   onClick: () => void
   onAssign: (conversationId: string) => void
   onResolve: (conversationId: string) => void
@@ -83,6 +85,8 @@ export function ConversationCard({
   timestamp,
   selected,
   assignedAgent,
+  canAssign,
+  canManage,
   onClick,
   onAssign,
   onResolve,
@@ -130,14 +134,16 @@ export function ConversationCard({
         </div>
       </button>
 
-      <div className="conversation-action-toolbar" aria-label="إجراءات سريعة">
-        <button type="button" onClick={handleAction(onAssign)}>إسناد</button>
-        <button type="button" onClick={handleAction(onResolve)}>حل</button>
-        <button type="button" onClick={handleAction(onMarkUnread)}>غير مقروء</button>
-        <button type="button" onClick={handleAction(onPriority)}>أولوية</button>
-        <button type="button" onClick={handleAction(onEscalate)}>تصعيد</button>
-        <button type="button" onClick={handleAction(onArchive)}>أرشفة</button>
-      </div>
+      {canAssign || canManage ? (
+        <div className="conversation-action-toolbar" aria-label="إجراءات سريعة">
+          {canAssign ? <button type="button" onClick={handleAction(onAssign)}>إسناد</button> : null}
+          {canManage ? <button type="button" onClick={handleAction(onResolve)}>حل</button> : null}
+          {canManage ? <button type="button" onClick={handleAction(onMarkUnread)}>غير مقروء</button> : null}
+          {canManage ? <button type="button" onClick={handleAction(onPriority)}>أولوية</button> : null}
+          {canAssign ? <button type="button" onClick={handleAction(onEscalate)}>تصعيد</button> : null}
+          {canManage ? <button type="button" onClick={handleAction(onArchive)}>أرشفة</button> : null}
+        </div>
+      ) : null}
       <div className={`conversation-sla-strip ${slaState}`}>
         <span>SLA</span>
         <b>{slaLabel}</b>

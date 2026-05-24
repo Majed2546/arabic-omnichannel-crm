@@ -1,23 +1,30 @@
 import { NavLink } from 'react-router-dom'
 import { useUiStore } from '../../stores/uiStore'
 import { useAuth } from '../../auth/useAuth'
-import type { AuthUserRole } from '../../auth/authTypes'
+import { ROLE_LABELS } from '../../auth/permissions'
+import type { AuthUserRole, CrmPermission } from '../../auth/authTypes'
 
-const navigation: Array<{ path: string; label: string; allowedRoles: AuthUserRole[] }> = [
-  { path: '/', label: 'لوحة القيادة', allowedRoles: ['admin', 'support', 'analyst'] },
-  { path: '/tenants', label: 'المستشارون والوكلاء', allowedRoles: ['admin', 'support'] },
-  { path: '/users', label: 'المستخدمون', allowedRoles: ['admin', 'support'] },
-  { path: '/roles', label: 'الأدوار والصلاحيات', allowedRoles: ['admin'] },
-  { path: '/channels', label: 'القنوات', allowedRoles: ['admin', 'support'] },
-  { path: '/workflows', label: 'الأتمتة', allowedRoles: ['admin'] },
-  { path: '/inbox', label: 'صندوق الوارد', allowedRoles: ['admin', 'support', 'analyst'] },
-  { path: '/activity', label: 'سجل النشاط', allowedRoles: ['admin', 'support', 'analyst'] },
-  { path: '/whatsapp', label: 'واتساب', allowedRoles: ['admin', 'support'] },
+const navigation: Array<{
+  path: string
+  label: string
+  allowedRoles: AuthUserRole[]
+  permission: CrmPermission
+}> = [
+  { path: '/', label: 'لوحة القيادة', allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
+  { path: '/tenants', label: 'المستشارون والوكلاء', allowedRoles: ['admin', 'support'], permission: 'settings.view' },
+  { path: '/users', label: 'المستخدمون', allowedRoles: ['admin', 'support'], permission: 'agents.view' },
+  { path: '/roles', label: 'الأدوار والصلاحيات', allowedRoles: ['admin'], permission: 'roles.view' },
+  { path: '/identity', label: 'إدارة الهوية والتكاملات', allowedRoles: ['admin'], permission: 'settings.manage' },
+  { path: '/channels', label: 'القنوات', allowedRoles: ['admin', 'support'], permission: 'channels.view' },
+  { path: '/workflows', label: 'الأتمتة', allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
+  { path: '/inbox', label: 'صندوق الوارد', allowedRoles: ['admin', 'support', 'analyst'], permission: 'inbox.view' },
+  { path: '/activity', label: 'سجل النشاط', allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
+  { path: '/whatsapp', label: 'واتساب', allowedRoles: ['admin', 'support'], permission: 'channels.view' },
 ]
 
 export function Sidebar() {
   const { isPanelOpen, setPanelOpen } = useUiStore()
-  const { canAccess, user, logout } = useAuth()
+  const { canAccess, can, user, logout } = useAuth()
 
   return (
     <aside className={`sidebar ${isPanelOpen ? 'sidebar-open' : ''}`}>
@@ -32,7 +39,7 @@ export function Sidebar() {
       </div>
       <nav className="sidebar-nav" aria-label="التنقل الرئيسي">
         {navigation
-          .filter((item) => canAccess(item.allowedRoles))
+          .filter((item) => canAccess(item.allowedRoles) && can(item.permission))
           .map((item) => (
             <NavLink
               key={item.path}
@@ -50,7 +57,7 @@ export function Sidebar() {
       <div className="sidebar-footer">
         <div>
           <p>{user?.name ?? 'ضيف'}</p>
-          <small>{user?.role === 'admin' ? 'مدير النظام' : user?.role === 'support' ? 'مشرف الدعم' : 'محلل بيانات'}</small>
+          <small>{user ? ROLE_LABELS[user.role] : 'زائر'}</small>
         </div>
         <button type="button" className="secondary-button" onClick={logout}>
           تسجيل الخروج
