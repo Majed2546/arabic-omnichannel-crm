@@ -7278,3 +7278,366 @@ td,
     transform: translateX(0);
   }
 }
+
+/* Responsive shell and Inbox rebalance */
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-shell {
+  --shell-padding: clamp(14px, 1.6vw, 24px);
+  --shell-gap: clamp(12px, 1.4vw, 22px);
+  --sidebar-width: 240px;
+  --inbox-viewport-height: calc(100dvh - 190px);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-areas: "nav main";
+  gap: var(--shell-gap);
+  padding: var(--shell-padding);
+  overflow-x: clip;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  max-width: var(--sidebar-width);
+  min-width: 0;
+}
+
+.app-main,
+.app-content,
+.page-layout {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-content {
+  overflow-x: clip;
+}
+
+.topbar,
+.topbar-title,
+.topbar-controls-row {
+  min-width: 0;
+}
+
+.topbar-controls-row {
+  flex-wrap: wrap;
+}
+
+.topbar-search {
+  min-width: min(100%, 260px);
+}
+
+.app-main:has(.inbox-layout) {
+  max-width: none;
+}
+
+.inbox-layout,
+.queue-inbox-layout {
+  --conversation-list-width: 300px;
+  --customer-panel-width: 280px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns:
+    minmax(var(--conversation-list-width), var(--conversation-list-width))
+    minmax(0, 1fr)
+    minmax(260px, var(--customer-panel-width));
+  gap: clamp(10px, 1vw, 16px);
+  min-height: var(--inbox-viewport-height);
+  max-height: none;
+  overflow: visible;
+}
+
+.conversation-list-panel,
+.conversation-detail-panel,
+.customer-profile-panel {
+  min-width: 0;
+  min-height: var(--inbox-viewport-height);
+  max-height: var(--inbox-viewport-height);
+  overflow: hidden;
+}
+
+.conversation-list-panel,
+.conversation-detail-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.conversation-list {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.customer-profile-panel {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.conversation-detail-panel {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.conversation-detail-panel:has(.chat-window-header) {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.chat-window-header,
+.chat-composer {
+  flex: 0 0 auto;
+}
+
+.chat-thread {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.chat-composer {
+  position: sticky;
+  bottom: 0;
+  flex-wrap: wrap;
+}
+
+.inbox-status-tabs.compact {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.inbox-status-tabs.compact button {
+  flex: 0 1 auto;
+}
+
+.conversation-empty-panel,
+.inbox-list-empty {
+  min-height: clamp(180px, 32dvh, 320px);
+}
+
+@media (min-width: 1440px) {
+  .app-shell {
+    --sidebar-width: 260px;
+    --inbox-viewport-height: calc(100dvh - 188px);
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    --conversation-list-width: clamp(320px, 22vw, 360px);
+    --customer-panel-width: clamp(300px, 21vw, 340px);
+  }
+}
+
+@media (max-width: 1439px) {
+  .app-shell {
+    --sidebar-width: clamp(230px, 18vw, 250px);
+    --inbox-viewport-height: calc(100dvh - 184px);
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    --conversation-list-width: 300px;
+    --customer-panel-width: 260px;
+  }
+
+  .chat-header-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 1280px) {
+  .app-shell {
+    --sidebar-width: 230px;
+    --shell-padding: 16px;
+    --shell-gap: 14px;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: 300px minmax(0, 1fr) minmax(240px, 260px);
+  }
+}
+
+@media (max-width: 1099px) {
+  .app-shell {
+    --sidebar-width: 76px;
+    --shell-padding: 14px;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  }
+
+  .sidebar {
+    grid-area: nav;
+    position: sticky;
+    inset: auto;
+    top: var(--shell-padding);
+    transform: none;
+    padding: 10px;
+    min-height: calc(100dvh - (var(--shell-padding) * 2));
+    max-height: calc(100dvh - (var(--shell-padding) * 2));
+  }
+
+  .sidebar-close,
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .sidebar-brand > div,
+  .sidebar-label,
+  .sidebar-footer div,
+  .sidebar-footer button {
+    display: none;
+  }
+
+  .sidebar-brand .official-logo-mark {
+    flex-basis: 48px;
+    width: 48px;
+    height: 42px;
+  }
+
+  .sidebar-link {
+    justify-content: center;
+    padding-inline: 8px;
+  }
+
+  .sidebar-icon {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .sidebar-footer {
+    min-height: 42px;
+    padding: 8px;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    grid-auto-rows: auto;
+    min-height: auto;
+    max-height: none;
+  }
+
+  .customer-profile-panel {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1fr) minmax(220px, 0.85fr);
+    align-items: start;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .conversation-list-panel,
+  .conversation-detail-panel {
+    min-height: calc(100dvh - 176px);
+    max-height: calc(100dvh - 176px);
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    --shell-padding: 12px;
+    grid-template-columns: 1fr;
+    grid-template-areas: "main";
+  }
+
+  .app-main {
+    grid-area: main;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    z-index: 60;
+    width: min(288px, 86vw);
+    max-width: min(288px, 86vw);
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 18px 0 0 18px;
+    transform: translateX(110%);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-brand > div,
+  .sidebar-label,
+  .sidebar-footer div,
+  .sidebar-footer button {
+    display: block;
+  }
+
+  .sidebar-link {
+    justify-content: flex-start;
+  }
+
+  .sidebar-backdrop.visible {
+    display: block;
+  }
+
+  .topbar {
+    padding: 12px;
+  }
+
+  .topbar-title-row,
+  .topbar-controls-row {
+    align-items: stretch;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .conversation-list-panel,
+  .conversation-detail-panel,
+  .customer-profile-panel {
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .conversation-list-panel {
+    max-height: min(68dvh, 560px);
+  }
+
+  .conversation-detail-panel {
+    min-height: min(78dvh, 680px);
+    max-height: min(78dvh, 680px);
+    overflow: hidden;
+  }
+
+  .customer-profile-panel {
+    display: flex;
+  }
+
+  .chat-thread {
+    min-height: 0;
+  }
+
+  .chat-composer {
+    position: sticky;
+    bottom: 0;
+  }
+
+  .conversation-empty-panel,
+  .inbox-list-empty {
+    min-height: 220px;
+  }
+}
