@@ -406,7 +406,9 @@ export default function UnifiedInboxPage() {
             />
           ))}
           {!filteredConversations.length ? (
-            <EmptyState title="لا توجد نتائج" message="جرّب تغيير الفلتر أو عبارة البحث." />
+            <div className="inbox-list-empty">
+              <EmptyState title="لا توجد نتائج" message="جرّب تغيير الفلتر أو عبارة البحث." />
+            </div>
           ) : null}
         </div>
       </section>
@@ -564,7 +566,9 @@ export default function UnifiedInboxPage() {
             ) : null}
           </>
         ) : (
-          <EmptyState title="اختر محادثة" message="حدد محادثة لعرض تفاصيل العميل والمعاينة." />
+          <div className="conversation-empty-panel">
+            <EmptyState title="اختر محادثة" message="حدد محادثة لعرض تفاصيل العميل والمعاينة." />
+          </div>
         )}
       </section>
 
@@ -638,7 +642,9 @@ export default function UnifiedInboxPage() {
             </div>
           </>
         ) : (
-          <EmptyState title="لا توجد بطاقة" message="اختر محادثة لعرض ملف العميل." />
+          <div className="customer-empty-card">
+            <EmptyState title="لا توجد بطاقة" message="اختر محادثة لعرض ملف العميل." />
+          </div>
         )}
       </aside>
     </div>
