@@ -1937,6 +1937,137 @@ td {
   margin: 0 0 18px;
 }
 
+.channels-tenant-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: var(--saas-soft);
+  color: var(--saas-muted);
+  font-size: 0.9rem;
+}
+
+.channels-tenant-strip strong {
+  color: var(--saas-navy);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.omnichannel-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.omnichannel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 360px;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.channel-card-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.channel-card-header h3 {
+  margin: 0 0 8px;
+  color: var(--saas-navy);
+  font-size: 1.02rem;
+}
+
+.channel-card-header p {
+  margin: 0;
+  color: var(--saas-muted);
+  line-height: 1.75;
+  font-size: 0.92rem;
+}
+
+.channel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--saas-soft);
+  color: #334155;
+  border: 1px solid var(--saas-border);
+  flex: 0 0 auto;
+}
+
+.channel-icon.is-ready {
+  background: rgba(20, 184, 166, 0.12);
+  color: #0f766e;
+  border-color: rgba(20, 184, 166, 0.28);
+}
+
+.whatsapp-channel-card {
+  border-color: rgba(20, 184, 166, 0.24);
+}
+
+.whatsapp-onboarding-note {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(20, 184, 166, 0.08);
+  color: #0f766e;
+}
+
+.whatsapp-onboarding-note strong,
+.whatsapp-onboarding-note span {
+  line-height: 1.6;
+}
+
+.whatsapp-onboarding-note span {
+  color: var(--saas-muted);
+  font-size: 0.88rem;
+}
+
+.channel-details-list {
+  margin: 0;
+}
+
+.channel-details-list div {
+  gap: 12px;
+  padding: 10px 0;
+  background: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.channel-details-list dt {
+  color: var(--saas-muted);
+  font-size: 0.86rem;
+}
+
+.channel-details-list dd {
+  color: var(--saas-navy);
+  font-weight: 700;
+  text-align: left;
+}
+
+.channel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.channel-actions .app-button {
+  min-width: 140px;
+}
+
 .workflows-page {
   align-items: start;
 }
