@@ -4,6 +4,7 @@ import { AppCard } from '../../components/ui/AppCard'
 import { AppButton } from '../../components/ui/AppButton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { getChannelLabel } from '../../shared/utils'
 import { useUiStore } from '../../stores/uiStore'
 import type { TenantPlan, TenantStatus } from '../../tenants/tenantTypes'
 import { TenantPlanBadge, TenantStatusBadge } from './PlatformBadges'
@@ -50,7 +51,7 @@ const operationModeLabels: Record<OnboardingOperationMode, string> = {
   app_and_platform: 'واتساب الجوال + المنصة',
 }
 
-const channelOptions = ['WHATSAPP', 'EMAIL', 'WEBCHAT', 'INSTAGRAM', 'SMS', 'VOICE']
+const channelOptions = ['WHATSAPP', 'EMAIL', 'WEBCHAT', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'VOICE', 'X']
 
 function RequestStatusBadge({ status }: { status: OnboardingRequestStatus }) {
   const tone = status === 'activated'
@@ -403,7 +404,7 @@ function OnboardingRequestFormModal({
               {channelOptions.map((channel) => (
                 <label key={channel}>
                   <input type="checkbox" checked={form.requestedChannels.includes(channel)} onChange={() => toggleChannel(channel)} />
-                  <span>{channel}</span>
+                  <span>{getChannelLabel(channel)}</span>
                 </label>
               ))}
             </div>
@@ -464,7 +465,7 @@ function OnboardingRequestsTable({
                 <small>{request.contactEmail}</small>
               </td>
               <td><RequestPlanBadge plan={request.requestedPlan} /></td>
-              <td>{request.requestedChannels.join('، ') || 'غير محدد'}</td>
+              <td>{request.requestedChannels.map(getChannelLabel).join('، ') || 'غير محدد'}</td>
               <td><RequestStatusBadge status={request.status} /></td>
               <td>{formatDate(request.createdAt)}</td>
               <td>
@@ -511,7 +512,7 @@ function OnboardingRequestDetails({
           <article><span>الجوال</span><strong>{request.contactPhone}</strong></article>
           <article><span>الموقع</span><strong>{request.website || 'غير محدد'}</strong></article>
           <article><span>المستخدمون</span><strong>{request.requestedUsers.toLocaleString('ar-SA')}</strong></article>
-          <article><span>القنوات</span><strong>{request.requestedChannels.join('، ') || 'غير محدد'}</strong></article>
+          <article><span>القنوات</span><strong>{request.requestedChannels.map(getChannelLabel).join('، ') || 'غير محدد'}</strong></article>
           <article><span>رقم واتساب</span><strong>{request.whatsappNumber || 'غير محدد'}</strong></article>
           <article><span>Meta Business</span><strong>{request.hasMetaBusiness ? 'نعم' : 'لا'}</strong></article>
           <article><span>WhatsApp Business App</span><strong>{request.hasWhatsAppBusinessApp ? 'نعم' : 'لا'}</strong></article>

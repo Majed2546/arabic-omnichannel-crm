@@ -1,4 +1,5 @@
 import { apiFetch, apiUrl } from '../../lib/apiClient'
+import { getChannelLabel } from '../../shared/utils'
 import type {
   AgentPresence,
   AssignmentState,
@@ -135,7 +136,7 @@ function mapConversation(conversation: RestConversation, messages: RestMessage[]
     status: statusMap[conversation.status ?? ''] ?? 'unread',
     priority: priorityMap[conversation.priority ?? ''] ?? 'normal',
     unreadCount: conversation.unreadCount ?? 0,
-    tags: [conversation.channel?.name].filter((tag): tag is string => Boolean(tag)),
+    tags: [conversation.channel?.name ? getChannelLabel(conversation.channel.name) : undefined].filter((tag): tag is string => Boolean(tag)),
     lastMessage: conversation.lastMessagePreview ?? mappedMessages.at(-1)?.body ?? '',
     messages: mappedMessages,
     timeline: [],

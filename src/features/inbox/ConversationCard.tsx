@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { getChannelLabel } from '../../shared/utils'
 import type {
   AssignmentState,
   ConversationChannel,
@@ -49,13 +50,6 @@ const priorityLabels: Record<ConversationPriority, string> = {
   normal: 'عادي',
 }
 
-const channelBadges: Record<ConversationChannel, string> = {
-  WhatsApp: 'واتساب',
-  Telegram: 'TG',
-  Email: 'EM',
-  'Web Chat': 'WEB',
-}
-
 function statusTone(status: ConversationStatus) {
   if (status === 'assigned') return 'info'
   if (status === 'pending') return 'warning'
@@ -95,6 +89,8 @@ export function ConversationCard({
   onArchive,
   onEscalate,
 }: ConversationCardProps) {
+  const channelLabel = getChannelLabel(channel)
+
   function handleAction(action: (conversationId: string) => void) {
     return (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation()
@@ -108,8 +104,8 @@ export function ConversationCard({
     >
       <button type="button" className="conversation-select-button" onClick={onClick} aria-pressed={selected}>
         <div className="conversation-card-header">
-          <span className="channel-icon" aria-label={channel}>
-            {channelBadges[channel]}
+          <span className="channel-icon" aria-label={channelLabel}>
+            {channelLabel}
           </span>
           <div className="conversation-card-title">
             <strong className="text-safe">{customerName}</strong>
