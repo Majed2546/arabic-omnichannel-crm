@@ -9,6 +9,7 @@ import { WhatsAppMessageMapper } from './whatsapp-message.mapper'
 import { WhatsAppMessageDispatcher } from './whatsapp-message.dispatcher'
 import { WhatsAppOutboundQueue } from './whatsapp-outbound.queue'
 import { WhatsAppSendService } from './whatsapp-send.service'
+import { TenantWhatsAppOnboardingController } from './tenant-whatsapp-onboarding.controller'
 import { WhatsAppWebhookController } from './whatsapp-webhook.controller'
 import { WhatsAppWebhookService } from './whatsapp-webhook.service'
 
@@ -22,7 +23,7 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service'
     MessagesModule,
     RealtimeModule,
   ],
-  controllers: [WhatsAppController, WhatsAppWebhookController],
+  controllers: [WhatsAppController, WhatsAppWebhookController, TenantWhatsAppOnboardingController],
   providers: [
     WhatsAppWebhookService,
     WhatsAppMessageMapper,
