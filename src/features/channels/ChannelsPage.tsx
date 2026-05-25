@@ -17,10 +17,11 @@ import { AppCard } from '../../components/ui/AppCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUiStore } from '../../stores/uiStore'
 import { apiFetch, apiUrl } from '../../lib/apiClient'
-import { unwrapItems } from '../../lib/restUtils'
 import { getCurrentTenantId } from '../../tenants/tenantUtils'
+import { useTenant } from '../../tenants/useTenant'
+import { getChannelLabel } from '../../shared/utils'
 
-type ChannelType = 'WHATSAPP' | 'EMAIL' | 'WEBCHAT' | 'INSTAGRAM' | 'TELEGRAM' | 'SMS' | 'VOICE'
+type ChannelType = 'WHATSAPP' | 'EMAIL' | 'WEBCHAT' | 'INSTAGRAM' | 'TELEGRAM' | 'SMS' | 'VOICE' | 'X'
 
 type ChannelRecord = {
   id: string
@@ -30,8 +31,36 @@ type ChannelRecord = {
   status?: string
   name?: string
   label?: string
+  config?: {
+    whatsappNumber?: string
+    operationMode?: 'PLATFORM_ONLY' | 'APP_AND_PLATFORM'
+  } | null
+  placeholder?: boolean
   connectedAt?: string | null
   updatedAt?: string | null
+}
+
+type TenantChannelSummary = {
+  id: string
+  organizationName: string
+  whatsappNumber?: string | null
+  requestedChannels: string[]
+  hasMetaBusiness: boolean
+  hasWhatsAppBusinessApp: boolean
+  operationMode: 'PLATFORM_ONLY' | 'APP_AND_PLATFORM'
+  status: string
+}
+
+type TenantChannelsResponse = {
+  tenantId: string
+  tenant?: {
+    id: string
+    name: string
+    slug?: string
+  } | null
+  items?: ChannelRecord[]
+  onboardingRequest?: TenantChannelSummary | null
+  defaultWhatsAppReady?: boolean
 }
 
 type WhatsAppStatus = {
@@ -40,7 +69,7 @@ type WhatsAppStatus = {
   webhookEngineReady?: boolean
 }
 
-type WhatsAppConnectionState = 'غير متصل' | 'قيد الربط' | 'متصل' | 'يحتاج مراجعة' | 'يوجد خطأ'
+type WhatsAppConnectionState = 'غير متصل' | 'قيد التفعيل' | 'متصل' | 'يحتاج مراجعة' | 'يوجد خطأ'
 
 type OnboardingFormState = {
   organizationName: string
@@ -66,7 +95,7 @@ type PlannedChannel = {
 const PLANNED_CHANNELS: PlannedChannel[] = [
   {
     type: 'WHATSAPP',
-    name: 'واتساب Business',
+    name: `${getChannelLabel('WHATSAPP')} Business`,
     description: 'ربط واتساب Business عبر Meta لإدارة المحادثات والردود من صندوق الوارد.',
     provider: 'Meta Cloud API',
     icon: MessageCircle,
@@ -82,7 +111,7 @@ const PLANNED_CHANNELS: PlannedChannel[] = [
   },
   {
     type: 'WEBCHAT',
-    name: 'الدردشة المباشرة',
+    name: getChannelLabel('WEBCHAT'),
     description: 'ودجت محادثة للموقع يساعد الزوار على التواصل مع فريق الدعم والمبيعات.',
     provider: 'CRM Web Chat',
     icon: MessageSquareText,
@@ -90,7 +119,7 @@ const PLANNED_CHANNELS: PlannedChannel[] = [
   },
   {
     type: 'INSTAGRAM',
-    name: 'Instagram',
+    name: getChannelLabel('INSTAGRAM'),
     description: 'إدارة رسائل Instagram والتعليقات من نفس تجربة خدمة العملاء.',
     provider: 'Meta Graph API',
     icon: Camera,
@@ -98,7 +127,7 @@ const PLANNED_CHANNELS: PlannedChannel[] = [
   },
   {
     type: 'TELEGRAM',
-    name: 'Telegram',
+    name: getChannelLabel('TELEGRAM'),
     description: 'قناة مراسلة مستقبلية لاستقبال محادثات Telegram وتوجيهها للوكلاء.',
     provider: 'Telegram Bot API',
     icon: Send,
@@ -106,7 +135,7 @@ const PLANNED_CHANNELS: PlannedChannel[] = [
   },
   {
     type: 'SMS',
-    name: 'SMS',
+    name: getChannelLabel('SMS'),
     description: 'رسائل نصية قصيرة للتنبيهات والمتابعة والردود التشغيلية.',
     provider: 'SMS Provider',
     icon: Bot,
@@ -157,18 +186,20 @@ function normalizeStatus(channel: PlannedChannel, record?: ChannelRecord, whatsa
   if (channel.type === 'WHATSAPP') {
     if (whatsappStatus?.cloudApiReady) return 'متصل'
     if (record?.status === 'CONNECTED') return 'متصل'
+    if (record?.status === 'PENDING') return 'قيد التفعيل'
     if (record?.status === 'NEEDS_REVIEW') return 'قيد المراجعة'
+    if (record?.status === 'FAILED') return 'يوجد خطأ'
     return 'غير متصل'
   }
 
   if (record?.status === 'CONNECTED') return 'متصل'
+  if (record?.status === 'PENDING') return 'قيد التفعيل'
   return channel.available ? 'غير متصل' : 'قريبًا'
 }
 
-function getWhatsAppConnectionState(record?: ChannelRecord, whatsappStatus?: WhatsAppStatus | null): WhatsAppConnectionState {
-  if (whatsappStatus?.cloudApiReady) return 'متصل'
+function getWhatsAppConnectionState(record?: ChannelRecord): WhatsAppConnectionState {
   if (record?.status === 'CONNECTED') return 'متصل'
-  if (record?.status === 'PENDING') return 'قيد الربط'
+  if (record?.status === 'PENDING') return 'قيد التفعيل'
   if (record?.status === 'NEEDS_REVIEW') return 'يحتاج مراجعة'
   if (record?.status === 'FAILED') return 'يوجد خطأ'
   return 'غير متصل'
@@ -176,34 +207,52 @@ function getWhatsAppConnectionState(record?: ChannelRecord, whatsappStatus?: Wha
 
 function connectionTone(status: WhatsAppConnectionState) {
   if (status === 'متصل') return 'success'
-  if (status === 'قيد الربط' || status === 'يحتاج مراجعة') return 'warning'
+  if (status === 'قيد التفعيل' || status === 'يحتاج مراجعة') return 'warning'
   if (status === 'يوجد خطأ') return 'danger'
   return 'muted'
 }
 
+function operationModeLabel(value?: string | null) {
+  return value === 'APP_AND_PLATFORM' ? 'واتساب الجوال + المنصة' : 'المنصة فقط'
+}
+
 export default function ChannelsPage() {
   const showToast = useUiStore((state) => state.showToast)
+  const { currentTenant } = useTenant()
   const [channels, setChannels] = useState<ChannelRecord[]>([])
+  const [tenantChannelState, setTenantChannelState] = useState<TenantChannelsResponse | null>(null)
   const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null)
   const [isSignupModalOpen, setSignupModalOpen] = useState(false)
   const [isSubmittingOnboarding, setSubmittingOnboarding] = useState(false)
   const [onboardingForm, setOnboardingForm] = useState<OnboardingFormState>(initialOnboardingForm)
   const tenantId = getCurrentTenantId() ?? 'default-tenant'
+  const isDefaultTenant = tenantId === 'default-tenant'
+
+  function refreshTenantChannels() {
+    return apiFetch(apiUrl('/tenant-channels'))
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload: TenantChannelsResponse | null) => {
+        setTenantChannelState(payload)
+        setChannels(payload?.items ?? [])
+        return payload
+      })
+      .catch(() => {
+        setTenantChannelState(null)
+        setChannels([])
+        return null
+      })
+  }
 
   useEffect(() => {
     let disposed = false
 
     Promise.all([
-      apiFetch(apiUrl('/channels'))
-        .then((response) => response.ok ? response.json() : null)
-        .then((payload) => unwrapItems<ChannelRecord>(payload))
-        .catch(() => []),
+      refreshTenantChannels(),
       apiFetch(apiUrl('/whatsapp/status'))
         .then((response) => response.ok ? response.json() : null)
         .catch(() => null),
-    ]).then(([channelItems, whatsapp]) => {
+    ]).then(([, whatsapp]) => {
       if (disposed) return
-      setChannels(channelItems)
       setWhatsappStatus(whatsapp)
     })
 
@@ -220,17 +269,25 @@ export default function ChannelsPage() {
   }, [channels])
 
   const whatsappRecord = channelsByType.WHATSAPP
-  const whatsappConnectionState = getWhatsAppConnectionState(whatsappRecord, whatsappStatus)
+  const whatsappConnectionState = getWhatsAppConnectionState(whatsappRecord)
+  const onboardingSummary = tenantChannelState?.onboardingRequest
+  const whatsappOperationMode = whatsappRecord?.config?.operationMode ?? onboardingSummary?.operationMode ?? 'PLATFORM_ONLY'
+  const whatsappNumber = whatsappRecord?.config?.whatsappNumber ?? onboardingSummary?.whatsappNumber
+  const showDefaultReady = isDefaultTenant && Boolean(tenantChannelState?.defaultWhatsAppReady || whatsappStatus?.cloudApiReady)
 
   async function submitOnboardingRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmittingOnboarding(true)
 
     try {
-      const response = await apiFetch(apiUrl('/tenant-channels/whatsapp/onboarding-request'), {
+      const response = await apiFetch(apiUrl(`/tenant-channels/${tenantId}/whatsapp/onboarding`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        tenantScopedBody: onboardingForm,
+        tenantScopedBody: {
+          whatsappNumber: onboardingForm.phoneToConnect,
+          operationMode: onboardingForm.operationMode === 'واتساب الجوال + المنصة' ? 'APP_AND_PLATFORM' : 'PLATFORM_ONLY',
+          notes: onboardingForm.notes,
+        },
       })
 
       if (!response.ok) {
@@ -238,11 +295,25 @@ export default function ChannelsPage() {
       }
 
       showToast('تم استلام طلب ربط واتساب بدون حفظ أي رموز أو معرفات تقنية.', 'success')
+      await refreshTenantChannels()
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'تعذر حفظ طلب الربط حالياً', 'warning')
     } finally {
       setSubmittingOnboarding(false)
     }
+  }
+
+  async function handleRefreshStatus() {
+    await refreshTenantChannels()
+    showToast('تم تحديث حالة قنوات الشركة', 'success')
+  }
+
+  function handleTestConnection() {
+    if (whatsappConnectionState === 'متصل') {
+      showToast('اتصال واتساب جاهز لهذه الشركة بدون كشف أي بيانات تقنية.', 'success')
+      return
+    }
+    showToast('لم يكتمل ربط واتساب لهذه الشركة بعد. استخدم بدء الربط عبر Meta عند جاهزية Embedded Signup.', 'info')
   }
 
   return (
@@ -263,14 +334,15 @@ export default function ChannelsPage() {
 
         <section className="channels-tenant-strip" aria-label="نطاق الشركة">
           <span>الشركة الحالية</span>
-          <strong>{tenantId}</strong>
+          <strong>{tenantChannelState?.tenant?.name ?? currentTenant?.name ?? tenantId}</strong>
+          <small>{tenantId}</small>
         </section>
 
         <div className="channels-grid omnichannel-grid">
           {PLANNED_CHANNELS.map((channel) => {
             const record = channelsByType[channel.type]
             const Icon = channel.icon
-            const status = normalizeStatus(channel, record, whatsappStatus ?? undefined)
+            const status = normalizeStatus(channel, record, showDefaultReady ? whatsappStatus ?? undefined : undefined)
             const isWhatsapp = channel.type === 'WHATSAPP'
 
             return (
@@ -289,6 +361,7 @@ export default function ChannelsPage() {
                   <div className="whatsapp-onboarding-note">
                     <strong>ربط واتساب Business عبر Meta</strong>
                     <span>لا نطلب منك رموز API أو معرفات تقنية</span>
+                    <small>حالة التفعيل: {whatsappConnectionState}</small>
                   </div>
                 )}
 
@@ -301,6 +374,18 @@ export default function ChannelsPage() {
                     <dt>المزود</dt>
                     <dd>{channel.provider}</dd>
                   </div>
+                  {isWhatsapp ? (
+                    <>
+                      <div>
+                        <dt>نوع التشغيل</dt>
+                        <dd>{operationModeLabel(whatsappOperationMode)}</dd>
+                      </div>
+                      <div>
+                        <dt>الرقم المطلوب ربطه</dt>
+                        <dd>{whatsappNumber || 'غير محدد'}</dd>
+                      </div>
+                    </>
+                  ) : null}
                   <div>
                     <dt>آخر مزامنة</dt>
                     <dd>{formatDate(record?.updatedAt ?? record?.connectedAt)}</dd>
@@ -309,12 +394,20 @@ export default function ChannelsPage() {
 
                 <div className="channel-actions">
                   {isWhatsapp ? (
-                    <AppButton
-                      variant={whatsappStatus?.cloudApiReady ? 'secondary' : 'primary'}
-                      onClick={() => setSignupModalOpen(true)}
-                    >
-                      ابدأ الربط مع Meta
-                    </AppButton>
+                    <>
+                      <AppButton
+                        variant={showDefaultReady ? 'secondary' : 'primary'}
+                        onClick={() => setSignupModalOpen(true)}
+                      >
+                        بدء ربط واتساب عبر Meta
+                      </AppButton>
+                      <AppButton variant="ghost" onClick={handleRefreshStatus}>
+                        تحديث الحالة
+                      </AppButton>
+                      <AppButton variant="ghost" onClick={handleTestConnection}>
+                        اختبار الاتصال
+                      </AppButton>
+                    </>
                   ) : (
                     <AppButton
                       disabled
@@ -348,20 +441,28 @@ export default function ChannelsPage() {
                 <span>حالة الربط</span>
                 <StatusBadge label={whatsappConnectionState} tone={connectionTone(whatsappConnectionState)} />
               </div>
-              {whatsappStatus?.cloudApiReady ? (
+              {showDefaultReady ? (
                 <p className="whatsapp-default-connection">
                   اتصال واتساب الافتراضي نشط للبيئة الحالية
                 </p>
               ) : null}
               <div className="whatsapp-status-options" aria-label="حالات ربط واتساب">
-                {(['غير متصل', 'قيد الربط', 'متصل', 'يحتاج مراجعة', 'يوجد خطأ'] as WhatsAppConnectionState[]).map((state) => (
+                {(['غير متصل', 'قيد التفعيل', 'متصل', 'يحتاج مراجعة', 'يوجد خطأ'] as WhatsAppConnectionState[]).map((state) => (
                   <StatusBadge key={state} label={state} tone={connectionTone(state)} />
                 ))}
               </div>
               <dl className="meta-list channel-details-list">
                 <div>
+                  <dt>نوع التشغيل</dt>
+                  <dd>{operationModeLabel(whatsappOperationMode)}</dd>
+                </div>
+                <div>
+                  <dt>الرقم المطلوب ربطه</dt>
+                  <dd>{whatsappNumber || 'غير محدد'}</dd>
+                </div>
+                <div>
                   <dt>Cloud API</dt>
-                  <dd>{whatsappStatus?.cloudApiReady ? 'جاهز' : 'غير جاهز'}</dd>
+                  <dd>{showDefaultReady ? 'جاهز للبيئة الافتراضية' : 'بانتظار ربط الشركة'}</dd>
                 </div>
                 <div>
                   <dt>Embedded Signup</dt>
@@ -389,6 +490,41 @@ export default function ChannelsPage() {
               </ol>
             </article>
           </div>
+
+          {onboardingSummary ? (
+            <article className="whatsapp-request-summary">
+              <div className="form-section-title">
+                <h3>ملخص طلب الاشتراك المرتبط</h3>
+                <p>بيانات تشغيلية للشركة بدون أي رموز أو معرفات تقنية.</p>
+              </div>
+              <dl className="meta-list channel-details-list">
+                <div>
+                  <dt>اسم المؤسسة</dt>
+                  <dd>{onboardingSummary.organizationName}</dd>
+                </div>
+                <div>
+                  <dt>رقم واتساب المراد ربطه</dt>
+                  <dd>{onboardingSummary.whatsappNumber || 'غير محدد'}</dd>
+                </div>
+                <div>
+                  <dt>القنوات المطلوبة</dt>
+                  <dd>{onboardingSummary.requestedChannels.map(getChannelLabel).join('، ') || 'غير محدد'}</dd>
+                </div>
+                <div>
+                  <dt>Meta Business</dt>
+                  <dd>{onboardingSummary.hasMetaBusiness ? 'نعم' : 'لا'}</dd>
+                </div>
+                <div>
+                  <dt>WhatsApp Business App</dt>
+                  <dd>{onboardingSummary.hasWhatsAppBusinessApp ? 'نعم' : 'لا'}</dd>
+                </div>
+                <div>
+                  <dt>نوع التشغيل</dt>
+                  <dd>{operationModeLabel(onboardingSummary.operationMode)}</dd>
+                </div>
+              </dl>
+            </article>
+          ) : null}
 
           <form className="whatsapp-onboarding-form" onSubmit={submitOnboardingRequest}>
             <div className="form-section-title">
