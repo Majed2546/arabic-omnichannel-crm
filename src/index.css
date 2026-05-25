@@ -7956,6 +7956,60 @@ body:has(.inbox-layout) {
   font-size: 0.76rem;
 }
 
+.platform-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.platform-modal {
+  width: min(920px, 96vw);
+  max-height: 92dvh;
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--saas-border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--saas-shadow-hover);
+}
+
+.platform-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.platform-form-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--saas-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.platform-form-grid input,
+.platform-form-grid select {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--saas-text);
+}
+
+.platform-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .platform-usage-list {
   display: grid;
   gap: 10px;
@@ -7980,7 +8034,8 @@ body:has(.inbox-layout) {
 @media (max-width: 680px) {
   .platform-metrics,
   .platform-plan-grid,
-  .platform-usage-list article {
+  .platform-usage-list article,
+  .platform-form-grid {
     grid-template-columns: 1fr;
   }
 }

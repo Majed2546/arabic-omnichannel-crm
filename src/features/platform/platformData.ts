@@ -17,6 +17,13 @@ export type PlatformCompany = {
   monthlyConversationLimit: number
 }
 
+export type SaveCompanyPayload = Omit<PlatformCompany, 'id'> & {
+  companyAdmin?: {
+    name: string
+    email: string
+  }
+}
+
 const statusMap: Record<string, TenantStatus> = {
   trial: 'trial',
   active: 'active',
@@ -63,4 +70,42 @@ export async function fetchPlatformCompanies(): Promise<PlatformCompany[]> {
   } catch {
     return TENANTS.map(normalizeCompany)
   }
+}
+
+function toApiPayload(payload: Partial<SaveCompanyPayload>) {
+  return {
+    ...payload,
+    status: payload.status?.toUpperCase(),
+    plan: payload.plan?.toUpperCase(),
+  }
+}
+
+export async function createPlatformCompany(payload: SaveCompanyPayload) {
+  const response = await apiFetch(apiUrl('/tenants'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(toApiPayload(payload)),
+  })
+  if (!response.ok) throw new Error('تعذر إنشاء الشركة')
+  return normalizeCompany(await response.json())
+}
+
+export async function updatePlatformCompany(id: string, payload: Partial<SaveCompanyPayload>) {
+  const response = await apiFetch(apiUrl(`/tenants/${id}`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(toApiPayload(payload)),
+  })
+  if (!response.ok) throw new Error('تعذر تحديث الشركة')
+  return normalizeCompany(await response.json())
+}
+
+export async function updatePlatformCompanyStatus(id: string, status: TenantStatus) {
+  const response = await apiFetch(apiUrl(`/tenants/${id}/status`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: status.toUpperCase() }),
+  })
+  if (!response.ok) throw new Error('تعذر تحديث حالة الاشتراك')
+  return normalizeCompany(await response.json())
 }
