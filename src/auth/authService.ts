@@ -13,6 +13,7 @@ type KeycloakPayload = {
   realm_access?: { roles?: string[] }
   resource_access?: Record<string, { roles?: string[] }>
   groups?: string[]
+  platform_role?: string
 }
 
 function createLocalAuthSession(email: string) {
@@ -22,6 +23,7 @@ function createLocalAuthSession(email: string) {
     email,
     role: 'admin',
     roles: ['admin', 'local-admin'],
+    platformRole: 'SUPER_ADMIN',
     tenant: 'المستأجر الافتراضي',
     permissions: [...CRM_PERMISSIONS],
   }
@@ -158,6 +160,7 @@ function createUserFromKeycloakToken(token: string): AuthUser {
   const payload = decodeJwtPayload<KeycloakPayload>(token)
   const roles = extractKeycloakRoles(payload)
   const role = mapExternalRolesToLocalRole(roles)
+  const platformRole = mapPlatformRole(payload.platform_role, roles)
 
   return {
     id: payload.sub ?? payload.preferred_username ?? 'keycloak-user',
@@ -165,6 +168,7 @@ function createUserFromKeycloakToken(token: string): AuthUser {
     email: payload.email ?? `${payload.preferred_username ?? 'user'}@keycloak.local`,
     role,
     roles,
+    platformRole,
     tenant: 'Keycloak',
     permissions: ROLE_PERMISSIONS[role],
   }
@@ -175,8 +179,20 @@ function ensureLocalAdminUser(user: AuthUser): AuthUser {
     ...user,
     role: 'admin',
     roles: Array.from(new Set([...(user.roles ?? []), 'admin', 'local-admin'])),
+    platformRole: 'SUPER_ADMIN',
     permissions: [...CRM_PERMISSIONS],
   }
+}
+
+function mapPlatformRole(claimRole: string | undefined, roles: string[]) {
+  const normalizedRoles = [claimRole, ...roles].filter(Boolean).map((value) => value!.toLowerCase())
+  if (normalizedRoles.some((value) => ['super_admin', 'super-admin', 'platform_admin', 'platform-admin'].includes(value))) {
+    return 'SUPER_ADMIN'
+  }
+  if (normalizedRoles.some((value) => ['company_admin', 'company-admin', 'admin', 'crm-admin', 'crm_admin'].includes(value))) {
+    return 'COMPANY_ADMIN'
+  }
+  return 'COMPANY_USER'
 }
 
 function extractKeycloakRoles(payload: KeycloakPayload) {

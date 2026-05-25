@@ -2,12 +2,15 @@ import type { AuthUserRole, CrmPermission } from './permissions'
 
 export type { AuthUserRole, CrmPermission }
 
+export type PlatformRole = 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'COMPANY_USER'
+
 export interface AuthUser {
   id: string
   name: string
   email: string
   role: AuthUserRole
   roles?: string[]
+  platformRole?: PlatformRole
   tenant?: string
   permissions: CrmPermission[]
 }

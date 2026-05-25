@@ -6,6 +6,10 @@ import {
   DashboardPage,
   IdentityIntegrationsPage,
   ModulePlaceholderPage,
+  PlatformCompaniesPage,
+  PlatformDashboardPage,
+  PlatformSubscriptionsPage,
+  PlatformUsagePage,
   RolesPage,
   TenantsPage,
   UnifiedInboxPage,
@@ -45,9 +49,10 @@ function App() {
         <Route path="templates" element={<RequireTenant><RequireAuth requiredPermissions={['templates.view']}><ModulePlaceholderPage title="القوالب والردود" description="إدارة قوالب الردود السريعة ورسائل القنوات." /></RequireAuth></RequireTenant>} />
         <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ModulePlaceholderPage title="التقارير" description="قراءة مؤشرات الأداء والتقارير التشغيلية." /></RequireAuth></RequireTenant>} />
         <Route path="settings" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.view']}><ModulePlaceholderPage title="الإعدادات" description="تهيئة إعدادات النظام العامة وسياسات التشغيل." /></RequireAuth></RequireTenant>} />
-        <Route path="platform/companies" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']}><ModulePlaceholderPage title="الشركات المشتركة" description="إدارة الشركات المستأجرة، حالة الاشتراك، وحدود الاستخدام لكل شركة." /></RequireAuth></RequireTenant>} />
-        <Route path="platform/subscriptions" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']}><ModulePlaceholderPage title="الاشتراكات والباقات" description="تعريف باقات Starter وProfessional وEnterprise وربطها بحدود المستخدمين والقنوات والمحادثات." /></RequireAuth></RequireTenant>} />
-        <Route path="platform/usage" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']}><ModulePlaceholderPage title="استخدام المنصة" description="متابعة استهلاك الشركات للمحادثات والقنوات والمستخدمين شهرياً." /></RequireAuth></RequireTenant>} />
+        <Route path="platform" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformDashboardPage /></RequireAuth></RequireTenant>} />
+        <Route path="platform/companies" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformCompaniesPage /></RequireAuth></RequireTenant>} />
+        <Route path="platform/subscriptions" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformSubscriptionsPage /></RequireAuth></RequireTenant>} />
+        <Route path="platform/usage" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformUsagePage /></RequireAuth></RequireTenant>} />
         <Route path="activity" element={<RequireTenant><ActivityFeedPage /></RequireTenant>} />
         <Route path="whatsapp" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support']} requiredPermissions={['channels.view']}><WhatsAppOnboardingPage /></RequireAuth></RequireTenant>} />
         <Route path="*" element={<Navigate to="/" replace />} />

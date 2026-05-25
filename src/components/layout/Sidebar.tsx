@@ -2,13 +2,17 @@ import { NavLink } from 'react-router-dom'
 import {
   BarChart3,
   Bot,
+  Building2,
   Cable,
   CalendarDays,
+  Gauge,
   Headset,
   Inbox,
   KeyRound,
   LayoutDashboard,
+  PanelsTopLeft,
   MessageSquareText,
+  ReceiptText,
   Settings,
   ShieldCheck,
   Ticket,
@@ -27,8 +31,13 @@ const navigation: Array<{
   icon: LucideIcon
   allowedRoles: AuthUserRole[]
   permission: CrmPermission
+  platformOnly?: boolean
 }> = [
   { path: '/', label: 'لوحة القيادة', icon: LayoutDashboard, allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
+  { path: '/platform', label: 'لوحة تحكم المنصة', icon: PanelsTopLeft, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
+  { path: '/platform/companies', label: 'الشركات المشتركة', icon: Building2, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
+  { path: '/platform/subscriptions', label: 'الاشتراكات والباقات', icon: ReceiptText, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
+  { path: '/platform/usage', label: 'استخدام المنصة', icon: Gauge, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/inbox', label: 'صندوق الوارد', icon: Inbox, allowedRoles: ['admin', 'support', 'analyst'], permission: 'inbox.view' },
   { path: '/customers', label: 'العملاء', icon: Users, allowedRoles: ['admin', 'support', 'analyst'], permission: 'customers.view' },
   { path: '/appointments', label: 'المواعيد والتقويم', icon: CalendarDays, allowedRoles: ['admin', 'support', 'analyst'], permission: 'appointments.view' },
@@ -47,6 +56,7 @@ const navigation: Array<{
 export function Sidebar() {
   const { isPanelOpen, setPanelOpen } = useUiStore()
   const { canAccess, can, user, logout } = useAuth()
+  const canAccessPlatform = user?.platformRole === 'SUPER_ADMIN' || user?.roles?.includes('local-admin')
 
   return (
     <aside className={`sidebar ${isPanelOpen ? 'sidebar-open' : ''}`}>
@@ -61,7 +71,7 @@ export function Sidebar() {
       </div>
       <nav className="sidebar-nav" aria-label="التنقل الرئيسي">
         {navigation
-          .filter((item) => canAccess(item.allowedRoles) && can(item.permission))
+          .filter((item) => (!item.platformOnly || canAccessPlatform) && canAccess(item.allowedRoles) && can(item.permission))
           .map((item) => {
             const Icon = item.icon
             return (
