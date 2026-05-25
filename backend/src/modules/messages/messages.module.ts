@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
+import { CommonModule } from '../../common/common.module'
 import { MESSAGE_QUEUE } from '../../events/queue.constants'
 import { ConversationsModule } from '../conversations/conversations.module'
 import { RealtimeModule } from '../realtime/realtime.module'
@@ -9,6 +10,7 @@ import { MessageService } from './message.service'
 
 @Module({
   imports: [
+    CommonModule,
     BullModule.registerQueue({ name: MESSAGE_QUEUE }),
     ConversationsModule,
     RealtimeModule,

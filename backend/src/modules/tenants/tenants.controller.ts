@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common'
+import { CurrentUser } from '../../decorators/current-user.decorator'
+import type { AuthenticatedUser } from '../auth/auth.types'
 import { RequirePermissions, RequirePlatformAdmin } from '../auth/auth.decorators'
 import { CreateTenantDto, UpdateTenantDto, UpdateTenantStatusDto } from './dto'
 import { TenantsService } from './tenants.service'
@@ -9,13 +11,15 @@ export class TenantsController {
   constructor(private readonly tenants: TenantsService) {}
 
   @Get()
-  list() {
-    return this.tenants.list()
+  list(@CurrentUser() user: AuthenticatedUser) {
+    if (user.platformRole === 'SUPER_ADMIN') return this.tenants.list()
+    return this.tenants.listForUser(user.tenantId)
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.tenants.findById(id)
+  getById(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    if (user.platformRole === 'SUPER_ADMIN' || user.tenantId === id) return this.tenants.findById(id)
+    return this.tenants.denyTenantAccess()
   }
 
   @Post()

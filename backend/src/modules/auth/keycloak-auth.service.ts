@@ -55,6 +55,7 @@ export class KeycloakAuthService {
       roles: externalRoles,
       permissions: permissionsForRole(role),
       platformRole,
+      tenantId: payload.tenant_id ?? payload.tenantId ?? payload.tenant,
       issuer: payload.iss,
     }
   }

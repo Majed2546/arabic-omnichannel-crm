@@ -121,3 +121,16 @@ Frontend placeholders are available for SaaS platform administration:
 - `/platform/companies` - الشركات المشتركة
 - `/platform/subscriptions` - الاشتراكات والباقات
 - `/platform/usage` - استخدام المنصة
+
+## Tenant Isolation Test Checklist
+
+Use `default-tenant` and a second company such as `test-company-2` to validate isolation.
+
+1. Sign in as Super Admin/local admin and confirm the tenant switcher is visible in the topbar.
+2. Switch to `default-tenant`; open `/inbox`, `/channels`, `/users`, and company pages. Confirm only default tenant data appears.
+3. Switch to `test-company-2`; confirm `/channels` shows a separate WhatsApp onboarding state and does not inherit default tenant channel data.
+4. Call tenant-scoped APIs with `x-tenant-id: default-tenant`, then with `x-tenant-id: test-company-2`, and verify conversations/messages/channels differ by tenant.
+5. Sign in as a Company Admin for `test-company-2`; confirm the tenant switcher is hidden and platform pages are not visible.
+6. As that Company Admin, request another tenant using `x-tenant-id: default-tenant`; the API should return `403 Tenant access denied`.
+7. Confirm Super Admin can still list tenants and onboarding requests from platform routes.
+8. Confirm `/whatsapp/status` still reports default WhatsApp readiness and existing WhatsApp send/receive behavior is unchanged.

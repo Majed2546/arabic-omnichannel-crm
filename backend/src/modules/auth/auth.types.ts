@@ -15,6 +15,9 @@ export type KeycloakTokenPayload = {
   resource_access?: Record<string, { roles?: string[] }>
   groups?: string[]
   platform_role?: string
+  tenant_id?: string
+  tenantId?: string
+  tenant?: string
 }
 
 export type AuthenticatedUser = {
@@ -25,5 +28,6 @@ export type AuthenticatedUser = {
   roles: string[]
   permissions: CrmPermission[]
   platformRole: PlatformRole
+  tenantId?: string
   issuer?: string
 }

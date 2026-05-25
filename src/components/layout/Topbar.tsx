@@ -24,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/whatsapp': 'واتساب',
   '/platform': 'لوحة تحكم المنصة',
   '/platform/companies': 'الشركات المشتركة',
+  '/platform/onboarding-requests': 'طلبات الاشتراك',
   '/platform/subscriptions': 'الاشتراكات والباقات',
   '/platform/usage': 'استخدام المنصة',
 }
@@ -38,6 +39,7 @@ const pageSubtitles: Record<string, string> = {
   '/inbox': 'مساحة موحدة لمحادثات العملاء عبر القنوات.',
   '/platform': 'إدارة منصة SaaS والشركات المشتركة من منظور مالك المنصة.',
   '/platform/companies': 'أساس إدارة الشركات المستأجرة في نموذج SaaS.',
+  '/platform/onboarding-requests': 'إدارة طلبات الشركات قبل إنشاء الاشتراك.',
   '/platform/subscriptions': 'تعريف الباقات وحدود الاشتراك لكل شركة.',
   '/platform/usage': 'مراقبة الاستهلاك الشهري وحدود المنصة.',
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { PlatformRole, TenantPlan, TenantStatus, UserStatus } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
 import type { CreateTenantDto, UpdateTenantDto, UpdateTenantStatusDto } from './dto'
@@ -20,6 +20,26 @@ export class TenantsService {
         },
       },
     })
+  }
+
+  listForUser(tenantId?: string) {
+    if (!tenantId) throw new ForbiddenException('Tenant access denied')
+    return this.prisma.tenant.findMany({
+      where: { id: tenantId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { users: true } },
+        users: {
+          where: { platformRole: PlatformRole.COMPANY_ADMIN, deletedAt: null },
+          select: { id: true, name: true, email: true, platformRole: true, status: true },
+          take: 1,
+        },
+      },
+    })
+  }
+
+  denyTenantAccess(): never {
+    throw new ForbiddenException('Tenant access denied')
   }
 
   async findById(id: string) {

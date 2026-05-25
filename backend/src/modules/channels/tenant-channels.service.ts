@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ChannelStatus, ChannelType, OnboardingOperationMode } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
+import { TenantAccessService } from '../../common/tenant-access.service'
+import type { AuthenticatedUser } from '../auth/auth.types'
 import type { TenantWhatsAppOnboardingDto, UpdateTenantChannelStatusDto } from './tenant-channels.dto'
 
 const DEFAULT_TENANT_ID = 'default-tenant'
@@ -11,6 +13,7 @@ export class TenantChannelsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly tenantAccess: TenantAccessService,
   ) {}
 
   async listForCurrentTenant(tenantId?: string) {
@@ -85,9 +88,12 @@ export class TenantChannelsService {
     }
   }
 
-  async updateStatus(id: string, dto: UpdateTenantChannelStatusDto) {
-    const channel = await this.prisma.channel.findFirst({ where: { id, deletedAt: null }, select: { id: true } })
+  async updateStatus(id: string, dto: UpdateTenantChannelStatusDto, user: AuthenticatedUser) {
+    const channel = await this.prisma.channel.findFirst({ where: { id, deletedAt: null }, select: { id: true, tenantId: true } })
     if (!channel) throw new NotFoundException('Tenant channel not found')
+    if (!this.tenantAccess.isSuperAdmin(user) && user.tenantId !== channel.tenantId) {
+      throw new ForbiddenException('Tenant access denied')
+    }
 
     return this.prisma.channel.update({
       where: { id },

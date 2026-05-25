@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common'
+import { CommonModule } from '../../common/common.module'
 import { ConversationsController } from './conversations.controller'
 import { ConversationService } from './conversation.service'
 
 @Module({
+  imports: [CommonModule],
   controllers: [ConversationsController],
   providers: [ConversationService],
   exports: [ConversationService],

@@ -41,6 +41,7 @@ export class JwtAuthGuard implements CanActivate {
         roles: ['admin'],
         permissions: permissionsForRole('admin'),
         platformRole: 'SUPER_ADMIN',
+        tenantId: this.resolveTenantId(request),
       }
       return true
     }
@@ -60,5 +61,11 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     return token
+  }
+
+  private resolveTenantId(request: { headers?: Record<string, string | string[] | undefined> }) {
+    const header = request.headers?.['x-tenant-id'] ?? request.headers?.tenant_id
+    const tenantId = Array.isArray(header) ? header[0] : header
+    return tenantId || 'default-tenant'
   }
 }
