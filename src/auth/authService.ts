@@ -2,6 +2,8 @@ import type { AuthTokens, AuthUser } from './authTypes'
 import { loadPersistedAuth, savePersistedAuth, clearPersistedAuth } from './authStorage'
 import { AUTH_MODE, isKeycloakConfigured, keycloakConfig } from './authConfig'
 import { CRM_PERMISSIONS, ROLE_PERMISSIONS, mapExternalRolesToLocalRole } from './permissions'
+import { findTenantById } from '../tenants/tenantRegistry'
+import { loadLocalTestRole, loadLocalTestTenantId } from './localTestContext'
 
 const KEYCLOAK_PKCE_KEY = 'arabic-crm-keycloak-pkce'
 
@@ -42,7 +44,8 @@ export async function loginRequest(email: string, password: string) {
     throw new Error('Local password login is disabled while Keycloak mode is active')
   }
 
-  const session = createLocalAuthSession(email)
+  const localSession = createLocalAuthSession(email)
+  const session = { ...localSession, user: applyLocalTestProfile(localSession.user) }
   savePersistedAuth(session)
   return session
 }
@@ -57,7 +60,7 @@ export async function refreshTokenRequest() {
     return persisted
   }
 
-  const user = ensureLocalAdminUser(persisted.user)
+  const user = applyLocalTestProfile(persisted.user)
 
   const tokens: AuthTokens = {
     accessToken: `local-access-token-${Date.now()}`,
@@ -75,7 +78,7 @@ export function logoutRequest() {
 
 export function getCurrentUserFromStorage(): AuthUser | null {
   const user = loadPersistedAuth()?.user ?? null
-  return AUTH_MODE === 'local' && user ? ensureLocalAdminUser(user) : user
+  return AUTH_MODE === 'local' && user ? applyLocalTestProfile(user) : user
 }
 
 export function getCurrentAccessToken(): string | null {
@@ -174,13 +177,24 @@ function createUserFromKeycloakToken(token: string): AuthUser {
   }
 }
 
-function ensureLocalAdminUser(user: AuthUser): AuthUser {
+export function applyLocalTestProfile(user: AuthUser): AuthUser {
+  const platformRole = loadLocalTestRole()
+  const tenantId = loadLocalTestTenantId() ?? 'default-tenant'
+  const tenant = findTenantById(tenantId)
+  const role = platformRole === 'COMPANY_USER' ? 'analyst' : 'admin'
+  const localRoles = platformRole === 'SUPER_ADMIN'
+    ? ['admin', 'local-admin']
+    : platformRole === 'COMPANY_ADMIN'
+      ? ['admin', 'company-admin']
+      : ['analyst', 'company-user']
+
   return {
     ...user,
-    role: 'admin',
-    roles: Array.from(new Set([...(user.roles ?? []), 'admin', 'local-admin'])),
-    platformRole: 'SUPER_ADMIN',
-    permissions: [...CRM_PERMISSIONS],
+    role,
+    roles: Array.from(new Set(localRoles)),
+    platformRole,
+    tenant: tenant?.name ?? tenantId,
+    permissions: platformRole === 'COMPANY_USER' ? ROLE_PERMISSIONS.analyst : [...CRM_PERMISSIONS],
   }
 }
 

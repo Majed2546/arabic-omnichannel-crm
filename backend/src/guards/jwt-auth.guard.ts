@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core'
 import { IS_PUBLIC_KEY } from '../modules/auth/auth.decorators'
 import { KeycloakAuthService } from '../modules/auth/keycloak-auth.service'
 import { permissionsForRole } from '../modules/auth/permissions'
-import type { AuthMode, AuthenticatedUser } from '../modules/auth/auth.types'
+import type { AuthMode, AuthenticatedUser, PlatformRole } from '../modules/auth/auth.types'
 
 type AuthRequest = {
   user?: AuthenticatedUser
@@ -33,15 +33,17 @@ export class JwtAuthGuard implements CanActivate {
 
     const authMode = this.config.get<AuthMode>('auth.mode') ?? 'local'
     if (authMode !== 'keycloak') {
+      const platformRole = this.resolveLocalPlatformRole(request)
+      const role = platformRole === 'COMPANY_USER' ? 'analyst' : 'admin'
       request.user = {
         id: 'local-dev-user',
         name: 'Local development user',
         email: 'admin@example.com',
-        role: 'admin',
-        roles: ['admin'],
-        permissions: permissionsForRole('admin'),
-        platformRole: 'SUPER_ADMIN',
-        tenantId: this.resolveTenantId(request),
+        role,
+        roles: this.resolveLocalRoles(platformRole),
+        permissions: permissionsForRole(role),
+        platformRole,
+        tenantId: this.resolveLocalTenantId(request),
       }
       return true
     }
@@ -67,5 +69,26 @@ export class JwtAuthGuard implements CanActivate {
     const header = request.headers?.['x-tenant-id'] ?? request.headers?.tenant_id
     const tenantId = Array.isArray(header) ? header[0] : header
     return tenantId || 'default-tenant'
+  }
+
+  private resolveLocalTenantId(request: { headers?: Record<string, string | string[] | undefined> }) {
+    const header = request.headers?.['x-local-tenant-id'] ?? request.headers?.['x-tenant-id'] ?? request.headers?.tenant_id
+    const tenantId = Array.isArray(header) ? header[0] : header
+    return tenantId || 'default-tenant'
+  }
+
+  private resolveLocalPlatformRole(request: { headers?: Record<string, string | string[] | undefined> }): PlatformRole {
+    const header = request.headers?.['x-local-platform-role']
+    const platformRole = Array.isArray(header) ? header[0] : header
+    if (platformRole === 'COMPANY_ADMIN' || platformRole === 'COMPANY_USER' || platformRole === 'SUPER_ADMIN') {
+      return platformRole
+    }
+    return 'SUPER_ADMIN'
+  }
+
+  private resolveLocalRoles(platformRole: PlatformRole) {
+    if (platformRole === 'SUPER_ADMIN') return ['admin', 'local-admin']
+    if (platformRole === 'COMPANY_ADMIN') return ['admin', 'company-admin']
+    return ['analyst', 'company-user']
   }
 }

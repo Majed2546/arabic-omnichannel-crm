@@ -1,7 +1,6 @@
 import type { ReactElement } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { LoadingState } from '../components/ui/LoadingState'
-import { AUTH_MODE } from './authConfig'
 import { useAuth } from './useAuth'
 import type { AuthUserRole, CrmPermission } from './authTypes'
 
@@ -24,7 +23,7 @@ export function RequireAuth({ children, allowedRoles, requiredPermissions, requi
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  const hasPlatformAccess = !requirePlatformAdmin || AUTH_MODE === 'local' || user.platformRole === 'SUPER_ADMIN'
+  const hasPlatformAccess = !requirePlatformAdmin || user.platformRole === 'SUPER_ADMIN'
 
   if (!hasPlatformAccess || !canAccess(allowedRoles) || requiredPermissions?.some((permission) => !can(permission))) {
     return <Navigate to="/unauthorized" replace />

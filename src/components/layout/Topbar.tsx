@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { useUiStore } from '../../stores/uiStore'
 import { useAuth } from '../../auth/useAuth'
 import { TenantSwitcher } from '../tenants/TenantSwitcher'
+import { LocalTestContextSwitcher } from '../tenants/LocalTestContextSwitcher'
 import { useTenant } from '../../tenants/useTenant'
 import { BackendStatusIndicator } from './BackendStatusIndicator'
 import { TopbarControl } from '../ui/TopbarControl'
@@ -74,6 +75,7 @@ export function Topbar() {
           placeholder="ابحث عن عملاء، مستخدمين أو قنوات"
           aria-label="بحث"
         />
+        <LocalTestContextSwitcher />
         <TenantSwitcher />
         <BackendStatusIndicator />
         <RealtimeHealthIndicator />

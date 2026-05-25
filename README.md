@@ -134,3 +134,15 @@ Use `default-tenant` and a second company such as `test-company-2` to validate i
 6. As that Company Admin, request another tenant using `x-tenant-id: default-tenant`; the API should return `403 Tenant access denied`.
 7. Confirm Super Admin can still list tenants and onboarding requests from platform routes.
 8. Confirm `/whatsapp/status` still reports default WhatsApp readiness and existing WhatsApp send/receive behavior is unchanged.
+
+## How to Test Tenant Isolation Locally
+
+Local tenant isolation testing is available only when `VITE_AUTH_MODE=local` or the frontend is running in dev mode. The topbar shows a compact local testing control where you can choose a platform role and tenant context. The selection is stored in `localStorage` and frontend API calls send `x-local-platform-role` and `x-local-tenant-id` only in local auth mode.
+
+1. Set `AUTH_MODE=local` for the backend and `VITE_AUTH_MODE=local` for the frontend.
+2. Sign in with the local login flow.
+3. Select `SUPER_ADMIN` and confirm platform pages such as `/platform/companies` and `/platform/onboarding-requests` are visible.
+4. Select `COMPANY_ADMIN` with `test-company-2`; platform pages should disappear and `/tenants` should not list every company.
+5. Select `COMPANY_USER` to verify restricted navigation and read-oriented company access.
+6. Select `default-tenant` and open `/inbox`; the existing default WhatsApp conversation behavior should remain intact.
+7. Call `/whatsapp/status`; it should continue to report the default environment WhatsApp readiness without exposing secrets.

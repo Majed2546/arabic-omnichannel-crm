@@ -1,5 +1,6 @@
 import { createTenantHeaders, withTenantScope } from '../tenants/tenantUtils'
 import { getAuthToken, REST_API_BASE_URL } from './apiConfig'
+import { loadLocalTestRole, loadLocalTestTenantId, shouldSendLocalTestHeaders } from '../auth/localTestContext'
 
 type ApiFetchOptions = RequestInit & {
   tenantScopedBody?: Record<string, unknown>
@@ -16,6 +17,12 @@ export function createServiceHeaders(headers?: HeadersInit): Headers {
   Object.entries(createTenantHeaders()).forEach(([key, value]) => {
     serviceHeaders.set(key, value)
   })
+
+  if (shouldSendLocalTestHeaders()) {
+    serviceHeaders.set('x-local-platform-role', loadLocalTestRole())
+    serviceHeaders.set('x-local-tenant-id', loadLocalTestTenantId() ?? 'default-tenant')
+  }
+
   return serviceHeaders
 }
 

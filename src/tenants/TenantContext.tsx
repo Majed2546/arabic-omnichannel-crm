@@ -17,7 +17,8 @@ export function TenantProvider({ children }: TenantProviderProps) {
   })
 
   const userTenant = useMemo(() => findTenantByName(user?.tenant), [user?.tenant])
-  const effectiveTenantId = userTenant && user?.role !== 'admin' ? userTenant.id : currentTenantId
+  const canUseAnyTenant = user?.platformRole === 'SUPER_ADMIN'
+  const effectiveTenantId = userTenant && !canUseAnyTenant ? userTenant.id : currentTenantId
 
   useEffect(() => {
     if (!effectiveTenantId) return
@@ -26,9 +27,9 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
   const canAccessTenant = useCallback((tenantId: string) => {
     if (!findTenantById(tenantId)) return false
-    if (!userTenant || user?.role === 'admin') return true
+    if (!userTenant || canUseAnyTenant) return true
     return userTenant.id === tenantId
-  }, [user?.role, userTenant])
+  }, [canUseAnyTenant, userTenant])
 
   const setCurrentTenantId = useCallback((tenantId: string) => {
     if (!canAccessTenant(tenantId)) return

@@ -12,6 +12,17 @@ export const TENANTS: Tenant[] = [
     monthlyConversationLimit: 50000,
     contacts: 0,
   },
+  {
+    id: 'test-company-2',
+    name: 'شركة اختبار 2',
+    slug: 'test-company-2',
+    plan: 'professional',
+    status: 'active',
+    maxUsers: 10,
+    maxChannels: 4,
+    monthlyConversationLimit: 10000,
+    contacts: 0,
+  },
 ]
 
 export const DEFAULT_TENANT_ID = TENANTS[0]?.id ?? null
