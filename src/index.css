@@ -8151,6 +8151,83 @@ body:has(.inbox-layout) {
   }
 }
 
+/* Inbox composer visibility: the detail panel owns the viewport, and only the thread scrolls. */
+@media (min-width: 769px) {
+  .app-main:has(.inbox-layout) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - (var(--shell-padding) * 2));
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-main:has(.inbox-layout) .app-content {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .inbox-layout,
+  .queue-inbox-layout {
+    flex: 1 1 auto;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    grid-auto-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .conversation-detail-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .conversation-detail-panel:has(.chat-window-header) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-window-header {
+    flex: 0 0 auto;
+    min-height: 0;
+    order: 0;
+  }
+
+  .chat-thread {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding-bottom: 8px;
+    order: 1;
+  }
+
+  .conversation-detail-panel > .inactive-tenant-banner {
+    flex: 0 0 auto;
+    order: 2;
+  }
+
+  .chat-composer {
+    position: sticky;
+    bottom: 0;
+    flex: 0 0 auto;
+    z-index: 2;
+    align-self: stretch;
+    width: 100%;
+    min-height: 72px;
+    margin: 0;
+    order: 3;
+    border-top: 1px solid var(--crm-border);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff);
+  }
+}
+
 .platform-page-layout {
   gap: 16px;
 }
