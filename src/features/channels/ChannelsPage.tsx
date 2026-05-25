@@ -125,7 +125,7 @@ const PLANNED_CHANNELS: PlannedChannel[] = [
 const WHATSAPP_ONBOARDING_STEPS = [
   'تسجيل الدخول إلى Meta',
   'اختيار الحساب التجاري',
-  'اختيار رقم واتساب',
+  'اختيار أو إضافة رقم واتساب',
   'تفويض تطبيق ذكاء بلا حدود',
   'اختبار الإرسال والاستقبال',
 ]
@@ -186,6 +186,7 @@ export default function ChannelsPage() {
   const [channels, setChannels] = useState<ChannelRecord[]>([])
   const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null)
   const [isSignupModalOpen, setSignupModalOpen] = useState(false)
+  const [isSubmittingOnboarding, setSubmittingOnboarding] = useState(false)
   const [onboardingForm, setOnboardingForm] = useState<OnboardingFormState>(initialOnboardingForm)
   const tenantId = getCurrentTenantId() ?? 'default-tenant'
 
@@ -221,9 +222,27 @@ export default function ChannelsPage() {
   const whatsappRecord = channelsByType.WHATSAPP
   const whatsappConnectionState = getWhatsAppConnectionState(whatsappRecord, whatsappStatus)
 
-  function submitOnboardingRequest(event: FormEvent<HTMLFormElement>) {
+  async function submitOnboardingRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    showToast('تم حفظ بيانات الربط مبدئياً داخل الواجهة. سيتم إرسالها للخلفية عند تفعيل الطلبات.', 'success')
+    setSubmittingOnboarding(true)
+
+    try {
+      const response = await apiFetch(apiUrl('/tenant-channels/whatsapp/onboarding-request'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        tenantScopedBody: onboardingForm,
+      })
+
+      if (!response.ok) {
+        throw new Error('تعذر حفظ طلب الربط حالياً')
+      }
+
+      showToast('تم استلام طلب ربط واتساب بدون حفظ أي رموز أو معرفات تقنية.', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر حفظ طلب الربط حالياً', 'warning')
+    } finally {
+      setSubmittingOnboarding(false)
+    }
   }
 
   return (
@@ -292,7 +311,7 @@ export default function ChannelsPage() {
                   {isWhatsapp ? (
                     <AppButton
                       variant={whatsappStatus?.cloudApiReady ? 'secondary' : 'primary'}
-                      onClick={() => showToast('سيتم فتح الربط المدمج مع Meta عند تفعيل Embedded Signup', 'info')}
+                      onClick={() => setSignupModalOpen(true)}
                     >
                       ابدأ الربط مع Meta
                     </AppButton>
@@ -328,6 +347,16 @@ export default function ChannelsPage() {
               <div className="status-card-topline">
                 <span>حالة الربط</span>
                 <StatusBadge label={whatsappConnectionState} tone={connectionTone(whatsappConnectionState)} />
+              </div>
+              {whatsappStatus?.cloudApiReady ? (
+                <p className="whatsapp-default-connection">
+                  اتصال واتساب الافتراضي نشط للبيئة الحالية
+                </p>
+              ) : null}
+              <div className="whatsapp-status-options" aria-label="حالات ربط واتساب">
+                {(['غير متصل', 'قيد الربط', 'متصل', 'يحتاج مراجعة', 'يوجد خطأ'] as WhatsAppConnectionState[]).map((state) => (
+                  <StatusBadge key={state} label={state} tone={connectionTone(state)} />
+                ))}
               </div>
               <dl className="meta-list channel-details-list">
                 <div>
@@ -389,7 +418,9 @@ export default function ChannelsPage() {
               <label className="whatsapp-form-wide">ملاحظات<textarea rows={4} value={onboardingForm.notes} onChange={(event) => setOnboardingForm((current) => ({ ...current, notes: event.target.value }))} /></label>
             </div>
             <div className="channel-actions">
-              <AppButton variant="secondary" type="submit">حفظ طلب الربط</AppButton>
+              <AppButton variant="secondary" type="submit" disabled={isSubmittingOnboarding}>
+                {isSubmittingOnboarding ? 'جار الحفظ' : 'حفظ طلب الربط'}
+              </AppButton>
             </div>
           </form>
         </section>
@@ -399,7 +430,8 @@ export default function ChannelsPage() {
         <div className="platform-modal-backdrop" role="presentation" onMouseDown={() => setSignupModalOpen(false)}>
           <section className="platform-modal whatsapp-signup-modal" role="dialog" aria-modal="true" aria-labelledby="embedded-signup-title" onMouseDown={(event) => event.stopPropagation()}>
             <h2 id="embedded-signup-title">Meta Embedded Signup</h2>
-            <p>سيتم ربط نافذة Meta Embedded Signup بعد اكتمال App Review وإعداد صلاحيات التطبيق. في هذه المرحلة نحضّر البيانات التشغيلية فقط ولا نخزن رموز وصول أو معرفات تقنية.</p>
+            <p>سيتم تفعيل الربط المباشر عبر Meta Embedded Signup بعد إكمال إعدادات Meta App و App Review.</p>
+            <p>في هذه المرحلة نحضّر البيانات التشغيلية فقط ولا نخزن رموز وصول أو معرفات تقنية.</p>
             <div className="platform-modal-actions">
               <AppButton variant="primary" onClick={() => setSignupModalOpen(false)}>تم</AppButton>
             </div>
