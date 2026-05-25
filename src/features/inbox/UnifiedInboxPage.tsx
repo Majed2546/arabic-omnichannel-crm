@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
@@ -634,6 +635,18 @@ export default function UnifiedInboxPage() {
                 <dd>{selectedConversation.assignee.team}</dd>
               </div>
             </dl>
+
+            <div className="profile-section profile-actions">
+              {selectedConversation.customerId ? (
+                <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?customerId=${selectedConversation.customerId}`}>
+                  فتح ملف العميل
+                </Link>
+              ) : (
+                <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?new=1&phone=${encodeURIComponent(selectedConversation.customerPhone)}&name=${encodeURIComponent(selectedConversation.customerName)}`}>
+                  إنشاء عميل من المحادثة
+                </Link>
+              )}
+            </div>
 
             <div className="profile-section">
               <h4>الوسوم</h4>

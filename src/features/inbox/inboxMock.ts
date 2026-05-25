@@ -27,6 +27,7 @@ export type ConversationMessage = {
 
 export type Conversation = {
   id: string
+  customerId?: string
   customerName: string
   customerCompany: string
   customerEmail: string

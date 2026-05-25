@@ -15,6 +15,7 @@ import { TenantsModule } from './modules/tenants/tenants.module'
 import { UsersModule } from './modules/users/users.module'
 import { InboxModule } from './modules/inbox/inbox.module'
 import { ConversationsModule } from './modules/conversations/conversations.module'
+import { CustomersModule } from './modules/customers/customers.module'
 import { MessagesModule } from './modules/messages/messages.module'
 import { ChannelsModule } from './modules/channels/channels.module'
 import { OnboardingRequestsModule } from './modules/onboarding-requests/onboarding-requests.module'
@@ -39,6 +40,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module'
     UsersModule,
     InboxModule,
     ConversationsModule,
+    CustomersModule,
     MessagesModule,
     ChannelsModule,
     OnboardingRequestsModule,

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './layouts'
 import {
   ChannelsPage,
+  CustomersPage,
   ActivityFeedPage,
   DashboardPage,
   IdentityIntegrationsPage,
@@ -43,7 +44,7 @@ function App() {
         <Route path="channels" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support']} requiredPermissions={['channels.view']}><ChannelsPage /></RequireAuth></RequireTenant>} />
         <Route path="workflows" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['automation.view']}><WorkflowsPage /></RequireAuth></RequireTenant>} />
         <Route path="inbox" element={<RequireTenant><UnifiedInboxPage /></RequireTenant>} />
-        <Route path="customers" element={<RequireTenant><RequireAuth requiredPermissions={['customers.view']}><ModulePlaceholderPage title="العملاء" description="إدارة ملفات العملاء، معلومات التواصل، وسجل العلاقة مع كل عميل." /></RequireAuth></RequireTenant>} />
+        <Route path="customers" element={<RequireTenant><RequireAuth requiredPermissions={['customers.view']}><CustomersPage /></RequireAuth></RequireTenant>} />
         <Route path="appointments" element={<RequireTenant><RequireAuth requiredPermissions={['appointments.view']}><ModulePlaceholderPage title="المواعيد والتقويم" description="عرض المواعيد القادمة وتنسيق التقويم التشغيلي للفريق." /></RequireAuth></RequireTenant>} />
         <Route path="meetings" element={<RequireTenant><RequireAuth requiredPermissions={['meetings.view']}><ModulePlaceholderPage title="الاجتماعات المرئية" description="متابعة اجتماعات العملاء وروابط الجلسات المرئية." /></RequireAuth></RequireTenant>} />
         <Route path="tickets" element={<RequireTenant><RequireAuth requiredPermissions={['tickets.view']}><ModulePlaceholderPage title="التذاكر" description="تنظيم طلبات الدعم والتصعيد ومتابعة حالات الحل." /></RequireAuth></RequireTenant>} />

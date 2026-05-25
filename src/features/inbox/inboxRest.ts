@@ -18,6 +18,7 @@ type RestChannel = {
 }
 
 type RestCustomer = {
+  id?: string
   name?: string
   phone?: string | null
   email?: string | null
@@ -125,6 +126,7 @@ function mapConversation(conversation: RestConversation, messages: RestMessage[]
 
   return {
     id: conversation.id,
+    customerId: conversation.customer?.id,
     customerName,
     customerCompany: conversation.customer?.email ?? '-',
     customerEmail: conversation.customer?.email ?? '-',

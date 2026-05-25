@@ -1,6 +1,7 @@
 export * from './dashboard'
 export * from './inbox'
 export * from './channels'
+export * from './customers'
 export * from './workflows'
 export * from './users'
 export * from './rbac'
