@@ -45,6 +45,7 @@ export class KeycloakAuthService {
 
     const externalRoles = this.extractRoles(payload)
     const role = mapExternalRolesToCrmRole(externalRoles)
+    const platformRole = this.mapPlatformRole(payload.platform_role, externalRoles)
 
     return {
       id: payload.sub ?? payload.preferred_username ?? 'keycloak-user',
@@ -53,6 +54,7 @@ export class KeycloakAuthService {
       role,
       roles: externalRoles,
       permissions: permissionsForRole(role),
+      platformRole,
       issuer: payload.iss,
     }
   }
@@ -153,5 +155,16 @@ export class KeycloakAuthService {
     const groupRoles = (payload.groups ?? []).map((group) => group.split('/').filter(Boolean).at(-1) ?? group)
 
     return Array.from(new Set([...realmRoles, ...clientRoles, ...groupRoles]))
+  }
+
+  private mapPlatformRole(claimRole: string | undefined, roles: string[]) {
+    const normalizedRoles = [claimRole, ...roles].filter(Boolean).map((value) => value!.toLowerCase())
+    if (normalizedRoles.some((role) => ['super_admin', 'super-admin', 'platform_admin', 'platform-admin'].includes(role))) {
+      return 'SUPER_ADMIN'
+    }
+    if (normalizedRoles.some((role) => ['company_admin', 'company-admin', 'admin', 'crm-admin', 'crm_admin'].includes(role))) {
+      return 'COMPANY_ADMIN'
+    }
+    return 'COMPANY_USER'
   }
 }

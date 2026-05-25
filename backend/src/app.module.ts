@@ -7,6 +7,7 @@ import { CommonModule } from './common/common.module'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { RolesGuard } from './guards/roles.guard'
 import { PermissionGuard } from './guards/permission.guard'
+import { PlatformAdminGuard } from './guards/platform-admin.guard'
 import { DatabaseModule } from './database/database.module'
 import { EventsModule } from './events/events.module'
 import { AuthModule } from './modules/auth/auth.module'
@@ -48,6 +49,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module'
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
+    { provide: APP_GUARD, useClass: PlatformAdminGuard },
   ],
 })
 export class AppModule {}

@@ -40,6 +40,7 @@ export class JwtAuthGuard implements CanActivate {
         role: 'admin',
         roles: ['admin'],
         permissions: permissionsForRole('admin'),
+        platformRole: 'SUPER_ADMIN',
       }
       return true
     }
