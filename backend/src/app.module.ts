@@ -17,6 +17,7 @@ import { InboxModule } from './modules/inbox/inbox.module'
 import { ConversationsModule } from './modules/conversations/conversations.module'
 import { MessagesModule } from './modules/messages/messages.module'
 import { ChannelsModule } from './modules/channels/channels.module'
+import { OnboardingRequestsModule } from './modules/onboarding-requests/onboarding-requests.module'
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
 import { AutomationModule } from './modules/automation/automation.module'
@@ -40,6 +41,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module'
     ConversationsModule,
     MessagesModule,
     ChannelsModule,
+    OnboardingRequestsModule,
     WhatsAppModule,
     NotificationsModule,
     AutomationModule,

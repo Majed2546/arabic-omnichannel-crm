@@ -8378,6 +8378,10 @@ body:has(.inbox-layout) {
   box-shadow: var(--saas-shadow-hover);
 }
 
+.platform-modal-wide {
+  width: min(1080px, 96vw);
+}
+
 .platform-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8393,13 +8397,96 @@ body:has(.inbox-layout) {
 }
 
 .platform-form-grid input,
-.platform-form-grid select {
+.platform-form-grid select,
+.platform-form-grid textarea {
   min-height: 42px;
   padding: 8px 10px;
   border: 1px solid var(--saas-border);
   border-radius: 12px;
   background: #ffffff;
   color: var(--saas-text);
+  font: inherit;
+}
+
+.platform-form-grid textarea {
+  resize: vertical;
+}
+
+.platform-form-wide,
+.platform-fieldset {
+  grid-column: 1 / -1;
+}
+
+.platform-fieldset {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 14px;
+}
+
+.platform-fieldset legend {
+  padding-inline: 8px;
+  color: var(--saas-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.platform-chip-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.platform-chip-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 999px;
+  background: var(--saas-soft);
+  color: var(--saas-navy);
+}
+
+.platform-actions select {
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--saas-text);
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.platform-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.platform-detail-grid article,
+.platform-notes-panel {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 14px;
+  background: var(--saas-soft);
+}
+
+.platform-detail-grid span,
+.platform-notes-panel span {
+  color: var(--saas-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.platform-detail-grid strong,
+.platform-notes-panel p {
+  margin: 0;
+  color: var(--saas-navy);
+  line-height: 1.7;
 }
 
 .platform-modal-actions {
@@ -8433,7 +8520,8 @@ body:has(.inbox-layout) {
   .platform-metrics,
   .platform-plan-grid,
   .platform-usage-list article,
-  .platform-form-grid {
+  .platform-form-grid,
+  .platform-detail-grid {
     grid-template-columns: 1fr;
   }
 }

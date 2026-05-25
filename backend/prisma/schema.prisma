@@ -22,6 +22,20 @@ enum TenantPlan {
   ENTERPRISE
 }
 
+enum OnboardingRequestStatus {
+  NEW
+  WAITING_FOR_INFO
+  UNDER_REVIEW
+  READY_TO_CREATE
+  ACTIVATED
+  REJECTED
+}
+
+enum OnboardingOperationMode {
+  PLATFORM_ONLY
+  APP_AND_PLATFORM
+}
+
 enum PlatformRole {
   SUPER_ADMIN
   COMPANY_ADMIN
@@ -161,6 +175,7 @@ model Tenant {
   messages      Message[]
   notifications Notification[]
   workflows     Workflow[]
+  onboardingRequest OnboardingRequest?
 
   @@index([status])
   @@index([plan])
@@ -168,6 +183,33 @@ model Tenant {
   @@index([createdAt])
   @@index([deletedAt])
   @@map("tenants")
+}
+
+model OnboardingRequest {
+  id                     String                  @id @default(cuid())
+  organizationName       String                  @map("organization_name")
+  website                String?
+  contactName            String                  @map("contact_name")
+  contactEmail           String                  @map("contact_email")
+  contactPhone           String                  @map("contact_phone")
+  requestedPlan          TenantPlan              @map("requested_plan")
+  requestedUsers         Int                     @default(5) @map("requested_users")
+  requestedChannels      String[]                @default([]) @map("requested_channels")
+  whatsappNumber         String?                 @map("whatsapp_number")
+  hasMetaBusiness        Boolean                 @default(false) @map("has_meta_business")
+  hasWhatsAppBusinessApp Boolean                 @default(false) @map("has_whatsapp_business_app")
+  operationMode          OnboardingOperationMode @default(PLATFORM_ONLY) @map("operation_mode")
+  status                 OnboardingRequestStatus @default(NEW)
+  notes                  String?
+  activatedTenantId      String?                 @unique @map("activated_tenant_id")
+  activatedTenant        Tenant?                 @relation(fields: [activatedTenantId], references: [id], onDelete: SetNull)
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([requestedPlan])
+  @@index([createdAt])
+  @@map("onboarding_requests")
 }
 
 model User {

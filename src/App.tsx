@@ -8,6 +8,7 @@ import {
   ModulePlaceholderPage,
   PlatformCompaniesPage,
   PlatformDashboardPage,
+  PlatformOnboardingRequestsPage,
   PlatformSubscriptionsPage,
   PlatformUsagePage,
   RolesPage,
@@ -51,6 +52,7 @@ function App() {
         <Route path="settings" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.view']}><ModulePlaceholderPage title="الإعدادات" description="تهيئة إعدادات النظام العامة وسياسات التشغيل." /></RequireAuth></RequireTenant>} />
         <Route path="platform" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformDashboardPage /></RequireAuth></RequireTenant>} />
         <Route path="platform/companies" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformCompaniesPage /></RequireAuth></RequireTenant>} />
+        <Route path="platform/onboarding-requests" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformOnboardingRequestsPage /></RequireAuth></RequireTenant>} />
         <Route path="platform/subscriptions" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformSubscriptionsPage /></RequireAuth></RequireTenant>} />
         <Route path="platform/usage" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformUsagePage /></RequireAuth></RequireTenant>} />
         <Route path="activity" element={<RequireTenant><ActivityFeedPage /></RequireTenant>} />
