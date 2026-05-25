@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Prisma } from '@prisma/client'
+import { Prisma, TenantPlan, TenantStatus } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
+import { DEFAULT_TENANT_ID } from '../../common/tenant-access.service'
 import type { AuthMode } from '../auth/auth.types'
 import type { CreateCustomerDto, ListCustomersQueryDto, UpdateCustomerDto } from './dto'
 
@@ -60,11 +61,11 @@ export class CustomersService {
   }
 
   async create(tenantId: string, dto: CreateCustomerDto) {
-    await this.ensureLocalTenantExists(tenantId)
+    const resolvedTenantId = await this.ensureTenantForCreate(tenantId)
 
     const customer = await this.prisma.customer.create({
       data: {
-        tenantId,
+        tenantId: resolvedTenantId,
         name: dto.name.trim(),
         phone: this.blankToNull(dto.phone),
         email: this.blankToNull(dto.email),
@@ -200,26 +201,46 @@ export class CustomersService {
     return normalized || null
   }
 
-  private async ensureLocalTenantExists(tenantId: string) {
+  private async ensureTenantForCreate(tenantId?: string) {
+    const resolvedTenantId = tenantId || DEFAULT_TENANT_ID
     const authMode = this.config.get<AuthMode>('auth.mode') ?? 'local'
-    if (authMode === 'keycloak') return
+
+    if (authMode !== 'keycloak' && resolvedTenantId === DEFAULT_TENANT_ID) {
+      await this.prisma.tenant.upsert({
+        where: { id: DEFAULT_TENANT_ID },
+        create: {
+          id: DEFAULT_TENANT_ID,
+          name: 'Default Tenant',
+          slug: 'default',
+          status: TenantStatus.ACTIVE,
+          plan: TenantPlan.ENTERPRISE,
+          maxUsers: 50,
+          maxChannels: 10,
+          monthlyConversationLimit: 50000,
+          createdBy: 'local-dev',
+          updatedBy: 'local-dev',
+        },
+        update: {
+          name: 'Default Tenant',
+          slug: 'default',
+          status: TenantStatus.ACTIVE,
+          plan: TenantPlan.ENTERPRISE,
+          maxUsers: 50,
+          maxChannels: 10,
+          monthlyConversationLimit: 50000,
+          updatedBy: 'local-dev',
+          deletedAt: null,
+        },
+      })
+      return resolvedTenantId
+    }
 
     const existing = await this.prisma.tenant.findFirst({
-      where: { id: tenantId, deletedAt: null },
+      where: { id: resolvedTenantId, deletedAt: null },
       select: { id: true },
     })
-    if (existing) return
+    if (!existing) throw new BadRequestException(`Tenant not found: ${resolvedTenantId}`)
 
-    await this.prisma.tenant.create({
-      data: {
-        id: tenantId,
-        name: tenantId === 'default-tenant' ? 'المستأجر الافتراضي' : tenantId,
-        slug: tenantId,
-        status: 'ACTIVE',
-        plan: 'ENTERPRISE',
-        createdBy: 'local-dev',
-        updatedBy: 'local-dev',
-      },
-    })
+    return resolvedTenantId
   }
 }
