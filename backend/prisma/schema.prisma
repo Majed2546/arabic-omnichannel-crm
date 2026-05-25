@@ -8,10 +8,24 @@ datasource db {
 }
 
 enum TenantStatus {
+  TRIAL
   ACTIVE
   INACTIVE
   SUSPENDED
+  CANCELLED
   ARCHIVED
+}
+
+enum TenantPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum PlatformRole {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  COMPANY_USER
 }
 
 enum UserStatus {
@@ -125,8 +139,14 @@ model Tenant {
   id            String         @id @default(cuid())
   name          String
   slug          String         @unique
+  logoUrl       String?        @map("logo_url")
   status        TenantStatus   @default(ACTIVE)
-  plan          String?
+  plan          TenantPlan     @default(STARTER)
+  subscriptionStart DateTime?  @map("subscription_start")
+  subscriptionEnd   DateTime?  @map("subscription_end")
+  maxUsers      Int            @default(10) @map("max_users")
+  maxChannels   Int            @default(2) @map("max_channels")
+  monthlyConversationLimit Int  @default(1000) @map("monthly_conversation_limit")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   createdBy     String?        @map("created_by")
@@ -143,6 +163,8 @@ model Tenant {
   workflows     Workflow[]
 
   @@index([status])
+  @@index([plan])
+  @@index([subscriptionEnd])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("tenants")
@@ -155,6 +177,7 @@ model User {
   email        String
   passwordHash String         @map("password_hash")
   status       UserStatus     @default(ACTIVE)
+  platformRole PlatformRole   @default(COMPANY_USER) @map("platform_role")
   avatar       String?
   roleId       String?        @map("role_id")
   createdAt    DateTime       @default(now()) @map("created_at")
@@ -171,6 +194,7 @@ model User {
   @@index([tenantId])
   @@index([roleId])
   @@index([status])
+  @@index([platformRole])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("users")

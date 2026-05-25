@@ -1,7 +1,17 @@
 import type { Tenant } from './tenantTypes'
 
 export const TENANTS: Tenant[] = [
-  { id: 'default-tenant', name: 'المستأجر الافتراضي', plan: 'Enterprise', status: 'active', contacts: 0 },
+  {
+    id: 'default-tenant',
+    name: 'المستأجر الافتراضي',
+    slug: 'default',
+    plan: 'enterprise',
+    status: 'active',
+    maxUsers: 50,
+    maxChannels: 10,
+    monthlyConversationLimit: 50000,
+    contacts: 0,
+  },
 ]
 
 export const DEFAULT_TENANT_ID = TENANTS[0]?.id ?? null

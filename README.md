@@ -95,3 +95,29 @@ VITE_AUTH_MODE=keycloak
 ```
 
 CRM permissions are defined consistently in the backend and frontend, including `dashboard.view`, `inbox.view`, `inbox.reply`, `inbox.assign`, `roles.manage`, and `settings.manage`. In local mode, backend guards allow the existing development flow; in Keycloak mode, API routes require a valid bearer token except public health/auth status and WhatsApp webhook endpoints.
+
+## SaaS Tenancy and Subscriptions
+
+The backend data model is tenant-first. Operational CRM records such as users, roles, channels, customers, queues, conversations, messages, notifications, and workflows already carry `tenant_id` and remain isolated by tenant scope.
+
+The subscription foundation extends `Tenant` with SaaS company fields:
+
+- `logo_url`
+- `status`: supports `TRIAL`, `ACTIVE`, `SUSPENDED`, and `CANCELLED` while preserving legacy `INACTIVE` and `ARCHIVED` values for compatibility
+- `plan`: `STARTER`, `PROFESSIONAL`, or `ENTERPRISE`
+- `subscription_start` and `subscription_end`
+- `max_users`, `max_channels`, and `monthly_conversation_limit`
+
+User ownership is prepared with `platform_role`:
+
+- `SUPER_ADMIN`: platform owner/operator across subscribed companies
+- `COMPANY_ADMIN`: administrator for a subscribed company tenant
+- `COMPANY_USER`: regular company user
+
+Current default tenant behavior remains supported. Local frontend state still starts with `default-tenant`, and the Prisma seed keeps that tenant active on the Enterprise plan. Existing WhatsApp seed/send/receive flows continue to use the same tenant and channel identifiers until a full tenant migration is introduced.
+
+Frontend placeholders are available for SaaS platform administration:
+
+- `/platform/companies` - الشركات المشتركة
+- `/platform/subscriptions` - الاشتراكات والباقات
+- `/platform/usage` - استخدام المنصة

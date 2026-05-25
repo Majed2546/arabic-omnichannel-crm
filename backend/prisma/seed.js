@@ -1,4 +1,4 @@
-const { ChannelStatus, ChannelType, PrismaClient, TenantStatus } = require('@prisma/client')
+const { ChannelStatus, ChannelType, PrismaClient, TenantPlan, TenantStatus } = require('@prisma/client')
 
 const prisma = new PrismaClient()
 
@@ -26,13 +26,17 @@ async function main() {
       name: DEFAULT_TENANT_NAME,
       slug: DEFAULT_TENANT_SLUG,
       status: TenantStatus.ACTIVE,
-      plan: 'production',
+      plan: TenantPlan.ENTERPRISE,
+      maxUsers: 50,
+      maxChannels: 10,
+      monthlyConversationLimit: 50000,
       createdBy: 'prisma-seed',
       updatedBy: 'prisma-seed',
     },
     update: {
       name: DEFAULT_TENANT_NAME,
       status: TenantStatus.ACTIVE,
+      plan: TenantPlan.ENTERPRISE,
       updatedBy: 'prisma-seed',
       deletedAt: null,
     },

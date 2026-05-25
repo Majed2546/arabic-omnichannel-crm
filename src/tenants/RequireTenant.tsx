@@ -12,8 +12,10 @@ type RequireTenantProps = {
 }
 
 const tenantStatusLabels: Record<Tenant['status'], string> = {
+  trial: 'تجريبي',
   active: 'نشط',
   suspended: 'غير نشط',
+  cancelled: 'ملغي',
 }
 
 function formatLastActivity(value: string | undefined) {

@@ -1,10 +1,18 @@
-export type TenantStatus = 'active' | 'suspended'
+export type TenantStatus = 'trial' | 'active' | 'suspended' | 'cancelled'
+export type TenantPlan = 'starter' | 'professional' | 'enterprise'
 
 export type Tenant = {
   id: string
   name: string
-  plan: string
+  slug?: string
+  logoUrl?: string
+  plan: TenantPlan
   status: TenantStatus
+  subscriptionStart?: string
+  subscriptionEnd?: string
+  maxUsers?: number
+  maxChannels?: number
+  monthlyConversationLimit?: number
   contacts: number
   inactiveReason?: string
   lastActivityAt?: string

@@ -22,6 +22,9 @@ const pageTitles: Record<string, string> = {
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',
   '/whatsapp': 'واتساب',
+  '/platform/companies': 'الشركات المشتركة',
+  '/platform/subscriptions': 'الاشتراكات والباقات',
+  '/platform/usage': 'استخدام المنصة',
 }
 
 const roleLabels: Record<string, string> = {
@@ -32,6 +35,9 @@ const roleLabels: Record<string, string> = {
 
 const pageSubtitles: Record<string, string> = {
   '/inbox': 'مساحة موحدة لمحادثات العملاء عبر القنوات.',
+  '/platform/companies': 'أساس إدارة الشركات المستأجرة في نموذج SaaS.',
+  '/platform/subscriptions': 'تعريف الباقات وحدود الاشتراك لكل شركة.',
+  '/platform/usage': 'مراقبة الاستهلاك الشهري وحدود المنصة.',
 }
 
 export function Topbar() {
