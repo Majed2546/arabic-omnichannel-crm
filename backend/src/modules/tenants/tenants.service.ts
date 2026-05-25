@@ -1,5 +1,5 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
-import { PlatformRole, TenantPlan, TenantStatus } from '@prisma/client'
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { PlatformRole, TenantPlan, TenantStatus, UserStatus } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
 import type { CreateTenantDto, UpdateTenantDto, UpdateTenantStatusDto } from './dto'
 
@@ -11,7 +11,14 @@ export class TenantsService {
     return this.prisma.tenant.findMany({
       where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
-      include: { users: { where: { platformRole: PlatformRole.COMPANY_ADMIN, deletedAt: null }, take: 1 } },
+      include: {
+        _count: { select: { users: true } },
+        users: {
+          where: { platformRole: PlatformRole.COMPANY_ADMIN, deletedAt: null },
+          select: { id: true, name: true, email: true, platformRole: true, status: true },
+          take: 1,
+        },
+      },
     })
   }
 
@@ -27,8 +34,17 @@ export class TenantsService {
   async create(dto: CreateTenantDto) {
     const existing = await this.prisma.tenant.findUnique({ where: { slug: dto.slug } })
     if (existing) throw new ConflictException('Tenant slug already exists')
+    const admin = dto.admin ?? dto.companyAdmin
 
     const tenant = await this.prisma.$transaction(async (tx) => {
+      if (admin) {
+        const existingAdmin = await tx.user.findFirst({
+          where: { email: admin.email, deletedAt: null },
+          select: { id: true },
+        })
+        if (existingAdmin) throw new BadRequestException('Admin email already exists')
+      }
+
       const tenant = await tx.tenant.create({
         data: {
           name: dto.name,
@@ -46,13 +62,14 @@ export class TenantsService {
         },
       })
 
-      if (dto.companyAdmin) {
+      if (admin) {
         await tx.user.create({
           data: {
             tenantId: tenant.id,
-            name: dto.companyAdmin.name,
-            email: dto.companyAdmin.email,
+            name: admin.name,
+            email: admin.email,
             passwordHash: 'pending-keycloak-invite',
+            status: UserStatus.ACTIVE,
             platformRole: PlatformRole.COMPANY_ADMIN,
             createdBy: 'platform-admin',
             updatedBy: 'platform-admin',

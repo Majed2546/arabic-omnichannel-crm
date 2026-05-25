@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsISO8601,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
@@ -14,9 +15,11 @@ import { TenantPlan, TenantStatus } from '@prisma/client'
 
 export class CompanyAdminDto {
   @IsString()
+  @IsNotEmpty()
   name!: string
 
   @IsEmail()
+  @IsNotEmpty()
   email!: string
 }
 
@@ -65,6 +68,11 @@ export class CreateTenantDto {
   @IsInt()
   @Min(1)
   monthlyConversationLimit?: number
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CompanyAdminDto)
+  admin?: CompanyAdminDto
 
   @IsOptional()
   @ValidateNested()

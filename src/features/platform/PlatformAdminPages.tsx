@@ -130,7 +130,7 @@ const emptyForm: SaveCompanyPayload = {
   maxUsers: 10,
   maxChannels: 2,
   monthlyConversationLimit: 1000,
-  companyAdmin: {
+  admin: {
     name: '',
     email: '',
   },
@@ -165,7 +165,7 @@ function CompanyFormModal({
         logoUrl: form.logoUrl || undefined,
         subscriptionStart: form.subscriptionStart || undefined,
         subscriptionEnd: form.subscriptionEnd || undefined,
-        companyAdmin: mode === 'create' && form.companyAdmin?.name && form.companyAdmin.email ? form.companyAdmin : undefined,
+        admin: mode === 'create' && form.admin?.name && form.admin.email ? form.admin : undefined,
       }
 
       if (mode === 'create') {
@@ -201,8 +201,8 @@ function CompanyFormModal({
           <label>حد المحادثات الشهري<input type="number" min={1} value={form.monthlyConversationLimit} onChange={(event) => updateField('monthlyConversationLimit', Number(event.target.value))} /></label>
           {mode === 'create' ? (
             <>
-              <label>اسم مدير الشركة<input value={form.companyAdmin?.name ?? ''} onChange={(event) => setForm((current) => ({ ...current, companyAdmin: { name: event.target.value, email: current.companyAdmin?.email ?? '' } }))} /></label>
-              <label>بريد مدير الشركة<input type="email" value={form.companyAdmin?.email ?? ''} onChange={(event) => setForm((current) => ({ ...current, companyAdmin: { name: current.companyAdmin?.name ?? '', email: event.target.value } }))} /></label>
+              <label>اسم مدير الشركة<input value={form.admin?.name ?? ''} onChange={(event) => setForm((current) => ({ ...current, admin: { name: event.target.value, email: current.admin?.email ?? '' } }))} /></label>
+              <label>بريد مدير الشركة<input type="email" value={form.admin?.email ?? ''} onChange={(event) => setForm((current) => ({ ...current, admin: { name: current.admin?.name ?? '', email: event.target.value } }))} /></label>
             </>
           ) : null}
         </div>

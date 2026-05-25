@@ -18,7 +18,7 @@ export type PlatformCompany = {
 }
 
 export type SaveCompanyPayload = Omit<PlatformCompany, 'id'> & {
-  companyAdmin?: {
+  admin?: {
     name: string
     email: string
   }
