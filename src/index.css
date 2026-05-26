@@ -8688,7 +8688,7 @@ body:has(.inbox-layout) {
 
 .customers-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
   gap: 18px;
   align-items: start;
 }
@@ -8726,10 +8726,17 @@ body:has(.inbox-layout) {
 .customers-table tbody tr {
   background: #ffffff;
   box-shadow: inset 0 0 0 1px var(--saas-border);
+  cursor: pointer;
+  transition: background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.customers-table tbody tr:hover {
+  background: rgba(14, 165, 233, 0.04);
 }
 
 .customers-table tbody tr.selected-row {
   background: rgba(14, 165, 233, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.32);
 }
 
 .customers-table td:first-child,
@@ -8826,6 +8833,13 @@ body:has(.inbox-layout) {
   border: 1px solid var(--saas-border);
   border-radius: 12px;
   background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.customer-list-card:hover {
+  border-color: rgba(14, 165, 233, 0.28);
+  transform: translateY(-1px);
 }
 
 .customer-list-card.selected {
@@ -8878,6 +8892,47 @@ body:has(.inbox-layout) {
   min-height: 36px;
 }
 
+.customer-details-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.customer-details-panel .customer-profile-head {
+  min-width: 0;
+}
+
+.customer-details-panel .customer-profile-head h3,
+.customer-details-panel .customer-profile-head p,
+.customer-detail-meta dd {
+  overflow-wrap: anywhere;
+}
+
+.customer-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.customer-detail-actions .app-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.customer-detail-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.customer-detail-meta > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
 .customer-modal {
   width: min(720px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
@@ -8924,7 +8979,7 @@ body:has(.inbox-layout) {
   text-decoration: none;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .customers-grid,
   .customers-filters {
     grid-template-columns: 1fr;

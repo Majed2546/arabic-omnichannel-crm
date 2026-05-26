@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Edit3, Eye, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
@@ -175,6 +175,7 @@ function CustomerModal({
 }
 
 export default function CustomersPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const showToast = useUiStore((state) => state.showToast)
   const { can } = useAuth()
@@ -187,6 +188,7 @@ export default function CustomersPage() {
   const [sourceChannel, setSourceChannel] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(searchParams.get('new') === '1' ? 'create' : null)
+  const previousTenantIdRef = useRef<string | null>(null)
 
   const selectedId = searchParams.get('customerId')
   const createInitialForm = useMemo<CustomerFormState | undefined>(() => {
@@ -200,8 +202,14 @@ export default function CustomersPage() {
 
   function refreshCustomers() {
     setLoading(true)
-    setCustomers([])
-    setSelectedCustomer(null)
+    const tenantChanged = previousTenantIdRef.current !== currentTenantId
+    previousTenantIdRef.current = currentTenantId ?? null
+
+    if (tenantChanged) {
+      setCustomers([])
+      setSelectedCustomer(null)
+    }
+
     if (!currentTenantId) {
       setLoading(false)
       return
@@ -209,7 +217,20 @@ export default function CustomersPage() {
     fetchCustomers({ search, status, sourceChannel })
       .then((items) => {
         setCustomers(items)
-        if (!selectedId && items[0]) setSelectedCustomer(items[0])
+        const selectedFromList = selectedId ? items.find((item) => item.id === selectedId) : null
+
+        if (selectedFromList) {
+          setSelectedCustomer(selectedFromList)
+          return
+        }
+
+        if (selectedId && !selectedFromList) {
+          setSelectedCustomer(null)
+          setSearchParams({})
+          return
+        }
+
+        setSelectedCustomer((current) => items.find((item) => item.id === current?.id) ?? items[0] ?? null)
       })
       .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل العملاء', 'warning'))
       .finally(() => setLoading(false))
@@ -220,14 +241,23 @@ export default function CustomersPage() {
   }, [search, status, sourceChannel, currentTenantId])
 
   useEffect(() => {
-    setSelectedCustomer(null)
     if (!selectedId || !currentTenantId) return
+    let disposed = false
+
     fetchCustomer(selectedId)
-      .then(setSelectedCustomer)
-      .catch(() => {
-        setSelectedCustomer(null)
-        showToast('تعذر فتح ملف العميل', 'warning')
+      .then((customer) => {
+        if (!disposed) setSelectedCustomer(customer)
       })
+      .catch(() => {
+        if (!disposed) {
+          setSelectedCustomer(null)
+          showToast('تعذر فتح ملف العميل', 'warning')
+        }
+      })
+
+    return () => {
+      disposed = true
+    }
   }, [selectedId, currentTenantId])
 
   const visibleCustomers = useMemo(() => customers, [customers])
@@ -235,6 +265,14 @@ export default function CustomersPage() {
   function selectCustomer(customer: Customer) {
     setSelectedCustomer(customer)
     setSearchParams({ customerId: customer.id })
+  }
+
+  function openConversations() {
+    navigate('/inbox')
+  }
+
+  function createTicketPlaceholder() {
+    showToast('سيتم ربط إنشاء التذاكر من ملف العميل ضمن إصدار التذاكر القادم', 'info')
   }
 
   async function handleSave(payload: SaveCustomerPayload) {
@@ -316,18 +354,26 @@ export default function CustomersPage() {
               </thead>
               <tbody>
                 {visibleCustomers.map((customer) => (
-                  <tr key={customer.id} className={customer.id === selectedCustomer?.id ? 'selected-row' : ''}>
+                  <tr
+                    key={customer.id}
+                    className={customer.id === selectedCustomer?.id ? 'selected-row' : ''}
+                    onClick={() => selectCustomer(customer)}
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') selectCustomer(customer)
+                    }}
+                  >
                     <td><strong>{customer.name}</strong><small>{customer.conversationsCount} محادثة</small></td>
                     <td><span>{customer.phone || 'لا يوجد جوال'}</span><small>{customer.email || 'لا يوجد بريد'}</small></td>
                     <td><StatusBadge label={statusLabels[customer.status]} tone={customerStatusTone(customer.status)} /></td>
                     <td>{getChannelLabel(customer.sourceChannel)}</td>
-                    <td><div className="tag-list compact">{customer.tags.map((tag) => <span key={tag}>{tag}</span>)}</div></td>
+                    <td><div className="tag-list compact">{customer.tags.length ? customer.tags.map((tag) => <span key={tag}>{tag}</span>) : <small>لا توجد وسوم</small>}</div></td>
                     <td>{formatDate(customer.lastActivityAt)}</td>
                     <td>
                       <div className="platform-actions">
-                        <AppButton variant="ghost" onClick={() => selectCustomer(customer)}><Eye size={15} /> عرض</AppButton>
-                        {canManageCustomers ? <AppButton variant="ghost" onClick={() => { setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
-                        {canManageCustomers ? <AppButton variant="ghost" onClick={() => handleDelete(customer)}><Trash2 size={15} /> حذف</AppButton> : null}
+                        <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); selectCustomer(customer) }}><Eye size={15} /> عرض</AppButton>
+                        {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
+                        {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}><Trash2 size={15} /> حذف</AppButton> : null}
                       </div>
                     </td>
                   </tr>
@@ -338,7 +384,7 @@ export default function CustomersPage() {
 
           <div className="customers-card-list">
             {visibleCustomers.map((customer) => (
-              <article key={customer.id} className={`customer-list-card ${customer.id === selectedCustomer?.id ? 'selected' : ''}`}>
+              <article key={customer.id} className={`customer-list-card ${customer.id === selectedCustomer?.id ? 'selected' : ''}`} onClick={() => selectCustomer(customer)}>
                 <div className="customer-card-main">
                   <div>
                     <strong>{customer.name}</strong>
@@ -359,9 +405,9 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="customer-card-actions">
-                  <AppButton variant="ghost" onClick={() => selectCustomer(customer)}><Eye size={15} /> عرض</AppButton>
-                  {canManageCustomers ? <AppButton variant="ghost" onClick={() => { setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
-                  {canManageCustomers ? <AppButton variant="ghost" onClick={() => handleDelete(customer)}><Trash2 size={15} /> حذف</AppButton> : null}
+                  <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); selectCustomer(customer) }}><Eye size={15} /> عرض</AppButton>
+                  {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
+                  {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}><Trash2 size={15} /> حذف</AppButton> : null}
                 </div>
               </article>
             ))}
@@ -379,11 +425,21 @@ export default function CustomersPage() {
                 </div>
               </div>
 
-              <dl className="meta-list">
+              <div className="customer-detail-actions">
+                {canManageCustomers ? <AppButton variant="primary" onClick={() => setModalMode('edit')}>تعديل العميل</AppButton> : null}
+                <AppButton variant="secondary" onClick={openConversations}>فتح المحادثات</AppButton>
+                <AppButton variant="ghost" onClick={createTicketPlaceholder}>إنشاء تذكرة</AppButton>
+              </div>
+
+              <dl className="meta-list customer-detail-meta">
+                <div><dt>الاسم</dt><dd>{selectedCustomer.name}</dd></div>
                 <div><dt>الجوال</dt><dd>{selectedCustomer.phone || 'غير محدد'}</dd></div>
                 <div><dt>البريد</dt><dd>{selectedCustomer.email || 'غير محدد'}</dd></div>
-                <div><dt>آخر نشاط</dt><dd>{formatDate(selectedCustomer.lastActivityAt)}</dd></div>
+                <div><dt>الحالة</dt><dd><StatusBadge label={statusLabels[selectedCustomer.status]} tone={customerStatusTone(selectedCustomer.status)} /></dd></div>
+                <div><dt>القناة المصدر</dt><dd>{getChannelLabel(selectedCustomer.sourceChannel)}</dd></div>
+                <div><dt>عدد المحادثات</dt><dd>{selectedCustomer.conversationsCount.toLocaleString('ar-SA')}</dd></div>
                 <div><dt>تاريخ الإنشاء</dt><dd>{formatDate(selectedCustomer.createdAt)}</dd></div>
+                <div><dt>آخر نشاط</dt><dd>{formatDate(selectedCustomer.lastActivityAt)}</dd></div>
               </dl>
 
               <div className="profile-section">
@@ -410,7 +466,7 @@ export default function CustomersPage() {
               </div>
             </>
           ) : (
-            <EmptyState title="اختر عميلاً" message="حدد عميلاً من القائمة لعرض الملف الكامل." />
+            <EmptyState title="اختر عميلًا لعرض التفاصيل." message="حدد عميلًا من القائمة لعرض بيانات التواصل والمحادثات والإجراءات." />
           )}
         </aside>
       </div>
