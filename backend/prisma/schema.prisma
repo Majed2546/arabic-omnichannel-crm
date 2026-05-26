@@ -156,6 +156,20 @@ enum WhatsAppTemplateStatus {
   REJECTED
 }
 
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum AppointmentMeetingType {
+  IN_PERSON
+  PHONE
+  ONLINE
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
@@ -184,6 +198,7 @@ model Tenant {
   workflows     Workflow[]
   quickReplies  QuickReply[]
   whatsappTemplates WhatsAppTemplate[]
+  appointments  Appointment[]
   onboardingRequest OnboardingRequest?
 
   @@index([status])
@@ -239,6 +254,7 @@ model User {
   tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   role         Role?          @relation(fields: [roleId], references: [id], onDelete: SetNull)
   assigned     Conversation[] @relation("ConversationAssignedUser")
+  appointments Appointment[]  @relation("AppointmentAssignedUser")
   notifications Notification[]
 
   @@unique([tenantId, email])
@@ -338,6 +354,7 @@ model Customer {
   deletedAt     DateTime?      @map("deleted_at")
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  appointments Appointment[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -435,6 +452,7 @@ model Conversation {
   queue          Queue?               @relation(fields: [queueId], references: [id], onDelete: SetNull)
   messages       Message[]
   notifications  Notification[]
+  appointments   Appointment[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -448,6 +466,38 @@ model Conversation {
   @@index([tenantId, createdAt])
   @@index([deletedAt])
   @@map("conversations")
+}
+
+model Appointment {
+  id             String                 @id @default(cuid())
+  tenantId       String                 @map("tenant_id")
+  customerId     String                 @map("customer_id")
+  conversationId String?                @map("conversation_id")
+  assignedUserId String?                @map("assigned_user_id")
+  title          String
+  description    String?
+  startAt        DateTime               @map("start_at")
+  endAt          DateTime               @map("end_at")
+  status         AppointmentStatus      @default(SCHEDULED)
+  meetingType    AppointmentMeetingType @default(PHONE) @map("meeting_type")
+  meetingLink    String?                @map("meeting_link")
+  location       String?
+  notes          String?
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  deletedAt      DateTime?              @map("deleted_at")
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer       Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  conversation   Conversation?          @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  assignedUser   User?                  @relation("AppointmentAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, startAt])
+  @@index([tenantId, status])
+  @@index([tenantId, customerId])
+  @@index([tenantId, assignedUserId])
+  @@index([deletedAt])
+  @@map("appointments")
 }
 
 model Message {

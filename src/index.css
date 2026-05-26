@@ -9256,6 +9256,126 @@ body:has(.inbox-layout) {
   font-weight: 800;
 }
 
+.appointments-page {
+  gap: 14px;
+}
+
+.appointments-filters {
+  display: grid;
+  grid-template-columns: minmax(160px, 190px) minmax(150px, 180px) minmax(180px, 1fr) minmax(180px, 240px);
+  gap: 10px;
+  align-items: center;
+}
+
+.appointments-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 14px;
+  align-items: start;
+}
+
+.appointments-list-panel,
+.appointments-timeline-panel {
+  min-width: 0;
+}
+
+.appointment-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.appointment-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.appointment-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.appointment-card h3,
+.appointment-card p,
+.appointment-card dl {
+  margin: 0;
+}
+
+.appointment-card h3 {
+  color: var(--saas-navy);
+  font-size: 1rem;
+}
+
+.appointment-card header p,
+.appointment-card dt,
+.appointment-notes {
+  color: var(--saas-muted);
+}
+
+.appointment-card dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.appointment-card dt,
+.appointment-card dd {
+  margin: 0;
+}
+
+.appointment-card dd {
+  overflow-wrap: anywhere;
+}
+
+.appointment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.appointment-actions .app-button {
+  text-decoration: none;
+}
+
+.appointment-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.appointment-timeline article {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.appointment-timeline time {
+  color: var(--saas-blue);
+  font-weight: 900;
+}
+
+.appointment-timeline strong,
+.appointment-timeline small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.appointment-timeline small {
+  color: var(--saas-muted);
+}
+
+.appointment-modal {
+  width: min(820px, calc(100vw - 32px));
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9298,6 +9418,15 @@ body:has(.inbox-layout) {
   .templates-toolbar {
     grid-template-columns: 1fr;
   }
+
+  .appointments-layout,
+  .appointments-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-card dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -9306,7 +9435,8 @@ body:has(.inbox-layout) {
   }
 
   .customer-list-card dl,
-  .customer-form-grid {
+  .customer-form-grid,
+  .appointment-card dl {
     grid-template-columns: 1fr;
   }
 

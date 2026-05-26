@@ -12,6 +12,7 @@ import { useAuth } from '../../auth/useAuth'
 import { useUiStore } from '../../stores/uiStore'
 import { useTenant } from '../../tenants/useTenant'
 import { getChannelLabel } from '../../shared/utils'
+import { fetchAppointments, type Appointment } from '../appointments/appointmentData'
 import {
   createCustomer,
   deleteCustomer,
@@ -32,6 +33,14 @@ const statusLabels: Record<CustomerStatus, string> = {
   VIP: 'VIP',
   INACTIVE: 'غير نشط',
   BLOCKED: 'محظور',
+}
+
+const appointmentStatusLabels: Record<string, string> = {
+  SCHEDULED: 'مجدول',
+  CONFIRMED: 'مؤكد',
+  CANCELLED: 'ملغي',
+  COMPLETED: 'مكتمل',
+  NO_SHOW: 'لم يحضر',
 }
 
 const sourceChannelOptions: CustomerSourceChannel[] = ['WHATSAPP', 'EMAIL', 'WEBCHAT', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'VOICE', 'X']
@@ -209,6 +218,7 @@ export default function CustomersPage() {
   const { can } = useAuth()
   const { currentTenantId } = useTenant()
   const canManageCustomers = can('customers.manage')
+  const canManageAppointments = can('appointments.manage')
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [search, setSearch] = useState('')
@@ -217,6 +227,7 @@ export default function CustomersPage() {
   const [isLoading, setLoading] = useState(true)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(searchParams.get('new') === '1' ? 'create' : null)
   const [relatedConversations, setRelatedConversations] = useState<CustomerConversation[]>([])
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([])
   const previousTenantIdRef = useRef<string | null>(null)
 
   const selectedId = searchParams.get('customerId')
@@ -292,6 +303,7 @@ export default function CustomersPage() {
   useEffect(() => {
     if (!selectedCustomer?.id || !currentTenantId) {
       setRelatedConversations([])
+      setUpcomingAppointments([])
       return
     }
 
@@ -306,6 +318,14 @@ export default function CustomersPage() {
         if (!disposed) {
           showToast(error instanceof Error ? error.message : 'تعذر تحميل محادثات العميل', 'warning')
         }
+      })
+
+    fetchAppointments({ customerId: selectedCustomer.id })
+      .then((appointments) => {
+        if (!disposed) setUpcomingAppointments(appointments.slice(0, 4))
+      })
+      .catch(() => {
+        if (!disposed) setUpcomingAppointments([])
       })
 
     return () => {
@@ -327,6 +347,18 @@ export default function CustomersPage() {
 
   function createTicketPlaceholder() {
     showToast('سيتم ربط إنشاء التذاكر من ملف العميل ضمن إصدار التذاكر القادم', 'info')
+  }
+
+  function openAppointmentBooking() {
+    if (!selectedCustomer) return
+    const firstConversation = relatedConversations[0] ?? selectedCustomer.conversations?.[0]
+    const params = new URLSearchParams({
+      new: '1',
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
+    })
+    if (firstConversation?.id) params.set('conversationId', firstConversation.id)
+    navigate(`/appointments?${params.toString()}`)
   }
 
   async function handleSave(payload: SaveCustomerPayload) {
@@ -487,6 +519,7 @@ export default function CustomersPage() {
               <div className="customer-detail-actions">
                 {canManageCustomers ? <AppButton variant="primary" onClick={() => setModalMode('edit')}>تعديل العميل</AppButton> : null}
                 <AppButton variant="secondary" onClick={openConversations}>فتح المحادثات</AppButton>
+                {canManageAppointments ? <AppButton variant="secondary" onClick={openAppointmentBooking}>حجز موعد</AppButton> : null}
                 <AppButton variant="ghost" onClick={createTicketPlaceholder}>إنشاء تذكرة</AppButton>
               </div>
 
@@ -526,6 +559,19 @@ export default function CustomersPage() {
                       </Link>
                     </article>
                   )) : <EmptyState title="لا توجد محادثات مرتبطة بهذا العميل" message="سيظهر سجل المحادثات عند ارتباط العميل بقنوات التواصل." />}
+                </div>
+              </div>
+
+              <div className="profile-section">
+                <h4>المواعيد القادمة</h4>
+                <div className="context-activity-list">
+                  {upcomingAppointments.length ? upcomingAppointments.map((appointment) => (
+                    <article key={appointment.id}>
+                      <strong>{appointment.title}</strong>
+                      <small>{formatDate(appointment.startAt)} · {appointmentStatusLabels[appointment.status]}</small>
+                      <Link to={`/appointments?date=${appointment.startAt.slice(0, 10)}&customerId=${appointment.customerId}`}>فتح المواعيد</Link>
+                    </article>
+                  )) : <EmptyState title="لا توجد مواعيد قادمة" message="يمكنك حجز موعد جديد من ملف العميل." />}
                 </div>
               </div>
             </>

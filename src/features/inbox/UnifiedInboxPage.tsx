@@ -138,6 +138,7 @@ export default function UnifiedInboxPage() {
   const { currentTenantId } = useTenant()
   const canReply = can('inbox.reply')
   const canAssign = can('inbox.assign')
+  const canManageAppointments = can('appointments.manage')
   const canManageInbox = canAssign || canReply
   const requestedConversationId = searchParams.get('conversationId')
 
@@ -707,9 +708,16 @@ export default function UnifiedInboxPage() {
 
             <div className="profile-section profile-actions">
               {selectedConversation.customerId ? (
-                <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?customerId=${selectedConversation.customerId}`}>
-                  فتح ملف العميل
-                </Link>
+                <>
+                  <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?customerId=${selectedConversation.customerId}`}>
+                    فتح ملف العميل
+                  </Link>
+                  {canManageAppointments ? (
+                    <Link className="app-button app-button-secondary control-safe text-safe" to={`/appointments?new=1&customerId=${selectedConversation.customerId}&conversationId=${selectedConversation.id}&customerName=${encodeURIComponent(selectedConversation.customerName)}`}>
+                      حجز موعد
+                    </Link>
+                  ) : null}
+                </>
               ) : (
                 <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?new=1&phone=${encodeURIComponent(selectedConversation.customerPhone)}&name=${encodeURIComponent(selectedConversation.customerName)}`}>
                   إنشاء عميل من المحادثة
