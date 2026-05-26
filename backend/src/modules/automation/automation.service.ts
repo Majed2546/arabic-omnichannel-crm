@@ -13,6 +13,10 @@ function blankToNull(value?: string) {
   return normalized || null
 }
 
+function normalizeConditions(conditions?: Record<string, unknown>) {
+  return (conditions && typeof conditions === 'object' && !Array.isArray(conditions)) ? conditions : {}
+}
+
 function ruleSelectSql() {
   return Prisma.sql`
     r.id,
@@ -105,8 +109,8 @@ export class AutomationService {
         ${dto.name.trim()},
         ${blankToNull(dto.description)},
         ${dto.triggerType}::"AutomationTriggerType",
-        ${dto.conditions ?? {}},
-        ${dto.actions},
+        ${JSON.stringify(normalizeConditions(dto.conditions))}::jsonb,
+        ${JSON.stringify(this.executor.normalizeActions(dto.actions))}::jsonb,
         ${dto.isActive ?? true},
         CURRENT_TIMESTAMP
       )
@@ -124,8 +128,8 @@ export class AutomationService {
         name = ${dto.name.trim()},
         description = ${blankToNull(dto.description)},
         trigger_type = ${dto.triggerType}::"AutomationTriggerType",
-        conditions = ${dto.conditions ?? {}},
-        actions = ${dto.actions},
+        conditions = ${JSON.stringify(normalizeConditions(dto.conditions))}::jsonb,
+        actions = ${JSON.stringify(this.executor.normalizeActions(dto.actions))}::jsonb,
         is_active = ${dto.isActive ?? true},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
@@ -185,7 +189,6 @@ export class AutomationService {
 
   private validateRule(dto: SaveAutomationRuleDto) {
     if (!dto.name?.trim()) throw new BadRequestException('Automation rule name is required')
-    if (!Array.isArray(dto.actions)) throw new BadRequestException('Automation actions must be an array')
     this.executor.validateActions(dto.actions)
   }
 }

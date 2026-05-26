@@ -20,6 +20,7 @@ import {
   updateAutomationRule,
   type AutomationAction,
   type AutomationActionType,
+  type AutomationActionsValue,
   type AutomationLog,
   type AutomationLogStatus,
   type AutomationRule,
@@ -141,13 +142,18 @@ function logTone(status?: AutomationLogStatus | null) {
   return 'muted'
 }
 
-function actionSummary(actions: AutomationAction[]) {
-  return actions.map((action) => action.label || actionLabels[action.type] || action.type).join('، ')
+function getActionItems(actions: AutomationAction[] | AutomationActionsValue | null | undefined): AutomationAction[] {
+  if (Array.isArray(actions)) return actions
+  return actions?.items ?? []
+}
+
+function actionSummary(actions: AutomationAction[] | AutomationActionsValue | null | undefined) {
+  return getActionItems(actions).map((action) => action.label || actionLabels[action.type] || action.type).join('، ')
 }
 
 function toForm(rule: AutomationRule): RuleFormState {
   const conditions = rule.conditions ?? {}
-  const action = rule.actions[0] ?? { type: 'create_ticket' as AutomationActionType }
+  const action = getActionItems(rule.actions)[0] ?? { type: 'create_ticket' as AutomationActionType }
   return {
     name: rule.name,
     description: rule.description ?? '',
@@ -344,8 +350,8 @@ export default function WorkflowsPage() {
       conditionConversationStatus: String(payload.conditions?.conversationStatus ?? ''),
       conditionPriority: String(payload.conditions?.priority ?? ''),
       businessHours: Boolean(payload.conditions?.businessHours),
-      actionType: payload.actions[0]?.type ?? 'create_ticket',
-      actionValue: payload.actions[0]?.value ?? payload.actions[0]?.label ?? '',
+      actionType: getActionItems(payload.actions)[0]?.type ?? 'create_ticket',
+      actionValue: getActionItems(payload.actions)[0]?.value ?? getActionItems(payload.actions)[0]?.label ?? '',
       isActive: payload.isActive ?? true,
     } : emptyForm)
     setModalOpen(true)

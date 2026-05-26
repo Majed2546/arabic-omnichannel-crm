@@ -25,6 +25,10 @@ export type AutomationAction = {
   value?: string
 }
 
+export type AutomationActionsValue = {
+  items: AutomationAction[]
+}
+
 export type AutomationRule = {
   id: string
   tenantId: string
@@ -32,7 +36,7 @@ export type AutomationRule = {
   description?: string | null
   triggerType: AutomationTriggerType
   conditions?: Record<string, unknown> | null
-  actions: AutomationAction[]
+  actions: AutomationActionsValue
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -59,7 +63,7 @@ export type AutomationRulePayload = {
   description?: string
   triggerType: AutomationTriggerType
   conditions?: Record<string, unknown>
-  actions: AutomationAction[]
+  actions: AutomationAction[] | AutomationActionsValue
   isActive?: boolean
 }
 

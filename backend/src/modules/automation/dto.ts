@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsEnum, IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsBoolean, IsDefined, IsEnum, IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
 
 export enum AutomationTriggerTypeDto {
   NEW_MESSAGE = 'NEW_MESSAGE',
@@ -57,8 +57,8 @@ export class SaveAutomationRuleDto {
   @IsObject()
   conditions?: Record<string, unknown>
 
-  @IsArray()
-  actions!: Array<Record<string, unknown>>
+  @IsDefined()
+  actions!: unknown
 
   @IsOptional()
   @IsBoolean()

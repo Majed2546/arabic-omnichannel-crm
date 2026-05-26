@@ -22,17 +22,30 @@ const supportedActions = new Set([
 export class AutomationExecutorService {
   constructor(private readonly prisma: PrismaService) {}
 
-  validateActions(actions: Array<Record<string, unknown>>) {
-    if (!actions.length) throw new BadRequestException('At least one automation action is required')
+  normalizeActionItems(actions: unknown): Array<Record<string, unknown>> {
+    if (Array.isArray(actions)) return actions.filter((action): action is Record<string, unknown> => typeof action === 'object' && action !== null)
+    if (typeof actions === 'object' && actions !== null && Array.isArray((actions as { items?: unknown }).items)) {
+      return (actions as { items: unknown[] }).items.filter((action): action is Record<string, unknown> => typeof action === 'object' && action !== null)
+    }
+    return []
+  }
 
-    for (const action of actions) {
+  normalizeActions(actions: unknown) {
+    return { items: this.normalizeActionItems(actions) }
+  }
+
+  validateActions(actions: unknown) {
+    const items = this.normalizeActionItems(actions)
+    if (!items.length) throw new BadRequestException('At least one automation action is required')
+
+    for (const action of items) {
       const type = typeof action.type === 'string' ? action.type : ''
       if (!supportedActions.has(type)) throw new BadRequestException(`Unsupported automation action: ${type || 'missing'}`)
     }
   }
 
   async testRule(tenantId: string, rule: AutomationRuleRecord, targetType = 'manual_test', targetId = 'manual') {
-    const actions = Array.isArray(rule.actions) ? rule.actions : []
+    const actions = this.normalizeActionItems(rule.actions)
     const actionSummary = actions
       .map((action) => typeof action === 'object' && action && 'type' in action ? String((action as { type?: unknown }).type) : 'unknown')
       .join('، ')
