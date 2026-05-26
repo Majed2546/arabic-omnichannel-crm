@@ -14,13 +14,13 @@ export class BillingController {
   ) {}
 
   @Get('plans')
-  @RequirePermissions('settings.view')
+  @RequirePermissions('reports.view')
   plans() {
     return this.billing.listPlans()
   }
 
   @Get('current-subscription')
-  @RequirePermissions('settings.view')
+  @RequirePermissions('reports.view')
   currentSubscription(
     @Headers('x-tenant-id') tenantId: string | undefined,
     @Headers('x-local-tenant-id') localTenantId: string | undefined,
@@ -30,7 +30,7 @@ export class BillingController {
   }
 
   @Get('usage')
-  @RequirePermissions('settings.view')
+  @RequirePermissions('reports.view')
   usage(
     @Headers('x-tenant-id') tenantId: string | undefined,
     @Headers('x-local-tenant-id') localTenantId: string | undefined,

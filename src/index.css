@@ -9977,6 +9977,15 @@ body:has(.inbox-layout) {
   gap: 8px;
 }
 
+.billing-table-filter {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  color: var(--saas-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .billing-table td {
   vertical-align: middle;
 }

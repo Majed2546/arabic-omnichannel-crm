@@ -105,8 +105,22 @@ export default function BillingPage() {
   const [usageRows, setUsageRows] = useState<BillingUsage[]>([])
   const [isLoading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [superAdminTableScope, setSuperAdminTableScope] = useState<'selected' | 'all'>('selected')
 
-  const currentUsage = useMemo(() => usageRows[0], [usageRows])
+  const visibleUsageRows = useMemo(() => {
+    if (isSuperAdmin) {
+      if (superAdminTableScope === 'all' || !currentTenantId || currentTenantId === 'all') return usageRows
+      return usageRows.filter((row) => row.tenantId === currentTenantId)
+    }
+
+    if (!currentTenantId) return usageRows.slice(0, 1)
+    return usageRows.filter((row) => row.tenantId === currentTenantId)
+  }, [currentTenantId, isSuperAdmin, superAdminTableScope, usageRows])
+
+  const currentUsage = useMemo(() => {
+    if (!currentTenantId) return usageRows[0]
+    return usageRows.find((row) => row.tenantId === currentTenantId) ?? usageRows[0]
+  }, [currentTenantId, usageRows])
 
   function refresh() {
     setLoading(true)
@@ -167,58 +181,81 @@ export default function BillingPage() {
 
       {!isLoading && loadError ? <EmptyState title="لا يمكن عرض الاشتراك" message={loadError} /> : null}
 
-      {!loadError && isSuperAdmin ? (
+      {!loadError && currentUsage && !isSuperAdmin ? (
+        <SubscriptionCard usage={currentUsage} />
+      ) : null}
+
+      {!loadError ? (
         <AppCard>
           <div className="panel-header split-header">
             <div>
               <h2>اشتراكات الشركات</h2>
-              <p>تغيير الخطة أو حالة الاشتراك لا يفعّل دفعًا إلكترونيًا ولا يحظر واتساب في هذا الإصدار.</p>
+              <p>{isSuperAdmin ? 'عرض حسب الشركة المحددة، مع إمكانية الرجوع إلى كل الشركات.' : 'يعرض هذا الجدول اشتراك الشركة الحالية فقط.'}</p>
             </div>
+            {isSuperAdmin ? (
+              <label className="billing-table-filter">
+                <span>عرض حسب الشركة المحددة</span>
+                <AppSelect value={superAdminTableScope} onChange={(event) => setSuperAdminTableScope(event.target.value as 'selected' | 'all')}>
+                  <option value="selected">الشركة المحددة</option>
+                  <option value="all">كل الشركات</option>
+                </AppSelect>
+              </label>
+            ) : null}
           </div>
-          <div className="platform-table-wrapper billing-table">
-            <table className="platform-table">
-              <thead>
-                <tr>
-                  <th>الشركة</th>
-                  <th>الحالة</th>
-                  <th>الباقة</th>
-                  <th>الاستخدام</th>
-                  <th>تحذيرات</th>
-                  <th>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usageRows.map((row) => (
-                  <tr key={row.tenantId}>
-                    <td><strong>{row.tenantName}</strong><small>{row.tenantId}</small></td>
-                    <td><StatusBadge label={statusLabels[row.status] ?? row.status} tone={statusTone(row.status)} /></td>
-                    <td>
-                      <AppSelect value={row.plan} onChange={(event) => changePlan(row.tenantId, event.target.value as BillingPlanId)}>
-                        {plans.map((plan) => <option key={plan.id} value={plan.id}>{planLabels[plan.id]}</option>)}
-                      </AppSelect>
-                    </td>
-                    <td>
-                      <small>{number(row.usage.usersCount)} مستخدم</small>
-                      <small>{number(row.usage.channelsCount)} قناة</small>
-                      <small>{number(row.usage.monthlyConversationsCount)} محادثة</small>
-                      <small>{number(row.usage.monthlyMessagesCount)} رسالة</small>
-                    </td>
-                    <td>{row.warnings.length ? row.warnings.map((warning) => <small key={warning.label}>{warning.label}</small>) : <small>ضمن الحدود</small>}</td>
-                    <td>
-                      <div className="platform-actions">
-                        <AppButton variant="ghost" onClick={() => changeStatus(row.tenantId, 'ACTIVE')}>تفعيل</AppButton>
-                        <AppButton variant="ghost" onClick={() => changeStatus(row.tenantId, 'SUSPENDED')}>إيقاف</AppButton>
-                        <AppButton variant="ghost" onClick={() => changeStatus(row.tenantId, 'CANCELLED')}>إلغاء</AppButton>
-                      </div>
-                    </td>
+          {visibleUsageRows.length ? (
+            <div className="platform-table-wrapper billing-table">
+              <table className="platform-table">
+                <thead>
+                  <tr>
+                    <th>الشركة</th>
+                    <th>الحالة</th>
+                    <th>الباقة</th>
+                    <th>الاستخدام</th>
+                    <th>تحذيرات</th>
+                    <th>إجراءات</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visibleUsageRows.map((row) => (
+                    <tr key={row.tenantId}>
+                      <td><strong>{row.tenantName}</strong><small>{row.tenantId}</small></td>
+                      <td><StatusBadge label={statusLabels[row.status] ?? row.status} tone={statusTone(row.status)} /></td>
+                      <td>
+                        {isSuperAdmin ? (
+                          <AppSelect value={row.plan} onChange={(event) => changePlan(row.tenantId, event.target.value as BillingPlanId)}>
+                            {plans.map((plan) => <option key={plan.id} value={plan.id}>{planLabels[plan.id]}</option>)}
+                          </AppSelect>
+                        ) : (
+                          <StatusBadge label={planLabels[row.plan]} tone={row.plan === 'ENTERPRISE' ? 'vip' : 'info'} />
+                        )}
+                      </td>
+                      <td>
+                        <small>{number(row.usage.usersCount)} مستخدم</small>
+                        <small>{number(row.usage.channelsCount)} قناة</small>
+                        <small>{number(row.usage.monthlyConversationsCount)} محادثة</small>
+                        <small>{number(row.usage.monthlyMessagesCount)} رسالة</small>
+                      </td>
+                      <td>{row.warnings.length ? row.warnings.map((warning) => <small key={warning.label}>{warning.label}</small>) : <small>ضمن الحدود</small>}</td>
+                      <td>
+                        {isSuperAdmin ? (
+                          <div className="platform-actions">
+                            <AppButton variant="ghost" onClick={() => changeStatus(row.tenantId, 'ACTIVE')}>تفعيل</AppButton>
+                            <AppButton variant="ghost" onClick={() => changeStatus(row.tenantId, 'SUSPENDED')}>إيقاف</AppButton>
+                            <AppButton variant="ghost" onClick={() => changeStatus(row.tenantId, 'CANCELLED')}>إلغاء</AppButton>
+                          </div>
+                        ) : (
+                          <StatusBadge label="عرض فقط" tone="muted" />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState title="لا توجد بيانات اشتراك" message={isSuperAdmin ? 'لا توجد شركة مطابقة لنطاق العرض المحدد.' : 'لم يتم العثور على بيانات اشتراك للشركة الحالية.'} />
+          )}
         </AppCard>
-      ) : !loadError && currentUsage ? (
-        <SubscriptionCard usage={currentUsage} />
       ) : !isLoading && !loadError ? (
         <EmptyState title="لا توجد بيانات اشتراك" message="لم يتم العثور على بيانات اشتراك للشركة الحالية." />
       ) : null}
