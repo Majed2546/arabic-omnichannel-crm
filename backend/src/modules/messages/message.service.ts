@@ -87,6 +87,18 @@ export class MessageService {
     externalMessageId: string
     metadata?: Record<string, unknown>
   }) {
+    const existing = await this.prisma.message.findFirst({
+      where: {
+        tenantId: input.tenantId,
+        externalMessageId: input.externalMessageId,
+        deletedAt: null,
+      },
+      include: { conversation: true },
+    })
+    if (existing) {
+      return { conversation: existing.conversation, message: existing, duplicate: true }
+    }
+
     const result = await this.prisma.$transaction(async (tx) => {
       const customer = await this.conversations.findOrCreateCustomer({
         tenantId: input.tenantId,
@@ -121,27 +133,29 @@ export class MessageService {
         createdAt: message.createdAt,
       }, tx)
 
-      return { conversation, message }
+      return { conversation, message, duplicate: false }
     })
 
-    this.realtime.publishDomainEvent('conversation.created', input.tenantId, {
-      id: result.conversation.id,
-      customerPhone: input.customerPhone,
-      channelId: input.channelId,
-    }, 'webhook')
-    this.realtime.publishDomainEvent('message.created', input.tenantId, {
-      id: result.message.id,
-      conversationId: result.conversation.id,
-      content: result.message.content,
-      messageType: result.message.messageType,
-      status: result.message.status,
-    }, 'webhook')
-    this.realtime.publishDomainEvent('notification.created', input.tenantId, {
-      type: 'NEW_MESSAGE',
-      conversationId: result.conversation.id,
-      title: 'رسالة واتساب جديدة',
-      body: result.message.content,
-    }, 'webhook')
+    if (!result.duplicate) {
+      this.realtime.publishDomainEvent('conversation.created', input.tenantId, {
+        id: result.conversation.id,
+        customerPhone: input.customerPhone,
+        channelId: input.channelId,
+      }, 'webhook')
+      this.realtime.publishDomainEvent('message.created', input.tenantId, {
+        id: result.message.id,
+        conversationId: result.conversation.id,
+        content: result.message.content,
+        messageType: result.message.messageType,
+        status: result.message.status,
+      }, 'webhook')
+      this.realtime.publishDomainEvent('notification.created', input.tenantId, {
+        type: 'NEW_MESSAGE',
+        conversationId: result.conversation.id,
+        title: 'رسالة واتساب جديدة',
+        body: result.message.content,
+      }, 'webhook')
+    }
 
     return result
   }

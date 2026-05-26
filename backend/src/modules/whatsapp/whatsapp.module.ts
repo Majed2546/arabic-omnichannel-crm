@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
 import { WHATSAPP_MESSAGE_QUEUE, WHATSAPP_OUTBOUND_QUEUE, WHATSAPP_WEBHOOK_QUEUE } from '../../events/queue.constants'
 import { MessagesModule } from '../messages/messages.module'
+import { AutomationModule } from '../automation/automation.module'
 import { RealtimeModule } from '../realtime/realtime.module'
 import { WhatsAppController } from './whatsapp.controller'
 import { WhatsAppEventPublisher } from './whatsapp-event.publisher'
@@ -21,6 +22,7 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service'
       { name: WHATSAPP_OUTBOUND_QUEUE },
     ),
     MessagesModule,
+    AutomationModule,
     RealtimeModule,
   ],
   controllers: [WhatsAppController, WhatsAppWebhookController, TenantWhatsAppOnboardingController],

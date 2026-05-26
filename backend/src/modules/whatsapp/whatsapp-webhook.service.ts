@@ -8,6 +8,7 @@ import { WHATSAPP_MESSAGE_QUEUE, WHATSAPP_WEBHOOK_QUEUE } from '../../events/que
 import { createQueueJobId } from '../../events/queue-job-id'
 import { PrismaService } from '../../database/prisma.service'
 import { MessageService } from '../messages/message.service'
+import { AutomationExecutorService } from '../automation/automation-executor.service'
 import { WhatsAppEventPublisher } from './whatsapp-event.publisher'
 import { WhatsAppMessageMapper } from './whatsapp-message.mapper'
 import type {
@@ -42,6 +43,7 @@ export class WhatsAppWebhookService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly messages: MessageService,
+    private readonly automation: AutomationExecutorService,
     private readonly mapper: WhatsAppMessageMapper,
     private readonly publisher: WhatsAppEventPublisher,
     @InjectQueue(WHATSAPP_WEBHOOK_QUEUE) private readonly webhookQueue: Queue,
@@ -119,6 +121,19 @@ export class WhatsAppWebhookService {
             messageType: this.mapMessageType(mapped.messageType),
             externalMessageId: mapped.externalMessageId,
             metadata: { whatsapp: mapped.raw },
+          })
+
+          await this.automation.executeTrigger({
+            tenantId: mapped.tenantId,
+            triggerType: 'NEW_MESSAGE',
+            targetType: 'message',
+            targetId: persisted.message.id,
+            context: {
+              conversationId: persisted.conversation.id,
+              customerId: persisted.conversation.customerId,
+              channelType: 'WHATSAPP',
+              messageText: mapped.content,
+            },
           })
 
           results.push(this.result('message.received', mapped.tenantId, 'processed', `Message ${mapped.externalMessageId} mapped to ${persisted.conversation.id}`, mapped.channelId, mapped.externalMessageId))
