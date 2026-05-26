@@ -11,6 +11,7 @@ import { ConversationCard } from './ConversationCard'
 import { useInboxStore } from './inboxStore'
 import { fetchInboxConversations } from './inboxRest'
 import { sendConversationWhatsAppMessage } from './inboxSend'
+import { fetchQuickReplies, fetchWhatsAppTemplates, type QuickReply, type WhatsAppTemplate } from '../templates/templateData'
 import {
   inboxRealtimeConfig,
   type AgentPresence,
@@ -118,6 +119,10 @@ export default function UnifiedInboxPage() {
   const [reply, setReply] = useState('')
   const [composerMode, setComposerMode] = useState<'reply' | 'internal'>('reply')
   const [profilePopupOpen, setProfilePopupOpen] = useState(false)
+  const [quickRepliesOpen, setQuickRepliesOpen] = useState(false)
+  const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([])
+  const [approvedTemplates, setApprovedTemplates] = useState<WhatsAppTemplate[]>([])
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
   const [inboxLoadError, setInboxLoadError] = useState<string | null>(null)
   const [composerError, setComposerError] = useState<string | null>(null)
@@ -213,6 +218,31 @@ export default function UnifiedInboxPage() {
   }, [currentTenantId, replaceConversations, clearSelection, showToast, requestedConversationId, selectConversation])
 
   useEffect(() => {
+    if (!currentTenantId) {
+      setQuickReplies([])
+      setApprovedTemplates([])
+      return
+    }
+
+    let disposed = false
+    fetchQuickReplies({ isActive: 'true' })
+      .then((items) => {
+        if (!disposed) setQuickReplies(items)
+      })
+      .catch(() => undefined)
+
+    fetchWhatsAppTemplates({ status: 'APPROVED' })
+      .then((items) => {
+        if (!disposed) setApprovedTemplates(items)
+      })
+      .catch(() => undefined)
+
+    return () => {
+      disposed = true
+    }
+  }, [currentTenantId])
+
+  useEffect(() => {
     const unsubscribe = realtimeEventBus.subscribe((event) => {
       if (event.type === 'message.created') {
         setTypingConversationId(event.conversationId)
@@ -287,6 +317,17 @@ export default function UnifiedInboxPage() {
     const nextHeight = Math.min(event.target.scrollHeight, 120)
     event.target.style.height = `${nextHeight}px`
     event.target.style.overflowY = event.target.scrollHeight > 120 ? 'auto' : 'hidden'
+  }
+
+  function insertQuickReply(content: string) {
+    setReply((current) => current ? `${current}\n${content}` : content)
+    setQuickRepliesOpen(false)
+    window.requestAnimationFrame(() => composerRef.current?.focus())
+  }
+
+  function handleTemplatePlaceholder(template?: WhatsAppTemplate) {
+    setTemplateModalOpen(false)
+    showToast(template ? `سيتم ربط إرسال قالب ${template.name} عبر Meta لاحقًا` : 'سيتم ربط إرسال قوالب واتساب عبر Meta لاحقًا', 'info')
   }
 
   function resetComposerHeight() {
@@ -556,6 +597,14 @@ export default function UnifiedInboxPage() {
               <div ref={threadEndRef} className="thread-scroll-anchor" aria-hidden="true" />
             </div>
 
+            {composerError ? (
+              <div className="inactive-tenant-banner soft-warning whatsapp-template-guidance">
+                <strong>يجب استخدام قالب واتساب معتمد لإعادة فتح المحادثة.</strong>
+                <p>{composerError}</p>
+                <AppButton variant="secondary" onClick={() => setTemplateModalOpen(true)}>إرسال قالب</AppButton>
+              </div>
+            ) : null}
+
             {canReply ? (
               <form className={`chat-composer ${composerMode === 'internal' ? 'internal-mode' : ''}`} onSubmit={handleSubmit}>
                 <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('اختيار الرموز جاهز للربط', 'success')}>
@@ -563,6 +612,9 @@ export default function UnifiedInboxPage() {
                 </AppButton>
                 <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('إرفاق الملفات جاهز للربط', 'success')}>
                   📎
+                </AppButton>
+                <AppButton variant="ghost" className="composer-quick-replies-button" onClick={() => setQuickRepliesOpen(true)}>
+                  الردود الجاهزة
                 </AppButton>
                 <div className="composer-mode-toggle" role="group" aria-label="نوع الرسالة">
                   <button
@@ -594,12 +646,6 @@ export default function UnifiedInboxPage() {
                   {isSendingReply ? 'جار الإرسال' : composerMode === 'internal' ? 'حفظ' : 'إرسال'}
                 </AppButton>
               </form>
-            ) : null}
-            {composerError ? (
-              <div className="inactive-tenant-banner soft-warning">
-                <strong>تعذر إرسال الرسالة</strong>
-                <p>{composerError}</p>
-              </div>
             ) : null}
           </>
         ) : (
@@ -697,6 +743,53 @@ export default function UnifiedInboxPage() {
         )}
       </aside>
     </div>
+    {quickRepliesOpen ? (
+      <div className="modal-backdrop" role="presentation">
+        <section className="customer-modal panel-panel inbox-picker-modal" role="dialog" aria-modal="true" aria-label="الردود الجاهزة">
+          <div className="panel-header split-header">
+            <div>
+              <h2>الردود الجاهزة</h2>
+              <p>اختر ردًا لإدراجه في صندوق الكتابة، ويمكنك تعديله قبل الإرسال.</p>
+            </div>
+            <AppButton variant="ghost" onClick={() => setQuickRepliesOpen(false)}>إغلاق</AppButton>
+          </div>
+          <div className="picker-list">
+            {quickReplies.map((reply) => (
+              <button key={reply.id} type="button" className="picker-item" onClick={() => insertQuickReply(reply.content)}>
+                <strong>{reply.title}</strong>
+                <span>{reply.category || 'عام'}</span>
+                <p>{reply.content}</p>
+              </button>
+            ))}
+            {!quickReplies.length ? <EmptyState title="لا توجد ردود جاهزة" message="أضف ردودًا من صفحة الردود الجاهزة وقوالب واتساب." /> : null}
+          </div>
+        </section>
+      </div>
+    ) : null}
+    {templateModalOpen ? (
+      <div className="modal-backdrop" role="presentation">
+        <section className="customer-modal panel-panel inbox-picker-modal" role="dialog" aria-modal="true" aria-label="إرسال قالب واتساب">
+          <div className="panel-header split-header">
+            <div>
+              <h2>إرسال قالب</h2>
+              <p>إرسال القوالب عبر Meta غير مفعل بعد. هذه نافذة جاهزية للقوالب المعتمدة.</p>
+            </div>
+            <AppButton variant="ghost" onClick={() => setTemplateModalOpen(false)}>إغلاق</AppButton>
+          </div>
+          <div className="picker-list">
+            {approvedTemplates.map((template) => (
+              <button key={template.id} type="button" className="picker-item" onClick={() => handleTemplatePlaceholder(template)}>
+                <strong>{template.name}</strong>
+                <span>{template.category} · {template.language}</span>
+                <p>{template.body}</p>
+              </button>
+            ))}
+            {!approvedTemplates.length ? <EmptyState title="لا توجد قوالب معتمدة" message="أنشئ قالبًا واجعله معتمدًا عند اكتمال الربط مع Meta." /> : null}
+          </div>
+          <AppButton variant="secondary" onClick={() => handleTemplatePlaceholder()}>إرسال قالب لاحقًا</AppButton>
+        </section>
+      </div>
+    ) : null}
     </>
   )
 }

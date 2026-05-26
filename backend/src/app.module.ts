@@ -23,6 +23,7 @@ import { WhatsAppModule } from './modules/whatsapp/whatsapp.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
 import { AutomationModule } from './modules/automation/automation.module'
 import { RealtimeModule } from './modules/realtime/realtime.module'
+import { TemplatesModule } from './modules/templates/templates.module'
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module'
     NotificationsModule,
     AutomationModule,
     RealtimeModule,
+    TemplatesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

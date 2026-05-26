@@ -149,6 +149,13 @@ enum WorkflowStatus {
   TESTING
 }
 
+enum WhatsAppTemplateStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
@@ -175,6 +182,8 @@ model Tenant {
   messages      Message[]
   notifications Notification[]
   workflows     Workflow[]
+  quickReplies  QuickReply[]
+  whatsappTemplates WhatsAppTemplate[]
   onboardingRequest OnboardingRequest?
 
   @@index([status])
@@ -336,6 +345,46 @@ model Customer {
   @@index([createdAt])
   @@index([deletedAt])
   @@map("customers")
+}
+
+model QuickReply {
+  id          String       @id @default(cuid())
+  tenantId    String       @map("tenant_id")
+  title       String
+  content     String
+  category    String?
+  channelType ChannelType? @map("channel_type")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, channelType])
+  @@map("quick_replies")
+}
+
+model WhatsAppTemplate {
+  id              String                 @id @default(cuid())
+  tenantId        String                 @map("tenant_id")
+  name            String
+  language        String                 @default("ar")
+  category        String
+  status          WhatsAppTemplateStatus @default(DRAFT)
+  body            String
+  variables       String[]               @default([])
+  channelType     ChannelType            @default(WHATSAPP) @map("channel_type")
+  metaTemplateId  String?                @map("meta_template_id")
+  rejectionReason String?                @map("rejection_reason")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, name])
+  @@map("whatsapp_templates")
 }
 
 model Queue {
