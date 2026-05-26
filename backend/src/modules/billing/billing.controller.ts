@@ -21,14 +21,22 @@ export class BillingController {
 
   @Get('current-subscription')
   @RequirePermissions('settings.view')
-  currentSubscription(@Headers('x-tenant-id') tenantId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
-    return this.billing.currentSubscription(this.scope(tenantId, user))
+  currentSubscription(
+    @Headers('x-tenant-id') tenantId: string | undefined,
+    @Headers('x-local-tenant-id') localTenantId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.billing.currentSubscription(this.scope(tenantId, localTenantId, user))
   }
 
   @Get('usage')
   @RequirePermissions('settings.view')
-  usage(@Headers('x-tenant-id') tenantId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
-    return this.billing.usage(this.scope(tenantId, user))
+  usage(
+    @Headers('x-tenant-id') tenantId: string | undefined,
+    @Headers('x-local-tenant-id') localTenantId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.billing.usage(this.scope(tenantId, localTenantId, user))
   }
 
   @Patch('tenants/:tenantId/plan')
@@ -45,12 +53,13 @@ export class BillingController {
     return this.billing.updateTenantStatus(tenantId, dto.status)
   }
 
-  private scope(headerTenantId: string | undefined, user: AuthenticatedUser) {
+  private scope(headerTenantId: string | undefined, localTenantId: string | undefined, user: AuthenticatedUser) {
     const isPlatform = this.tenantAccess.isSuperAdmin(user)
-    if (isPlatform && !headerTenantId) return { isPlatform: true }
+    if (isPlatform) return { isPlatform: true }
+    const requestedTenantId = localTenantId || headerTenantId
     return {
       isPlatform,
-      tenantId: this.tenantAccess.requireTenantAccess({ requestedTenantId: headerTenantId, user }),
+      tenantId: this.tenantAccess.requireTenantAccess({ requestedTenantId, user }),
     }
   }
 }

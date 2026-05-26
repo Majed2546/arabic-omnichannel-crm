@@ -40,14 +40,14 @@ export class BillingService {
 
   async updateTenantPlan(tenantId: string, plan: TenantPlan, subscriptionEnd?: string) {
     const definition = getBillingPlan(plan)
-    await this.findTenant(tenantId)
+    const existingTenant = await this.findTenant(tenantId)
     const tenant = await this.prisma.tenant.update({
-      where: { id: tenantId },
+      where: { id: existingTenant.id },
       data: {
         plan,
-        maxUsers: tenantId === 'default-tenant' ? Math.max(definition.maxUsers, 1000) : definition.maxUsers,
-        maxChannels: tenantId === 'default-tenant' ? Math.max(definition.maxChannels, 100) : definition.maxChannels,
-        monthlyConversationLimit: tenantId === 'default-tenant' ? Math.max(definition.monthlyConversationLimit, 1000000) : definition.monthlyConversationLimit,
+        maxUsers: existingTenant.id === 'default-tenant' ? Math.max(definition.maxUsers, 1000) : definition.maxUsers,
+        maxChannels: existingTenant.id === 'default-tenant' ? Math.max(definition.maxChannels, 100) : definition.maxChannels,
+        monthlyConversationLimit: existingTenant.id === 'default-tenant' ? Math.max(definition.monthlyConversationLimit, 1000000) : definition.monthlyConversationLimit,
         subscriptionEnd: subscriptionEnd ? new Date(subscriptionEnd) : undefined,
         updatedBy: 'billing-readiness',
       },
@@ -56,9 +56,9 @@ export class BillingService {
   }
 
   async updateTenantStatus(tenantId: string, status: TenantStatus) {
-    await this.findTenant(tenantId)
+    const existingTenant = await this.findTenant(tenantId)
     const tenant = await this.prisma.tenant.update({
-      where: { id: tenantId },
+      where: { id: existingTenant.id },
       data: { status, updatedBy: 'billing-readiness' },
     })
     return this.toSubscription(tenant)
@@ -66,6 +66,7 @@ export class BillingService {
 
   private async tenantUsage(tenantId: string) {
     const tenant = await this.findTenant(tenantId)
+    const resolvedTenantId = tenant.id
     const monthStart = new Date()
     monthStart.setUTCDate(1)
     monthStart.setUTCHours(0, 0, 0, 0)
@@ -75,10 +76,10 @@ export class BillingService {
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
-        (SELECT COUNT(*)::int FROM users WHERE tenant_id = ${tenantId} AND deleted_at IS NULL) AS "usersCount",
-        (SELECT COUNT(*)::int FROM channels WHERE tenant_id = ${tenantId} AND deleted_at IS NULL) AS "channelsCount",
-        (SELECT COUNT(*)::int FROM conversations WHERE tenant_id = ${tenantId} AND deleted_at IS NULL AND created_at >= ${monthStart} AND created_at < ${nextMonth}) AS "monthlyConversationsCount",
-        (SELECT COUNT(*)::int FROM messages WHERE tenant_id = ${tenantId} AND deleted_at IS NULL AND created_at >= ${monthStart} AND created_at < ${nextMonth}) AS "monthlyMessagesCount"
+        (SELECT COUNT(*)::int FROM users WHERE tenant_id = ${resolvedTenantId} AND deleted_at IS NULL) AS "usersCount",
+        (SELECT COUNT(*)::int FROM channels WHERE tenant_id = ${resolvedTenantId} AND deleted_at IS NULL) AS "channelsCount",
+        (SELECT COUNT(*)::int FROM conversations WHERE tenant_id = ${resolvedTenantId} AND deleted_at IS NULL AND created_at >= ${monthStart} AND created_at < ${nextMonth}) AS "monthlyConversationsCount",
+        (SELECT COUNT(*)::int FROM messages WHERE tenant_id = ${resolvedTenantId} AND deleted_at IS NULL AND created_at >= ${monthStart} AND created_at < ${nextMonth}) AS "monthlyMessagesCount"
     `) as Array<{
       usersCount: number
       channelsCount: number
@@ -130,7 +131,15 @@ export class BillingService {
   }
 
   private async findTenant(tenantId: string) {
-    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId, deletedAt: null } })
+    const tenant = await this.prisma.tenant.findFirst({
+      where: {
+        deletedAt: null,
+        OR: [
+          { id: tenantId },
+          { slug: tenantId },
+        ],
+      },
+    })
     if (!tenant) throw new NotFoundException('Tenant not found')
     return tenant
   }

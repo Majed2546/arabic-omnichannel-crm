@@ -98,29 +98,35 @@ function SubscriptionCard({ usage }: { usage: BillingUsage }) {
 
 export default function BillingPage() {
   const { user } = useAuth()
-  const { currentTenant } = useTenant()
+  const { currentTenant, currentTenantId } = useTenant()
   const showToast = useUiStore((state) => state.showToast)
   const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN'
   const [plans, setPlans] = useState<BillingPlan[]>([])
   const [usageRows, setUsageRows] = useState<BillingUsage[]>([])
   const [isLoading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   const currentUsage = useMemo(() => usageRows[0], [usageRows])
 
   function refresh() {
     setLoading(true)
+    setLoadError('')
+    setUsageRows([])
     Promise.all([fetchBillingPlans(), fetchBillingUsage()])
       .then(([planItems, usage]) => {
         setPlans(planItems)
         setUsageRows(usage.platform ? usage.tenants ?? [] : usage.tenant ? [usage.tenant] : [])
       })
-      .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل الاشتراكات', 'warning'))
+      .catch(() => {
+        setLoadError('تعذر تحميل اشتراك الشركة المحددة. تأكد من اختيار شركة موجودة ثم حاول مرة أخرى.')
+        showToast('تعذر تحميل بيانات الاشتراك للشركة الحالية', 'warning')
+      })
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
     refresh()
-  }, [])
+  }, [currentTenantId, isSuperAdmin])
 
   async function changePlan(tenantId: string, plan: BillingPlanId) {
     await updateTenantBillingPlan(tenantId, plan)
@@ -159,7 +165,9 @@ export default function BillingPage() {
 
       {isLoading ? <EmptyState title="جار تحميل الاشتراكات" message="نراجع حدود الباقات والاستخدام الحالي." /> : null}
 
-      {isSuperAdmin ? (
+      {!isLoading && loadError ? <EmptyState title="لا يمكن عرض الاشتراك" message={loadError} /> : null}
+
+      {!loadError && isSuperAdmin ? (
         <AppCard>
           <div className="panel-header split-header">
             <div>
@@ -209,8 +217,10 @@ export default function BillingPage() {
             </table>
           </div>
         </AppCard>
-      ) : currentUsage ? (
+      ) : !loadError && currentUsage ? (
         <SubscriptionCard usage={currentUsage} />
+      ) : !isLoading && !loadError ? (
+        <EmptyState title="لا توجد بيانات اشتراك" message="لم يتم العثور على بيانات اشتراك للشركة الحالية." />
       ) : null}
     </div>
   )
