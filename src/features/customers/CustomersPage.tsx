@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Edit3, Eye, Plus, Trash2 } from 'lucide-react'
+import { Edit3, Eye, Plus, Trash2, X } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
@@ -106,32 +106,58 @@ function CustomerModal({
 }) {
   const [form, setForm] = useState<CustomerFormState>(() => initialForm ?? toForm(initialCustomer))
   const [isSaving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaving(true)
+    setFormError('')
     try {
       await onSave(toPayload(form))
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'تعذر حفظ بيانات العميل. حاول مرة أخرى.')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <form className="customer-modal panel-panel" onSubmit={handleSubmit} aria-label={mode === 'create' ? 'إنشاء عميل' : 'تعديل عميل'}>
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose()
+    }}>
+      <form
+        className="customer-modal panel-panel"
+        onSubmit={handleSubmit}
+        aria-label={mode === 'create' ? 'إنشاء عميل' : 'تعديل بيانات العميل'}
+        role="dialog"
+        aria-modal="true"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div className="panel-header split-header">
           <div>
-            <h2>{mode === 'create' ? 'إضافة عميل' : 'تعديل ملف العميل'}</h2>
+            <h2>{mode === 'create' ? 'إضافة عميل' : 'تعديل بيانات العميل'}</h2>
             <p>المعلومات محفوظة داخل سياق الشركة الحالية فقط.</p>
           </div>
-          <AppButton type="button" variant="ghost" onClick={onClose}>إغلاق</AppButton>
+          <AppButton type="button" variant="ghost" className="customer-modal-close" aria-label="إغلاق" onClick={onClose}>
+            <X size={18} />
+          </AppButton>
         </div>
+
+        {formError ? <div className="customer-form-error" role="alert">{formError}</div> : null}
 
         <div className="customer-form-grid">
           <label>
             <span>الاسم</span>
-            <AppInput value={form.name} required onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <AppInput autoFocus value={form.name} required onChange={(event) => setForm({ ...form, name: event.target.value })} />
           </label>
           <label>
             <span>الجوال</span>
@@ -166,7 +192,7 @@ function CustomerModal({
         <div className="form-actions">
           <AppButton type="button" variant="ghost" onClick={onClose}>إلغاء</AppButton>
           <AppButton type="submit" variant="primary" disabled={isSaving || !form.name.trim()}>
-            {isSaving ? 'جار الحفظ' : 'حفظ العميل'}
+            {isSaving ? 'جار الحفظ' : mode === 'edit' ? 'حفظ التعديلات' : 'حفظ العميل'}
           </AppButton>
         </div>
       </form>
@@ -277,6 +303,7 @@ export default function CustomersPage() {
 
   async function handleSave(payload: SaveCustomerPayload) {
     try {
+      const isEditMode = modalMode === 'edit' && selectedCustomer
       const saved = modalMode === 'edit' && selectedCustomer
         ? await updateCustomer(selectedCustomer.id, payload)
         : await createCustomer(payload)
@@ -284,9 +311,11 @@ export default function CustomersPage() {
       setSelectedCustomer(saved)
       setSearchParams({ customerId: saved.id })
       refreshCustomers()
-      showToast('تم حفظ ملف العميل', 'success')
+      showToast(isEditMode ? 'تم تحديث بيانات العميل' : 'تم حفظ ملف العميل', 'success')
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'تعذر حفظ العميل', 'warning')
+      const message = error instanceof Error ? error.message : 'تعذر حفظ العميل'
+      showToast(message, 'warning')
+      throw new Error(message)
     }
   }
 
