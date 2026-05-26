@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
@@ -93,6 +93,7 @@ function formatSlaCountdown(conversation: Conversation, now: number) {
 }
 
 export default function UnifiedInboxPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const conversations = useInboxStore((state) => state.conversations)
   const agents = useInboxStore((state) => state.agents)
   const selectedId = useInboxStore((state) => state.selectedId)
@@ -126,12 +127,14 @@ export default function UnifiedInboxPage() {
   const threadRef = useRef<HTMLDivElement | null>(null)
   const threadEndRef = useRef<HTMLDivElement | null>(null)
   const threadWasNearBottomRef = useRef(true)
+  const missingRequestedConversationRef = useRef<string | null>(null)
   const showToast = useUiStore((state) => state.showToast)
   const { can } = useAuth()
   const { currentTenantId } = useTenant()
   const canReply = can('inbox.reply')
   const canAssign = can('inbox.assign')
   const canManageInbox = canAssign || canReply
+  const requestedConversationId = searchParams.get('conversationId')
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedId),
@@ -176,6 +179,18 @@ export default function UnifiedInboxPage() {
         if (disposed) return
         setInboxLoadError(null)
         replaceConversations(items)
+        if (requestedConversationId) {
+          if (items.some((item) => item.id === requestedConversationId)) {
+            missingRequestedConversationRef.current = null
+            selectConversation(requestedConversationId)
+            return
+          }
+
+          if (missingRequestedConversationRef.current !== requestedConversationId) {
+            missingRequestedConversationRef.current = requestedConversationId
+            showToast('تعذر فتح المحادثة المطلوبة ضمن سياق الشركة الحالية', 'warning')
+          }
+        }
       })
         .catch((error: unknown) => {
           if (!disposed && !hasShownFallbackToast) {
@@ -195,7 +210,7 @@ export default function UnifiedInboxPage() {
       disposed = true
       window.clearInterval(interval)
     }
-  }, [currentTenantId, replaceConversations, clearSelection, showToast])
+  }, [currentTenantId, replaceConversations, clearSelection, showToast, requestedConversationId, selectConversation])
 
   useEffect(() => {
     const unsubscribe = realtimeEventBus.subscribe((event) => {
@@ -263,6 +278,7 @@ export default function UnifiedInboxPage() {
 
   function handleSelectConversation(conversationId: string) {
     selectConversation(conversationId)
+    setSearchParams({ conversationId })
   }
 
   function handleReplyChange(event: ChangeEvent<HTMLTextAreaElement>) {

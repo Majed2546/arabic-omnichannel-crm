@@ -9094,6 +9094,17 @@ body:has(.inbox-layout) {
   text-decoration: none;
 }
 
+.customer-conversation-link-card {
+  display: grid;
+  gap: 8px;
+}
+
+.customer-conversation-link-card .app-button {
+  width: 100%;
+  justify-content: center;
+  text-decoration: none;
+}
+
 @media (max-width: 1280px) {
   .customers-page {
     min-height: auto;

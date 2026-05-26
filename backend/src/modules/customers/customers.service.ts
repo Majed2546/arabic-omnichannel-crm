@@ -60,14 +60,51 @@ export class CustomersService {
     return this.toCustomerDto(customer)
   }
 
+  async listConversations(tenantId: string, customerId: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, tenantId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!customer) throw new NotFoundException('Customer not found')
+
+    const conversations = await this.prisma.conversation.findMany({
+      where: { tenantId, customerId, deletedAt: null },
+      include: { channel: true },
+      orderBy: [{ lastMessageAt: 'desc' }, { updatedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 50,
+    })
+
+    return conversations.map((conversation) => ({
+      id: conversation.id,
+      channel: conversation.channel.type,
+      channelName: conversation.channel.name,
+      status: conversation.status,
+      priority: conversation.priority,
+      lastMessagePreview: conversation.lastMessagePreview,
+      lastMessageAt: conversation.lastMessageAt,
+      lastActivityDate: (conversation.lastMessageAt ?? conversation.updatedAt ?? conversation.createdAt).toISOString(),
+      unreadCount: conversation.unreadCount,
+      createdAt: conversation.createdAt,
+    }))
+  }
+
   async create(tenantId: string, dto: CreateCustomerDto) {
     const resolvedTenantId = await this.ensureTenantForCreate(tenantId)
+    const normalizedPhone = this.blankToNull(dto.phone)
+    const existingByPhone = normalizedPhone
+      ? await this.prisma.customer.findFirst({
+          where: { tenantId: resolvedTenantId, phone: normalizedPhone, deletedAt: null },
+          include: this.includeDetails(),
+        })
+      : null
+
+    if (existingByPhone) return this.toCustomerDto(existingByPhone)
 
     const customer = await this.prisma.customer.create({
       data: {
         tenantId: resolvedTenantId,
         name: dto.name.trim(),
-        phone: this.blankToNull(dto.phone),
+        phone: normalizedPhone,
         email: this.blankToNull(dto.email),
         tags: this.normalizeTags(dto.tags),
         metadata: this.toMetadata(dto),

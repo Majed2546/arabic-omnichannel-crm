@@ -19,6 +19,11 @@ export class CustomersController {
     return this.customers.list(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), query)
   }
 
+  @Get(':id/conversations')
+  getConversations(@Headers('x-tenant-id') tenantId: string | undefined, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.customers.listConversations(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id)
+  }
+
   @Get(':id')
   getById(@Headers('x-tenant-id') tenantId: string | undefined, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.customers.findById(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id)

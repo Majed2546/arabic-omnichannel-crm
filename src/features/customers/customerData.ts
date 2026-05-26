@@ -7,10 +7,12 @@ export type CustomerConversation = {
   id: string
   status: string
   priority: string
+  channel?: string | null
   channelType?: string | null
   channelName?: string | null
   queueName?: string | null
   lastMessagePreview?: string | null
+  lastActivityDate?: string | null
   lastMessageAt?: string | null
   unreadCount: number
   createdAt: string
@@ -73,6 +75,10 @@ export async function fetchCustomers(filters: CustomerFilters = {}) {
 
 export async function fetchCustomer(id: string) {
   return parseResponse<Customer>(await apiFetch(apiUrl(`/customers/${id}`)))
+}
+
+export async function fetchCustomerConversations(id: string) {
+  return parseResponse<CustomerConversation[]>(await apiFetch(apiUrl(`/customers/${id}/conversations`)))
 }
 
 export async function createCustomer(payload: SaveCustomerPayload) {

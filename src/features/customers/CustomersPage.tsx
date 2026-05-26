@@ -16,9 +16,11 @@ import {
   createCustomer,
   deleteCustomer,
   fetchCustomer,
+  fetchCustomerConversations,
   fetchCustomers,
   updateCustomer,
   type Customer,
+  type CustomerConversation,
   type CustomerSourceChannel,
   type CustomerStatus,
   type SaveCustomerPayload,
@@ -214,6 +216,7 @@ export default function CustomersPage() {
   const [sourceChannel, setSourceChannel] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(searchParams.get('new') === '1' ? 'create' : null)
+  const [relatedConversations, setRelatedConversations] = useState<CustomerConversation[]>([])
   const previousTenantIdRef = useRef<string | null>(null)
 
   const selectedId = searchParams.get('customerId')
@@ -286,6 +289,30 @@ export default function CustomersPage() {
     }
   }, [selectedId, currentTenantId])
 
+  useEffect(() => {
+    if (!selectedCustomer?.id || !currentTenantId) {
+      setRelatedConversations([])
+      return
+    }
+
+    let disposed = false
+    setRelatedConversations(selectedCustomer.conversations ?? [])
+
+    fetchCustomerConversations(selectedCustomer.id)
+      .then((conversations) => {
+        if (!disposed) setRelatedConversations(conversations)
+      })
+      .catch((error) => {
+        if (!disposed) {
+          showToast(error instanceof Error ? error.message : 'تعذر تحميل محادثات العميل', 'warning')
+        }
+      })
+
+    return () => {
+      disposed = true
+    }
+  }, [selectedCustomer?.id, currentTenantId, showToast])
+
   const visibleCustomers = useMemo(() => customers, [customers])
 
   function selectCustomer(customer: Customer) {
@@ -294,7 +321,8 @@ export default function CustomersPage() {
   }
 
   function openConversations() {
-    navigate('/inbox')
+    const firstConversation = relatedConversations[0] ?? selectedCustomer?.conversations?.[0]
+    navigate(firstConversation ? `/inbox?conversationId=${firstConversation.id}` : '/inbox')
   }
 
   function createTicketPlaceholder() {
@@ -486,13 +514,18 @@ export default function CustomersPage() {
               <div className="profile-section">
                 <h4>المحادثات المرتبطة</h4>
                 <div className="context-activity-list">
-                  {selectedCustomer.conversations.length ? selectedCustomer.conversations.map((conversation) => (
-                    <article key={conversation.id}>
-                      <strong>{getChannelLabel(conversation.channelType)} · {conversation.status}</strong>
-                      <small>{conversation.lastMessagePreview || 'لا توجد معاينة'} · {formatDate(conversation.lastMessageAt ?? conversation.createdAt)}</small>
-                      <Link to={`/inbox`}>فتح صندوق الوارد</Link>
+                  {relatedConversations.length ? relatedConversations.map((conversation) => (
+                    <article key={conversation.id} className="customer-conversation-link-card">
+                      <strong>{getChannelLabel(conversation.channel ?? conversation.channelType)} · {conversation.status}</strong>
+                      <small>
+                        {conversation.lastMessagePreview || 'لا توجد معاينة'} · {formatDate(conversation.lastActivityDate ?? conversation.lastMessageAt ?? conversation.createdAt)}
+                      </small>
+                      {conversation.unreadCount > 0 ? <small>{conversation.unreadCount.toLocaleString('ar-SA')} غير مقروءة</small> : null}
+                      <Link className="app-button app-button-secondary control-safe text-safe" to={`/inbox?conversationId=${conversation.id}`}>
+                        فتح المحادثة
+                      </Link>
                     </article>
-                  )) : <EmptyState title="لا توجد محادثات" message="سيظهر سجل المحادثات عند ارتباط العميل بقنوات التواصل." />}
+                  )) : <EmptyState title="لا توجد محادثات مرتبطة بهذا العميل" message="سيظهر سجل المحادثات عند ارتباط العميل بقنوات التواصل." />}
                 </div>
               </div>
             </>
