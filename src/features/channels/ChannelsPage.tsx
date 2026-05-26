@@ -17,7 +17,6 @@ import { AppCard } from '../../components/ui/AppCard'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { useUiStore } from '../../stores/uiStore'
 import { apiFetch, apiUrl } from '../../lib/apiClient'
-import { getCurrentTenantId } from '../../tenants/tenantUtils'
 import { useTenant } from '../../tenants/useTenant'
 import { getChannelLabel } from '../../shared/utils'
 
@@ -218,14 +217,14 @@ function operationModeLabel(value?: string | null) {
 
 export default function ChannelsPage() {
   const showToast = useUiStore((state) => state.showToast)
-  const { currentTenant } = useTenant()
+  const { currentTenant, currentTenantId } = useTenant()
   const [channels, setChannels] = useState<ChannelRecord[]>([])
   const [tenantChannelState, setTenantChannelState] = useState<TenantChannelsResponse | null>(null)
   const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null)
   const [isSignupModalOpen, setSignupModalOpen] = useState(false)
   const [isSubmittingOnboarding, setSubmittingOnboarding] = useState(false)
   const [onboardingForm, setOnboardingForm] = useState<OnboardingFormState>(initialOnboardingForm)
-  const tenantId = getCurrentTenantId() ?? 'default-tenant'
+  const tenantId = currentTenantId ?? 'default-tenant'
   const isDefaultTenant = tenantId === 'default-tenant'
 
   function refreshTenantChannels() {
@@ -245,6 +244,9 @@ export default function ChannelsPage() {
 
   useEffect(() => {
     let disposed = false
+    setTenantChannelState(null)
+    setChannels([])
+    setWhatsappStatus(null)
 
     Promise.all([
       refreshTenantChannels(),
@@ -259,7 +261,7 @@ export default function ChannelsPage() {
     return () => {
       disposed = true
     }
-  }, [])
+  }, [tenantId])
 
   const channelsByType = useMemo(() => {
     return channels.reduce<Record<string, ChannelRecord>>((acc, channel) => {

@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuth } from '../../auth/useAuth'
 import { useUiStore } from '../../stores/uiStore'
+import { useTenant } from '../../tenants/useTenant'
 import { getChannelLabel } from '../../shared/utils'
 import {
   createCustomer,
@@ -177,6 +178,7 @@ export default function CustomersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const showToast = useUiStore((state) => state.showToast)
   const { can } = useAuth()
+  const { currentTenantId } = useTenant()
   const canManageCustomers = can('customers.manage')
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
@@ -198,6 +200,12 @@ export default function CustomersPage() {
 
   function refreshCustomers() {
     setLoading(true)
+    setCustomers([])
+    setSelectedCustomer(null)
+    if (!currentTenantId) {
+      setLoading(false)
+      return
+    }
     fetchCustomers({ search, status, sourceChannel })
       .then((items) => {
         setCustomers(items)
@@ -209,14 +217,18 @@ export default function CustomersPage() {
 
   useEffect(() => {
     refreshCustomers()
-  }, [search, status, sourceChannel])
+  }, [search, status, sourceChannel, currentTenantId])
 
   useEffect(() => {
-    if (!selectedId) return
+    setSelectedCustomer(null)
+    if (!selectedId || !currentTenantId) return
     fetchCustomer(selectedId)
       .then(setSelectedCustomer)
-      .catch(() => showToast('تعذر فتح ملف العميل', 'warning'))
-  }, [selectedId])
+      .catch(() => {
+        setSelectedCustomer(null)
+        showToast('تعذر فتح ملف العميل', 'warning')
+      })
+  }, [selectedId, currentTenantId])
 
   const visibleCustomers = useMemo(() => customers, [customers])
 
@@ -322,6 +334,37 @@ export default function CustomersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="customers-card-list">
+            {visibleCustomers.map((customer) => (
+              <article key={customer.id} className={`customer-list-card ${customer.id === selectedCustomer?.id ? 'selected' : ''}`}>
+                <div className="customer-card-main">
+                  <div>
+                    <strong>{customer.name}</strong>
+                    <small>{customer.conversationsCount} محادثة</small>
+                  </div>
+                  <StatusBadge label={statusLabels[customer.status]} tone={customerStatusTone(customer.status)} />
+                </div>
+
+                <dl>
+                  <div><dt>الجوال</dt><dd>{customer.phone || 'لا يوجد جوال'}</dd></div>
+                  <div><dt>البريد</dt><dd>{customer.email || 'لا يوجد بريد'}</dd></div>
+                  <div><dt>القناة</dt><dd>{getChannelLabel(customer.sourceChannel)}</dd></div>
+                  <div><dt>آخر نشاط</dt><dd>{formatDate(customer.lastActivityAt)}</dd></div>
+                </dl>
+
+                <div className="tag-list compact">
+                  {customer.tags.length ? customer.tags.map((tag) => <span key={tag}>{tag}</span>) : <small>لا توجد وسوم</small>}
+                </div>
+
+                <div className="customer-card-actions">
+                  <AppButton variant="ghost" onClick={() => selectCustomer(customer)}><Eye size={15} /> عرض</AppButton>
+                  {canManageCustomers ? <AppButton variant="ghost" onClick={() => { setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
+                  {canManageCustomers ? <AppButton variant="ghost" onClick={() => handleDelete(customer)}><Trash2 size={15} /> حذف</AppButton> : null}
+                </div>
+              </article>
+            ))}
           </div>
         </section>
 

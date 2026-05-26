@@ -5,6 +5,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { useUiStore } from '../../stores/uiStore'
 import { useAuth } from '../../auth/useAuth'
+import { useTenant } from '../../tenants/useTenant'
 import { realtimeEventBus } from '../../modules/realtime/eventBus'
 import { ConversationCard } from './ConversationCard'
 import { useInboxStore } from './inboxStore'
@@ -127,6 +128,7 @@ export default function UnifiedInboxPage() {
   const threadWasNearBottomRef = useRef(true)
   const showToast = useUiStore((state) => state.showToast)
   const { can } = useAuth()
+  const { currentTenantId } = useTenant()
   const canReply = can('inbox.reply')
   const canAssign = can('inbox.assign')
   const canManageInbox = canAssign || canReply
@@ -163,6 +165,11 @@ export default function UnifiedInboxPage() {
   useEffect(() => {
     let disposed = false
     let hasShownFallbackToast = false
+    replaceConversations([])
+    clearSelection()
+    setInboxLoadError(null)
+
+    if (!currentTenantId) return
 
     const refreshInbox = () => {
       fetchInboxConversations().then((items) => {
@@ -188,7 +195,7 @@ export default function UnifiedInboxPage() {
       disposed = true
       window.clearInterval(interval)
     }
-  }, [replaceConversations, showToast])
+  }, [currentTenantId, replaceConversations, clearSelection, showToast])
 
   useEffect(() => {
     const unsubscribe = realtimeEventBus.subscribe((event) => {

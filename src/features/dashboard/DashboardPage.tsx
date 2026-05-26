@@ -36,15 +36,19 @@ async function fetchItems<T>(path: string): Promise<T[]> {
 }
 
 export default function DashboardPage() {
-  const { currentTenant } = useTenant()
+  const { currentTenant, currentTenantId } = useTenant()
   const [conversations, setConversations] = useState<DashboardConversation[]>([])
   const [notifications, setNotifications] = useState<DashboardNotification[]>([])
   const [channels, setChannels] = useState<DashboardChannel[]>([])
 
   useEffect(() => {
     let disposed = false
+    setConversations([])
+    setNotifications([])
+    setChannels([])
 
     async function loadDashboard() {
+      if (!currentTenantId) return
       const [nextConversations, nextNotifications, nextChannels] = await Promise.all([
         fetchItems<DashboardConversation>('/conversations?limit=100'),
         fetchItems<DashboardNotification>('/notifications'),
@@ -64,7 +68,7 @@ export default function DashboardPage() {
       disposed = true
       window.clearInterval(interval)
     }
-  }, [])
+  }, [currentTenantId])
 
   const metrics = useMemo(() => {
     const activeConversations = conversations.filter((conversation) =>

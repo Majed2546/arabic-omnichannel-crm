@@ -1,4 +1,4 @@
-import { createTenantHeaders, withTenantScope } from '../tenants/tenantUtils'
+import { createTenantHeaders, getCurrentTenantId, withTenantScope } from '../tenants/tenantUtils'
 import { getAuthToken, REST_API_BASE_URL } from './apiConfig'
 import { loadLocalTestRole, loadLocalTestTenantId, shouldSendLocalTestHeaders } from '../auth/localTestContext'
 
@@ -20,7 +20,7 @@ export function createServiceHeaders(headers?: HeadersInit): Headers {
 
   if (shouldSendLocalTestHeaders()) {
     serviceHeaders.set('x-local-platform-role', loadLocalTestRole())
-    serviceHeaders.set('x-local-tenant-id', loadLocalTestTenantId() ?? 'default-tenant')
+    serviceHeaders.set('x-local-tenant-id', getCurrentTenantId() ?? loadLocalTestTenantId() ?? 'default-tenant')
   }
 
   return serviceHeaders

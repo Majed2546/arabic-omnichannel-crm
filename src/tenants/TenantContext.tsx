@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/useAuth'
 import { DEFAULT_TENANT_ID, TENANTS, findTenantById, findTenantByName } from './tenantRegistry'
-import { loadCurrentTenantId, saveCurrentTenantId } from './tenantStorage'
+import { TENANT_CONTEXT_EVENT, loadCurrentTenantId, saveCurrentTenantId } from './tenantStorage'
 import { TenantContext } from './tenantContextObject'
 import type { TenantContextValue } from './tenantTypes'
 
@@ -24,6 +24,20 @@ export function TenantProvider({ children }: TenantProviderProps) {
     if (!effectiveTenantId) return
     saveCurrentTenantId(effectiveTenantId)
   }, [effectiveTenantId])
+
+  useEffect(() => {
+    function syncStoredTenant(event: Event) {
+      const nextTenantId = event instanceof CustomEvent ? event.detail?.tenantId : loadCurrentTenantId()
+      setCurrentTenantIdState(findTenantById(nextTenantId)?.id ?? DEFAULT_TENANT_ID)
+    }
+
+    window.addEventListener(TENANT_CONTEXT_EVENT, syncStoredTenant)
+    window.addEventListener('storage', syncStoredTenant)
+    return () => {
+      window.removeEventListener(TENANT_CONTEXT_EVENT, syncStoredTenant)
+      window.removeEventListener('storage', syncStoredTenant)
+    }
+  }, [])
 
   const canAccessTenant = useCallback((tenantId: string) => {
     if (!findTenantById(tenantId)) return false
