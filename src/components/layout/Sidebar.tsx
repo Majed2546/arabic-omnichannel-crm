@@ -38,7 +38,7 @@ const navigation: Array<{
   { path: '/platform', label: 'لوحة تحكم المنصة', icon: PanelsTopLeft, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/platform/companies', label: 'الشركات المشتركة', icon: Building2, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/platform/onboarding-requests', label: 'طلبات الاشتراك', icon: ClipboardList, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
-  { path: '/platform/subscriptions', label: 'الاشتراكات والباقات', icon: ReceiptText, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
+  { path: '/billing', label: 'الاشتراكات والباقات', icon: ReceiptText, allowedRoles: ['admin'], permission: 'settings.view' },
   { path: '/platform/usage', label: 'استخدام المنصة', icon: Gauge, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/inbox', label: 'صندوق الوارد', icon: Inbox, allowedRoles: ['admin', 'support', 'analyst'], permission: 'inbox.view' },
   { path: '/customers', label: 'العملاء', icon: Users, allowedRoles: ['admin', 'support', 'analyst'], permission: 'customers.view' },

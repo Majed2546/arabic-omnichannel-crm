@@ -22,6 +22,7 @@ const pageTitles: Record<string, string> = {
   '/automation': 'الأتمتة',
   '/workflows': 'الأتمتة',
   '/reports': 'التقارير',
+  '/billing': 'الاشتراكات والباقات',
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',
   '/whatsapp': 'واتساب',
@@ -46,6 +47,7 @@ const pageSubtitles: Record<string, string> = {
   '/platform/subscriptions': 'تعريف الباقات وحدود الاشتراك لكل شركة.',
   '/platform/usage': 'مراقبة الاستهلاك الشهري وحدود المنصة.',
   '/reports': 'تقارير الأداء والاستخدام حسب الشركة والفترة الزمنية.',
+  '/billing': 'جاهزية الاشتراكات وحدود الاستخدام دون دفع إلكتروني.',
 }
 
 export function Topbar() {

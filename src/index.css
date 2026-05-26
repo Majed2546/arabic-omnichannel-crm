@@ -9869,6 +9869,124 @@ body:has(.inbox-layout) {
   display: block;
 }
 
+.billing-page {
+  gap: 14px;
+}
+
+.billing-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.billing-plan-card {
+  display: grid;
+  gap: 12px;
+}
+
+.billing-plan-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.billing-plan-card dl div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.billing-plan-card dt,
+.billing-plan-card dd {
+  margin: 0;
+}
+
+.billing-plan-card dt {
+  color: var(--saas-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.billing-plan-card dd {
+  margin-top: 3px;
+  color: var(--saas-navy);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.billing-current-card {
+  display: grid;
+  gap: 14px;
+}
+
+.billing-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.billing-usage-bar {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.billing-usage-bar > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.billing-usage-bar span,
+.billing-usage-bar small {
+  color: var(--saas-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.billing-usage-bar strong {
+  color: var(--saas-navy);
+  font-weight: 900;
+}
+
+.billing-usage-bar progress {
+  width: 100%;
+  height: 10px;
+  accent-color: var(--saas-blue);
+}
+
+.billing-usage-bar progress.warning {
+  accent-color: #f59e0b;
+}
+
+.billing-usage-bar progress.danger {
+  accent-color: #ef4444;
+}
+
+.billing-warning-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.billing-table td {
+  vertical-align: middle;
+}
+
+.billing-table td small,
+.billing-table td strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9919,7 +10037,9 @@ body:has(.inbox-layout) {
   .automation-template-grid,
   .automation-filters,
   .reports-filters,
-  .report-metric-grid {
+  .report-metric-grid,
+  .billing-plan-grid,
+  .billing-usage-grid {
     grid-template-columns: 1fr;
   }
 
@@ -9948,7 +10068,8 @@ body:has(.inbox-layout) {
   .reports-section-grid,
   .meetings-filters,
   .meeting-card-grid,
-  .ticket-card-grid {
+  .ticket-card-grid,
+  .billing-plan-card dl {
     grid-template-columns: 1fr;
   }
 
