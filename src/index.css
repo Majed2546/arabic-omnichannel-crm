@@ -8746,17 +8746,39 @@ body:has(.inbox-layout) {
 
 .customers-list-body {
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-inline-end: 2px;
 }
 
 .customers-table-wrapper {
+  max-width: 100%;
   width: 100%;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-color: rgba(14, 165, 233, 0.45) rgba(226, 232, 240, 0.75);
+  scrollbar-width: thin;
+}
+
+.customers-table-wrapper::-webkit-scrollbar {
+  height: 10px;
+}
+
+.customers-table-wrapper::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.75);
+}
+
+.customers-table-wrapper::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(226, 232, 240, 0.75);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.5);
 }
 
 .customers-table {
-  width: 100%;
+  width: max(100%, 1040px);
+  min-width: 1040px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0 6px;
