@@ -29,6 +29,8 @@ export type AutomationActionsValue = {
   items: AutomationAction[]
 }
 
+export type AutomationActionsInput = AutomationAction[] | AutomationActionsValue | null | undefined | unknown
+
 export type AutomationRule = {
   id: string
   tenantId: string
@@ -36,7 +38,7 @@ export type AutomationRule = {
   description?: string | null
   triggerType: AutomationTriggerType
   conditions?: Record<string, unknown> | null
-  actions: AutomationActionsValue
+  actions: AutomationActionsInput
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -67,6 +69,22 @@ export type AutomationRulePayload = {
   isActive?: boolean
 }
 
+export function normalizeAutomationActions(actions: AutomationActionsInput): AutomationAction[] {
+  if (Array.isArray(actions)) return actions.filter((action): action is AutomationAction => typeof action === 'object' && action !== null && typeof (action as AutomationAction).type === 'string')
+  if (typeof actions === 'object' && actions !== null && Array.isArray((actions as { items?: unknown }).items)) {
+    return (actions as { items: unknown[] }).items.filter((action): action is AutomationAction => typeof action === 'object' && action !== null && typeof (action as AutomationAction).type === 'string')
+  }
+  return []
+}
+
+function normalizeAutomationRule(rule: AutomationRule): AutomationRule {
+  return {
+    ...rule,
+    conditions: rule.conditions && typeof rule.conditions === 'object' && !Array.isArray(rule.conditions) ? rule.conditions : {},
+    actions: { items: normalizeAutomationActions(rule.actions) },
+  }
+}
+
 async function parseResponse<T>(response: Response, fallback: string): Promise<T> {
   if (!response.ok) {
     const detail = await response.text().catch(() => '')
@@ -80,7 +98,8 @@ export async function fetchAutomationRules(filters: { triggerType?: string; isAc
   if (filters.triggerType) params.set('triggerType', filters.triggerType)
   if (filters.isActive) params.set('isActive', filters.isActive)
   const query = params.toString()
-  return parseResponse<AutomationRule[]>(await apiFetch(apiUrl(`/automation/rules${query ? `?${query}` : ''}`)), 'تعذر تحميل قواعد الأتمتة')
+  const rules = await parseResponse<AutomationRule[]>(await apiFetch(apiUrl(`/automation/rules${query ? `?${query}` : ''}`)), 'تعذر تحميل قواعد الأتمتة')
+  return rules.map(normalizeAutomationRule)
 }
 
 export async function fetchAutomationLogs(filters: { triggerType?: string; status?: string; ruleId?: string } = {}) {
@@ -93,27 +112,30 @@ export async function fetchAutomationLogs(filters: { triggerType?: string; statu
 }
 
 export async function createAutomationRule(payload: AutomationRulePayload) {
-  return parseResponse<AutomationRule>(await apiFetch(apiUrl('/automation/rules'), {
+  const rule = await parseResponse<AutomationRule>(await apiFetch(apiUrl('/automation/rules'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }), 'تعذر إنشاء قاعدة الأتمتة')
+  return normalizeAutomationRule(rule)
 }
 
 export async function updateAutomationRule(id: string, payload: AutomationRulePayload) {
-  return parseResponse<AutomationRule>(await apiFetch(apiUrl(`/automation/rules/${id}`), {
+  const rule = await parseResponse<AutomationRule>(await apiFetch(apiUrl(`/automation/rules/${id}`), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }), 'تعذر تحديث قاعدة الأتمتة')
+  return normalizeAutomationRule(rule)
 }
 
 export async function toggleAutomationRule(id: string, isActive?: boolean) {
-  return parseResponse<AutomationRule>(await apiFetch(apiUrl(`/automation/rules/${id}/toggle`), {
+  const rule = await parseResponse<AutomationRule>(await apiFetch(apiUrl(`/automation/rules/${id}/toggle`), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(typeof isActive === 'boolean' ? { isActive } : {}),
   }), 'تعذر تغيير حالة القاعدة')
+  return normalizeAutomationRule(rule)
 }
 
 export async function testAutomationRule(id: string) {

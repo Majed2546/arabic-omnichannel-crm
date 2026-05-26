@@ -18,9 +18,9 @@ import {
   testAutomationRule,
   toggleAutomationRule,
   updateAutomationRule,
-  type AutomationAction,
+  normalizeAutomationActions,
   type AutomationActionType,
-  type AutomationActionsValue,
+  type AutomationActionsInput,
   type AutomationLog,
   type AutomationLogStatus,
   type AutomationRule,
@@ -142,18 +142,15 @@ function logTone(status?: AutomationLogStatus | null) {
   return 'muted'
 }
 
-function getActionItems(actions: AutomationAction[] | AutomationActionsValue | null | undefined): AutomationAction[] {
-  if (Array.isArray(actions)) return actions
-  return actions?.items ?? []
-}
-
-function actionSummary(actions: AutomationAction[] | AutomationActionsValue | null | undefined) {
-  return getActionItems(actions).map((action) => action.label || actionLabels[action.type] || action.type).join('، ')
+function actionSummary(actions: AutomationActionsInput) {
+  const items = normalizeAutomationActions(actions)
+  if (!items.length) return 'لا توجد إجراءات'
+  return items.map((action) => action.label || actionLabels[action.type] || action.type).join('، ')
 }
 
 function toForm(rule: AutomationRule): RuleFormState {
   const conditions = rule.conditions ?? {}
-  const action = getActionItems(rule.actions)[0] ?? { type: 'create_ticket' as AutomationActionType }
+  const action = normalizeAutomationActions(rule.actions)[0] ?? { type: 'create_ticket' as AutomationActionType }
   return {
     name: rule.name,
     description: rule.description ?? '',
@@ -350,8 +347,8 @@ export default function WorkflowsPage() {
       conditionConversationStatus: String(payload.conditions?.conversationStatus ?? ''),
       conditionPriority: String(payload.conditions?.priority ?? ''),
       businessHours: Boolean(payload.conditions?.businessHours),
-      actionType: getActionItems(payload.actions)[0]?.type ?? 'create_ticket',
-      actionValue: getActionItems(payload.actions)[0]?.value ?? getActionItems(payload.actions)[0]?.label ?? '',
+      actionType: normalizeAutomationActions(payload.actions)[0]?.type ?? 'create_ticket',
+      actionValue: normalizeAutomationActions(payload.actions)[0]?.value ?? normalizeAutomationActions(payload.actions)[0]?.label ?? '',
       isActive: payload.isActive ?? true,
     } : emptyForm)
     setModalOpen(true)
