@@ -4,7 +4,7 @@ import { ChannelStatus, ChannelType, OnboardingOperationMode } from '@prisma/cli
 import { PrismaService } from '../../database/prisma.service'
 import { TenantAccessService } from '../../common/tenant-access.service'
 import type { AuthenticatedUser } from '../auth/auth.types'
-import type { TenantWhatsAppOnboardingDto, UpdateTenantChannelStatusDto } from './tenant-channels.dto'
+import type { TenantWhatsAppConnectionStatus, TenantWhatsAppOnboardingDto, UpdateTenantChannelStatusDto } from './tenant-channels.dto'
 
 const DEFAULT_TENANT_ID = 'default-tenant'
 
@@ -88,6 +88,55 @@ export class TenantChannelsService {
     }
   }
 
+  async getWhatsAppStatus(tenantId: string) {
+    const tenantState = await this.getByTenantId(tenantId)
+    const whatsapp = tenantState.items.find((channel) => channel.type === ChannelType.WHATSAPP)
+    const defaultReady = tenantId === DEFAULT_TENANT_ID && this.defaultWhatsAppReady()
+
+    return {
+      tenantId,
+      channelType: ChannelType.WHATSAPP,
+      status: defaultReady ? 'CONNECTED' : this.toWhatsAppConnectionStatus(whatsapp?.status),
+      cloudApiReady: defaultReady,
+      defaultConnectionActive: defaultReady,
+      embeddedSignupReady: false,
+      mode: 'placeholder',
+      message: defaultReady
+        ? 'Default environment WhatsApp Cloud API connection is active.'
+        : 'Tenant WhatsApp connection is waiting for Meta Embedded Signup readiness.',
+    }
+  }
+
+  async updateWhatsAppStatus(tenantId: string, status: TenantWhatsAppConnectionStatus, notes?: string) {
+    await this.ensureTenantExists(tenantId)
+    const channel = await this.prisma.channel.upsert({
+      where: { id: await this.findExistingWhatsAppChannelId(tenantId) },
+      create: {
+        tenantId,
+        type: ChannelType.WHATSAPP,
+        status: this.toChannelStatus(status),
+        name: 'WhatsApp Business',
+        config: { connectionStatus: status, notes: notes?.trim() || undefined },
+        createdBy: 'platform-admin',
+        updatedBy: 'platform-admin',
+      },
+      update: {
+        status: this.toChannelStatus(status),
+        config: { connectionStatus: status, notes: notes?.trim() || undefined },
+        connectedAt: status === 'CONNECTED' ? new Date() : undefined,
+        updatedBy: 'platform-admin',
+      },
+    })
+
+    return {
+      tenantId,
+      channelType: ChannelType.WHATSAPP,
+      status,
+      storedSecrets: false,
+      channel,
+    }
+  }
+
   async updateStatus(id: string, dto: UpdateTenantChannelStatusDto, user: AuthenticatedUser) {
     const channel = await this.prisma.channel.findFirst({ where: { id, deletedAt: null }, select: { id: true, tenantId: true } })
     if (!channel) throw new NotFoundException('Tenant channel not found')
@@ -158,6 +207,22 @@ export class TenantChannelsService {
       this.config.get<string>('whatsapp.phoneNumberId') &&
       this.config.get<string>('whatsapp.businessAccountId'),
     )
+  }
+
+  private toWhatsAppConnectionStatus(status?: ChannelStatus): TenantWhatsAppConnectionStatus {
+    if (status === ChannelStatus.CONNECTED) return 'CONNECTED'
+    if (status === ChannelStatus.PENDING) return 'PENDING'
+    if (status === ChannelStatus.NEEDS_REVIEW) return 'REVIEW_REQUIRED'
+    if (status === ChannelStatus.FAILED) return 'ERROR'
+    return 'NOT_CONNECTED'
+  }
+
+  private toChannelStatus(status: TenantWhatsAppConnectionStatus): ChannelStatus {
+    if (status === 'CONNECTED') return ChannelStatus.CONNECTED
+    if (status === 'PENDING') return ChannelStatus.PENDING
+    if (status === 'REVIEW_REQUIRED') return ChannelStatus.NEEDS_REVIEW
+    if (status === 'ERROR') return ChannelStatus.FAILED
+    return ChannelStatus.DISCONNECTED
   }
 
   private defaultTenantFallback(tenantId: string) {

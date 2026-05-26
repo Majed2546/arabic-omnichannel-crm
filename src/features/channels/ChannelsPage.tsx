@@ -15,6 +15,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { useAuth } from '../../auth/useAuth'
 import { useUiStore } from '../../stores/uiStore'
 import { apiFetch, apiUrl } from '../../lib/apiClient'
 import { useTenant } from '../../tenants/useTenant'
@@ -66,6 +67,40 @@ type WhatsAppStatus = {
   cloudApiReady?: boolean
   embeddedSignupReady?: boolean
   webhookEngineReady?: boolean
+}
+
+type MetaSettings = {
+  appId: string
+  configId: string
+  redirectUri: string
+  webhookCallbackUrl: string
+  requiredPermissions: string[]
+  appReviewStatus: 'NOT_STARTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED'
+  embeddedSignupEnabled: boolean
+  appSecretConfigured?: boolean
+  checklist: {
+    techProviderVerified: boolean
+    appLive: boolean
+    appReviewApproved: boolean
+    webhookConfigured: boolean
+    embeddedSignupConfigured: boolean
+  }
+  readiness: {
+    ready: boolean
+    missing: string[]
+  }
+}
+
+type MetaStartPayload = {
+  ready: boolean
+  mode: string
+  appId: string
+  configId: string
+  redirectUri: string
+  state: string
+  tenantId?: string
+  requiredPermissions: string[]
+  message: string
 }
 
 type WhatsAppConnectionState = 'غير متصل' | 'قيد التفعيل' | 'متصل' | 'يحتاج مراجعة' | 'يوجد خطأ'
@@ -170,6 +205,28 @@ const initialOnboardingForm: OnboardingFormState = {
   notes: '',
 }
 
+const emptyMetaSettings: MetaSettings = {
+  appId: '',
+  configId: '',
+  redirectUri: '',
+  webhookCallbackUrl: '',
+  requiredPermissions: ['whatsapp_business_management', 'whatsapp_business_messaging', 'business_management'],
+  appReviewStatus: 'NOT_STARTED',
+  embeddedSignupEnabled: false,
+  appSecretConfigured: false,
+  checklist: {
+    techProviderVerified: false,
+    appLive: false,
+    appReviewApproved: false,
+    webhookConfigured: false,
+    embeddedSignupConfigured: false,
+  },
+  readiness: {
+    ready: false,
+    missing: [],
+  },
+}
+
 function channelTone(status: string) {
   if (status === 'متصل') return 'success'
   if (status === 'قريبًا') return 'info'
@@ -215,17 +272,57 @@ function operationModeLabel(value?: string | null) {
   return value === 'APP_AND_PLATFORM' ? 'واتساب الجوال + المنصة' : 'المنصة فقط'
 }
 
+const appReviewLabels: Record<MetaSettings['appReviewStatus'], string> = {
+  NOT_STARTED: 'لم يبدأ',
+  IN_REVIEW: 'قيد المراجعة',
+  APPROVED: 'معتمد',
+  REJECTED: 'مرفوض',
+}
+
+function checklistLabel(key: keyof MetaSettings['checklist']) {
+  const labels: Record<keyof MetaSettings['checklist'], string> = {
+    techProviderVerified: 'Tech Provider Verified',
+    appLive: 'App Live',
+    appReviewApproved: 'App Review Approved',
+    webhookConfigured: 'Webhook Configured',
+    embeddedSignupConfigured: 'Embedded Signup Configured',
+  }
+  return labels[key]
+}
+
 export default function ChannelsPage() {
   const showToast = useUiStore((state) => state.showToast)
+  const { user } = useAuth()
   const { currentTenant, currentTenantId } = useTenant()
   const [channels, setChannels] = useState<ChannelRecord[]>([])
   const [tenantChannelState, setTenantChannelState] = useState<TenantChannelsResponse | null>(null)
   const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null)
+  const [metaSettings, setMetaSettings] = useState<MetaSettings>(emptyMetaSettings)
+  const [metaForm, setMetaForm] = useState<MetaSettings>(emptyMetaSettings)
+  const [metaStartPayload, setMetaStartPayload] = useState<MetaStartPayload | null>(null)
   const [isSignupModalOpen, setSignupModalOpen] = useState(false)
+  const [isSavingMeta, setSavingMeta] = useState(false)
+  const [isStartingMeta, setStartingMeta] = useState(false)
   const [isSubmittingOnboarding, setSubmittingOnboarding] = useState(false)
   const [onboardingForm, setOnboardingForm] = useState<OnboardingFormState>(initialOnboardingForm)
   const tenantId = currentTenantId ?? 'default-tenant'
   const isDefaultTenant = tenantId === 'default-tenant'
+  const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN'
+
+  function refreshMetaSettings() {
+    return apiFetch(apiUrl('/meta/settings'))
+      .then((response) => response.ok ? response.json() : emptyMetaSettings)
+      .then((payload: MetaSettings) => {
+        setMetaSettings(payload)
+        setMetaForm(payload)
+        return payload
+      })
+      .catch(() => {
+        setMetaSettings(emptyMetaSettings)
+        setMetaForm(emptyMetaSettings)
+        return emptyMetaSettings
+      })
+  }
 
   function refreshTenantChannels() {
     return apiFetch(apiUrl('/tenant-channels'))
@@ -250,10 +347,11 @@ export default function ChannelsPage() {
 
     Promise.all([
       refreshTenantChannels(),
+      refreshMetaSettings(),
       apiFetch(apiUrl('/whatsapp/status'))
         .then((response) => response.ok ? response.json() : null)
         .catch(() => null),
-    ]).then(([, whatsapp]) => {
+    ]).then(([, , whatsapp]) => {
       if (disposed) return
       setWhatsappStatus(whatsapp)
     })
@@ -276,6 +374,59 @@ export default function ChannelsPage() {
   const whatsappOperationMode = whatsappRecord?.config?.operationMode ?? onboardingSummary?.operationMode ?? 'PLATFORM_ONLY'
   const whatsappNumber = whatsappRecord?.config?.whatsappNumber ?? onboardingSummary?.whatsappNumber
   const showDefaultReady = isDefaultTenant && Boolean(tenantChannelState?.defaultWhatsAppReady || whatsappStatus?.cloudApiReady)
+  const metaReady = metaSettings.readiness.ready
+
+  async function saveMetaSettings() {
+    setSavingMeta(true)
+    try {
+      const response = await apiFetch(apiUrl('/meta/settings'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: metaForm.appId,
+          configId: metaForm.configId,
+          redirectUri: metaForm.redirectUri,
+          webhookCallbackUrl: metaForm.webhookCallbackUrl,
+          requiredPermissions: metaForm.requiredPermissions,
+          appReviewStatus: metaForm.appReviewStatus,
+          embeddedSignupEnabled: metaForm.embeddedSignupEnabled,
+          techProviderVerified: metaForm.checklist.techProviderVerified,
+          appLive: metaForm.checklist.appLive,
+          webhookConfigured: metaForm.checklist.webhookConfigured,
+        }),
+      })
+      if (!response.ok) throw new Error('تعذر حفظ إعدادات Meta')
+      const payload = await response.json()
+      setMetaSettings(payload)
+      setMetaForm(payload)
+      showToast('تم حفظ إعدادات Meta كجاهزية Placeholder بدون أي أسرار.', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر حفظ إعدادات Meta', 'warning')
+    } finally {
+      setSavingMeta(false)
+    }
+  }
+
+  async function startMetaEmbeddedSignup() {
+    setStartingMeta(true)
+    try {
+      const response = await apiFetch(apiUrl('/meta/embedded-signup/start'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId }),
+      })
+      if (!response.ok) throw new Error('تعذر بدء جاهزية الربط عبر Meta')
+      const payload = await response.json()
+      setMetaStartPayload(payload)
+      setSignupModalOpen(true)
+    } catch (error) {
+      setMetaStartPayload(null)
+      setSignupModalOpen(true)
+      showToast(error instanceof Error ? error.message : 'تعذر بدء جاهزية الربط عبر Meta', 'warning')
+    } finally {
+      setStartingMeta(false)
+    }
+  }
 
   async function submitOnboardingRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -364,6 +515,7 @@ export default function ChannelsPage() {
                     <strong>ربط واتساب Business عبر Meta</strong>
                     <span>لا نطلب منك رموز API أو معرفات تقنية</span>
                     <small>حالة التفعيل: {whatsappConnectionState}</small>
+                    <small>{metaReady ? 'جاهز لبدء الربط' : 'إعدادات Meta غير مكتملة'}</small>
                   </div>
                 )}
 
@@ -399,9 +551,10 @@ export default function ChannelsPage() {
                     <>
                       <AppButton
                         variant={showDefaultReady ? 'secondary' : 'primary'}
-                        onClick={() => setSignupModalOpen(true)}
+                        onClick={startMetaEmbeddedSignup}
+                        disabled={isStartingMeta}
                       >
-                        بدء ربط واتساب عبر Meta
+                        {isStartingMeta ? 'جار التحضير' : 'بدء ربط واتساب عبر Meta'}
                       </AppButton>
                       <AppButton variant="ghost" onClick={handleRefreshStatus}>
                         تحديث الحالة
@@ -431,9 +584,12 @@ export default function ChannelsPage() {
               <span className="section-kicker">WhatsApp Business</span>
               <h2 id="whatsapp-onboarding-title">ربط واتساب Business عبر Meta</h2>
               <p>لن نطلب منك رموز API أو معرفات تقنية. يتم الربط عبر Meta بشكل آمن.</p>
+              <p className={metaReady ? 'meta-ready-note is-ready' : 'meta-ready-note'}>
+                {metaReady ? 'جاهز لبدء الربط' : 'إعدادات Meta غير مكتملة'}
+              </p>
             </div>
-            <AppButton variant="primary" onClick={() => setSignupModalOpen(true)}>
-              ابدأ الربط مع Meta
+            <AppButton variant="primary" onClick={startMetaEmbeddedSignup} disabled={isStartingMeta}>
+              {isStartingMeta ? 'جار التحضير' : 'ابدأ الربط مع Meta'}
             </AppButton>
           </div>
 
@@ -468,7 +624,7 @@ export default function ChannelsPage() {
                 </div>
                 <div>
                   <dt>Embedded Signup</dt>
-                  <dd>{whatsappStatus?.embeddedSignupReady ? 'جاهز' : 'بانتظار App Review'}</dd>
+                  <dd>{metaReady ? 'جاهز' : 'إعدادات Meta غير مكتملة'}</dd>
                 </div>
                 <div>
                   <dt>Webhook Engine</dt>
@@ -562,14 +718,64 @@ export default function ChannelsPage() {
             </div>
           </form>
         </section>
+
+        {isSuperAdmin ? (
+          <section className="meta-settings-panel" aria-labelledby="meta-settings-title">
+            <div className="form-section-title">
+              <h2 id="meta-settings-title">إعدادات Meta</h2>
+              <p>إعدادات جاهزية Meta Embedded Signup فقط. لا يتم عرض App Secret ولا تخزين رموز وصول في هذا الإصدار.</p>
+            </div>
+            <div className="meta-settings-grid">
+              <label>Meta App ID<input value={metaForm.appId} onChange={(event) => setMetaForm((current) => ({ ...current, appId: event.target.value }))} /></label>
+              <label>Embedded Signup Config ID<input value={metaForm.configId} onChange={(event) => setMetaForm((current) => ({ ...current, configId: event.target.value }))} /></label>
+              <label>Redirect URI<input value={metaForm.redirectUri} onChange={(event) => setMetaForm((current) => ({ ...current, redirectUri: event.target.value }))} /></label>
+              <label>Webhook Callback URL<input value={metaForm.webhookCallbackUrl} onChange={(event) => setMetaForm((current) => ({ ...current, webhookCallbackUrl: event.target.value }))} /></label>
+              <label>App Review Status
+                <select value={metaForm.appReviewStatus} onChange={(event) => setMetaForm((current) => ({ ...current, appReviewStatus: event.target.value as MetaSettings['appReviewStatus'] }))}>
+                  {Object.entries(appReviewLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label className="meta-settings-wide">Required Permissions<textarea rows={3} value={metaForm.requiredPermissions.join(', ')} onChange={(event) => setMetaForm((current) => ({ ...current, requiredPermissions: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} /></label>
+            </div>
+            <div className="meta-checklist">
+              {(Object.keys(metaForm.checklist) as Array<keyof MetaSettings['checklist']>).map((key) => (
+                <label key={key}>
+                  <input
+                    type="checkbox"
+                    checked={key === 'appReviewApproved' ? metaForm.appReviewStatus === 'APPROVED' : Boolean(metaForm.checklist[key])}
+                    disabled={key === 'appReviewApproved'}
+                    onChange={(event) => setMetaForm((current) => ({ ...current, checklist: { ...current.checklist, [key]: event.target.checked } }))}
+                  />
+                  <span>{checklistLabel(key)}</span>
+                </label>
+              ))}
+              <label>
+                <input type="checkbox" checked={metaForm.embeddedSignupEnabled} onChange={(event) => setMetaForm((current) => ({ ...current, embeddedSignupEnabled: event.target.checked }))} />
+                <span>Embedded Signup Enabled</span>
+              </label>
+            </div>
+            <div className="channel-actions">
+              <StatusBadge label={metaSettings.readiness.ready ? 'جاهز لبدء الربط' : 'إعدادات Meta غير مكتملة'} tone={metaSettings.readiness.ready ? 'success' : 'warning'} />
+              <StatusBadge label={metaSettings.appSecretConfigured ? 'App Secret مضبوط في الخادم' : 'App Secret غير معروض'} tone="muted" />
+              <AppButton variant="primary" onClick={saveMetaSettings} disabled={isSavingMeta}>{isSavingMeta ? 'جار الحفظ' : 'حفظ إعدادات Meta'}</AppButton>
+            </div>
+          </section>
+        ) : null}
       </AppCard>
 
       {isSignupModalOpen && (
         <div className="platform-modal-backdrop" role="presentation" onMouseDown={() => setSignupModalOpen(false)}>
           <section className="platform-modal whatsapp-signup-modal" role="dialog" aria-modal="true" aria-labelledby="embedded-signup-title" onMouseDown={(event) => event.stopPropagation()}>
             <h2 id="embedded-signup-title">Meta Embedded Signup</h2>
-            <p>سيتم تفعيل الربط المباشر عبر Meta Embedded Signup بعد إكمال إعدادات Meta App و App Review.</p>
-            <p>في هذه المرحلة نحضّر البيانات التشغيلية فقط ولا نخزن رموز وصول أو معرفات تقنية.</p>
+            <p>{metaStartPayload?.message ?? 'سيتم تفعيل الربط المباشر عبر Meta Embedded Signup بعد إكمال إعدادات Meta App و App Review.'}</p>
+            <p>لن نطلب من العميل رموز API أو معرفات تقنية. في هذه المرحلة لا نخزن رموز وصول أو معرفات تقنية.</p>
+            <dl className="meta-list channel-details-list">
+              <div><dt>حالة الجاهزية</dt><dd>{metaStartPayload?.ready ? 'جاهز لبدء الربط' : 'إعدادات Meta غير مكتملة'}</dd></div>
+              <div><dt>Meta App ID</dt><dd>{metaStartPayload?.appId || metaSettings.appId || 'غير محدد'}</dd></div>
+              <div><dt>Config ID</dt><dd>{metaStartPayload?.configId || metaSettings.configId || 'غير محدد'}</dd></div>
+              <div><dt>Redirect URI</dt><dd>{metaStartPayload?.redirectUri || metaSettings.redirectUri || 'غير محدد'}</dd></div>
+              <div><dt>State</dt><dd>{metaStartPayload?.state || 'سيتم إنشاؤه عند الجاهزية'}</dd></div>
+            </dl>
             <div className="platform-modal-actions">
               <AppButton variant="primary" onClick={() => setSignupModalOpen(false)}>تم</AppButton>
             </div>

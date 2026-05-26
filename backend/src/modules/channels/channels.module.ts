@@ -8,5 +8,6 @@ import { TenantChannelsService } from './tenant-channels.service'
   imports: [CommonModule],
   controllers: [ChannelsController, TenantChannelsController],
   providers: [TenantChannelsService],
+  exports: [TenantChannelsService],
 })
 export class ChannelsModule {}

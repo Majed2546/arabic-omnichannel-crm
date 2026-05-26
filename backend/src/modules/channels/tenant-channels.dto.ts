@@ -1,6 +1,8 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator'
 import { ChannelStatus, OnboardingOperationMode } from '@prisma/client'
 
+export type TenantWhatsAppConnectionStatus = 'NOT_CONNECTED' | 'PENDING' | 'CONNECTED' | 'REVIEW_REQUIRED' | 'ERROR'
+
 export class TenantWhatsAppOnboardingDto {
   @IsOptional()
   @IsString()
@@ -18,4 +20,13 @@ export class TenantWhatsAppOnboardingDto {
 export class UpdateTenantChannelStatusDto {
   @IsEnum(ChannelStatus)
   status!: ChannelStatus
+}
+
+export class UpdateTenantWhatsAppStatusDto {
+  @IsEnum(['NOT_CONNECTED', 'PENDING', 'CONNECTED', 'REVIEW_REQUIRED', 'ERROR'])
+  status!: TenantWhatsAppConnectionStatus
+
+  @IsOptional()
+  @IsString()
+  notes?: string
 }
