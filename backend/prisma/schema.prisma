@@ -201,6 +201,22 @@ enum TicketPriority {
   URGENT
 }
 
+enum AutomationTriggerType {
+  NEW_MESSAGE
+  CONVERSATION_UNASSIGNED
+  SLA_BREACHED
+  APPOINTMENT_CREATED
+  APPOINTMENT_DUE_SOON
+  TICKET_CREATED
+  TICKET_STATUS_CHANGED
+}
+
+enum AutomationLogStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
@@ -232,6 +248,8 @@ model Tenant {
   appointments  Appointment[]
   meetings      Meeting[]
   tickets       Ticket[]
+  automationRules AutomationRule[]
+  automationLogs  AutomationLog[]
   onboardingRequest OnboardingRequest?
 
   @@index([status])
@@ -595,6 +613,49 @@ model Ticket {
   @@index([tenantId, dueAt])
   @@index([deletedAt])
   @@map("tickets")
+}
+
+model AutomationRule {
+  id          String                @id @default(cuid())
+  tenantId    String                @map("tenant_id")
+  name        String
+  description String?
+  triggerType AutomationTriggerType @map("trigger_type")
+  conditions  Json?
+  actions     Json
+  isActive    Boolean               @default(true) @map("is_active")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+  deletedAt   DateTime?             @map("deleted_at")
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  logs        AutomationLog[]
+
+  @@index([tenantId])
+  @@index([tenantId, triggerType])
+  @@index([tenantId, isActive])
+  @@index([deletedAt])
+  @@map("automation_rules")
+}
+
+model AutomationLog {
+  id          String                @id @default(cuid())
+  tenantId    String                @map("tenant_id")
+  ruleId      String?               @map("rule_id")
+  triggerType AutomationTriggerType @map("trigger_type")
+  targetType  String                @map("target_type")
+  targetId    String                @map("target_id")
+  status      AutomationLogStatus
+  message     String?
+  createdAt   DateTime              @default(now()) @map("created_at")
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rule        AutomationRule?       @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, ruleId])
+  @@index([tenantId, status])
+  @@index([tenantId, triggerType])
+  @@index([createdAt])
+  @@map("automation_logs")
 }
 
 model Message {

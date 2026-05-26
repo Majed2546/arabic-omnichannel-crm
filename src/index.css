@@ -9575,6 +9575,209 @@ body:has(.inbox-layout) {
   resize: vertical;
 }
 
+.automation-page {
+  gap: 14px;
+}
+
+.automation-notice {
+  margin: 0;
+}
+
+.automation-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.automation-summary-grid .app-card {
+  display: grid;
+  gap: 6px;
+  min-height: 96px;
+  align-content: center;
+}
+
+.automation-summary-grid strong {
+  color: var(--saas-navy);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.automation-summary-grid span,
+.automation-templates p,
+.automation-rule-card p,
+.automation-rule-card dt,
+.automation-log-list small,
+.automation-log-list p,
+.automation-condition-preview span {
+  color: var(--saas-muted);
+}
+
+.automation-template-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.automation-template-grid button {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--saas-text);
+  text-align: right;
+  cursor: pointer;
+}
+
+.automation-template-grid button:hover {
+  border-color: rgba(14, 165, 233, 0.34);
+  background: rgba(14, 165, 233, 0.05);
+}
+
+.automation-template-grid strong,
+.automation-template-grid span {
+  overflow-wrap: anywhere;
+}
+
+.automation-template-grid span {
+  color: var(--saas-muted);
+  font-size: 0.8rem;
+}
+
+.automation-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(160px, 220px);
+  gap: 10px;
+}
+
+.automation-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.automation-rule-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.automation-rule-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.automation-rule-card h2,
+.automation-rule-card p,
+.automation-rule-card dl,
+.automation-log-list p {
+  margin: 0;
+}
+
+.automation-rule-card h2 {
+  color: var(--saas-navy);
+  font-size: 1.05rem;
+}
+
+.automation-rule-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.automation-rule-meta dt,
+.automation-rule-meta dd {
+  margin: 0;
+}
+
+.automation-rule-meta dd,
+.automation-condition-preview span {
+  overflow-wrap: anywhere;
+}
+
+.automation-condition-preview {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.automation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.automation-log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.automation-log-list article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.automation-log-list strong,
+.automation-log-list small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.automation-modal {
+  width: min(860px, calc(100vw - 32px));
+}
+
+.automation-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.automation-form-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--saas-muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.automation-form-wide {
+  grid-column: 1 / -1;
+}
+
+.automation-form-grid textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.automation-toggle {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.automation-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--saas-blue);
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9620,12 +9823,16 @@ body:has(.inbox-layout) {
 
   .appointments-layout,
   .appointments-filters,
-  .tickets-filters {
+  .tickets-filters,
+  .automation-summary-grid,
+  .automation-template-grid,
+  .automation-filters {
     grid-template-columns: 1fr;
   }
 
   .appointment-card dl,
-  .ticket-card-grid {
+  .ticket-card-grid,
+  .automation-rule-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -9641,6 +9848,9 @@ body:has(.inbox-layout) {
   .meeting-card dl,
   .ticket-meta,
   .ticket-form-grid,
+  .automation-rule-grid,
+  .automation-rule-meta,
+  .automation-form-grid,
   .meetings-filters,
   .meeting-card-grid,
   .ticket-card-grid {

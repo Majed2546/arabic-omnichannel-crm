@@ -48,7 +48,7 @@ const navigation: Array<{
   { path: '/channels', label: 'القنوات', icon: Cable, allowedRoles: ['admin', 'support', 'analyst'], permission: 'channels.view' },
   { path: '/templates', label: 'القوالب والردود', icon: MessageSquareText, allowedRoles: ['admin', 'support', 'analyst'], permission: 'templates.view' },
   { path: '/tenants', label: 'المستشارون والوكلاء', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'agents.view' },
-  { path: '/workflows', label: 'الأتمتة', icon: Bot, allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
+  { path: '/automation', label: 'الأتمتة', icon: Bot, allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
   { path: '/reports', label: 'التقارير', icon: BarChart3, allowedRoles: ['admin', 'analyst'], permission: 'reports.view' },
   { path: '/roles', label: 'الأدوار والصلاحيات', icon: ShieldCheck, allowedRoles: ['admin'], permission: 'roles.view' },
   { path: '/identity', label: 'إدارة الهوية والتكاملات', icon: KeyRound, allowedRoles: ['admin'], permission: 'settings.manage' },

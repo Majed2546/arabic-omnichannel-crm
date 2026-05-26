@@ -19,6 +19,7 @@ const pageTitles: Record<string, string> = {
   '/users': 'المستخدمون',
   '/roles': 'الأدوار والصلاحيات',
   '/channels': 'القنوات',
+  '/automation': 'الأتمتة',
   '/workflows': 'الأتمتة',
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',
