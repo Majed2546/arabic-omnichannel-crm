@@ -8676,26 +8676,78 @@ body:has(.inbox-layout) {
 }
 
 .customers-page {
-  gap: 18px;
+  min-height: calc(100dvh - 136px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  align-content: stretch;
+}
+
+.customers-page > .page-header {
+  padding-block: 10px;
+  min-height: 0;
+}
+
+.customers-page > .page-header h2 {
+  font-size: 1.28rem;
+}
+
+.customers-page > .page-header p {
+  line-height: 1.5;
 }
 
 .customers-filters {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(160px, 210px);
-  gap: 12px;
+  gap: 10px;
   align-items: center;
+  padding-block: 10px;
+}
+
+.customers-filters .app-input,
+.customers-filters .app-select {
+  min-height: 40px;
 }
 
 .customers-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
-  gap: 18px;
-  align-items: start;
+  gap: 14px;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .customers-list-panel,
 .customer-details-panel {
   min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.customers-list-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding-block: 14px;
+}
+
+.customers-list-panel > .panel-header {
+  margin: 0;
+}
+
+.customers-list-panel > .panel-header h2 {
+  font-size: 1.05rem;
+}
+
+.customers-list-panel > .panel-header p {
+  line-height: 1.45;
+}
+
+.customers-list-body {
+  min-height: 0;
+  overflow: auto;
+  padding-inline-end: 2px;
 }
 
 .customers-table-wrapper {
@@ -8707,12 +8759,12 @@ body:has(.inbox-layout) {
   width: 100%;
   table-layout: fixed;
   border-collapse: separate;
-  border-spacing: 0 8px;
+  border-spacing: 0 6px;
 }
 
 .customers-table th,
 .customers-table td {
-  padding: 10px;
+  padding: 8px 9px;
   text-align: right;
   vertical-align: middle;
 }
@@ -8894,8 +8946,10 @@ body:has(.inbox-layout) {
 
 .customer-details-panel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-content: start;
+  overflow: auto;
+  padding-block: 14px;
 }
 
 .customer-details-panel .customer-profile-head {
@@ -8980,9 +9034,29 @@ body:has(.inbox-layout) {
 }
 
 @media (max-width: 1280px) {
+  .customers-page {
+    min-height: auto;
+    grid-template-rows: auto;
+  }
+
   .customers-grid,
   .customers-filters {
     grid-template-columns: 1fr;
+  }
+
+  .customers-grid {
+    min-height: 0;
+    align-items: start;
+  }
+
+  .customers-list-panel,
+  .customer-details-panel {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .customers-list-body {
+    overflow: visible;
   }
 
   .customers-table-wrapper {

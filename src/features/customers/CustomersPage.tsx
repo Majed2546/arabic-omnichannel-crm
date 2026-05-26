@@ -336,81 +336,83 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          {isLoading ? <EmptyState title="جار تحميل العملاء" message="لحظات ونرتب الملفات." /> : null}
-          {!isLoading && !visibleCustomers.length ? <EmptyState title="لا يوجد عملاء" message="أضف أول عميل أو غيّر الفلاتر الحالية." /> : null}
+          <div className="customers-list-body">
+            {isLoading ? <EmptyState title="جار تحميل العملاء" message="لحظات ونرتب الملفات." /> : null}
+            {!isLoading && !visibleCustomers.length ? <EmptyState title="لا يوجد عملاء" message="أضف أول عميل أو غيّر الفلاتر الحالية." /> : null}
 
-          <div className="customers-table-wrapper">
-            <table className="platform-table customers-table">
-              <thead>
-                <tr>
-                  <th>العميل</th>
-                  <th>التواصل</th>
-                  <th>الحالة</th>
-                  <th>القناة</th>
-                  <th>الوسوم</th>
-                  <th>آخر نشاط</th>
-                  <th>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleCustomers.map((customer) => (
-                  <tr
-                    key={customer.id}
-                    className={customer.id === selectedCustomer?.id ? 'selected-row' : ''}
-                    onClick={() => selectCustomer(customer)}
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') selectCustomer(customer)
-                    }}
-                  >
-                    <td><strong>{customer.name}</strong><small>{customer.conversationsCount} محادثة</small></td>
-                    <td><span>{customer.phone || 'لا يوجد جوال'}</span><small>{customer.email || 'لا يوجد بريد'}</small></td>
-                    <td><StatusBadge label={statusLabels[customer.status]} tone={customerStatusTone(customer.status)} /></td>
-                    <td>{getChannelLabel(customer.sourceChannel)}</td>
-                    <td><div className="tag-list compact">{customer.tags.length ? customer.tags.map((tag) => <span key={tag}>{tag}</span>) : <small>لا توجد وسوم</small>}</div></td>
-                    <td>{formatDate(customer.lastActivityAt)}</td>
-                    <td>
-                      <div className="platform-actions">
-                        <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); selectCustomer(customer) }}><Eye size={15} /> عرض</AppButton>
-                        {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
-                        {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}><Trash2 size={15} /> حذف</AppButton> : null}
-                      </div>
-                    </td>
+            <div className="customers-table-wrapper">
+              <table className="platform-table customers-table">
+                <thead>
+                  <tr>
+                    <th>العميل</th>
+                    <th>التواصل</th>
+                    <th>الحالة</th>
+                    <th>القناة</th>
+                    <th>الوسوم</th>
+                    <th>آخر نشاط</th>
+                    <th>إجراءات</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visibleCustomers.map((customer) => (
+                    <tr
+                      key={customer.id}
+                      className={customer.id === selectedCustomer?.id ? 'selected-row' : ''}
+                      onClick={() => selectCustomer(customer)}
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') selectCustomer(customer)
+                      }}
+                    >
+                      <td><strong>{customer.name}</strong><small>{customer.conversationsCount} محادثة</small></td>
+                      <td><span>{customer.phone || 'لا يوجد جوال'}</span><small>{customer.email || 'لا يوجد بريد'}</small></td>
+                      <td><StatusBadge label={statusLabels[customer.status]} tone={customerStatusTone(customer.status)} /></td>
+                      <td>{getChannelLabel(customer.sourceChannel)}</td>
+                      <td><div className="tag-list compact">{customer.tags.length ? customer.tags.map((tag) => <span key={tag}>{tag}</span>) : <small>لا توجد وسوم</small>}</div></td>
+                      <td>{formatDate(customer.lastActivityAt)}</td>
+                      <td>
+                        <div className="platform-actions">
+                          <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); selectCustomer(customer) }}><Eye size={15} /> عرض</AppButton>
+                          {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
+                          {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}><Trash2 size={15} /> حذف</AppButton> : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="customers-card-list">
-            {visibleCustomers.map((customer) => (
-              <article key={customer.id} className={`customer-list-card ${customer.id === selectedCustomer?.id ? 'selected' : ''}`} onClick={() => selectCustomer(customer)}>
-                <div className="customer-card-main">
-                  <div>
-                    <strong>{customer.name}</strong>
-                    <small>{customer.conversationsCount} محادثة</small>
+            <div className="customers-card-list">
+              {visibleCustomers.map((customer) => (
+                <article key={customer.id} className={`customer-list-card ${customer.id === selectedCustomer?.id ? 'selected' : ''}`} onClick={() => selectCustomer(customer)}>
+                  <div className="customer-card-main">
+                    <div>
+                      <strong>{customer.name}</strong>
+                      <small>{customer.conversationsCount} محادثة</small>
+                    </div>
+                    <StatusBadge label={statusLabels[customer.status]} tone={customerStatusTone(customer.status)} />
                   </div>
-                  <StatusBadge label={statusLabels[customer.status]} tone={customerStatusTone(customer.status)} />
-                </div>
 
-                <dl>
-                  <div><dt>الجوال</dt><dd>{customer.phone || 'لا يوجد جوال'}</dd></div>
-                  <div><dt>البريد</dt><dd>{customer.email || 'لا يوجد بريد'}</dd></div>
-                  <div><dt>القناة</dt><dd>{getChannelLabel(customer.sourceChannel)}</dd></div>
-                  <div><dt>آخر نشاط</dt><dd>{formatDate(customer.lastActivityAt)}</dd></div>
-                </dl>
+                  <dl>
+                    <div><dt>الجوال</dt><dd>{customer.phone || 'لا يوجد جوال'}</dd></div>
+                    <div><dt>البريد</dt><dd>{customer.email || 'لا يوجد بريد'}</dd></div>
+                    <div><dt>القناة</dt><dd>{getChannelLabel(customer.sourceChannel)}</dd></div>
+                    <div><dt>آخر نشاط</dt><dd>{formatDate(customer.lastActivityAt)}</dd></div>
+                  </dl>
 
-                <div className="tag-list compact">
-                  {customer.tags.length ? customer.tags.map((tag) => <span key={tag}>{tag}</span>) : <small>لا توجد وسوم</small>}
-                </div>
+                  <div className="tag-list compact">
+                    {customer.tags.length ? customer.tags.map((tag) => <span key={tag}>{tag}</span>) : <small>لا توجد وسوم</small>}
+                  </div>
 
-                <div className="customer-card-actions">
-                  <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); selectCustomer(customer) }}><Eye size={15} /> عرض</AppButton>
-                  {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
-                  {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}><Trash2 size={15} /> حذف</AppButton> : null}
-                </div>
-              </article>
-            ))}
+                  <div className="customer-card-actions">
+                    <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); selectCustomer(customer) }}><Eye size={15} /> عرض</AppButton>
+                    {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedCustomer(customer); setModalMode('edit') }}><Edit3 size={15} /> تعديل</AppButton> : null}
+                    {canManageCustomers ? <AppButton variant="ghost" onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}><Trash2 size={15} /> حذف</AppButton> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
