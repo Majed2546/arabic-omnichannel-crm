@@ -139,6 +139,7 @@ export default function UnifiedInboxPage() {
   const canReply = can('inbox.reply')
   const canAssign = can('inbox.assign')
   const canManageAppointments = can('appointments.manage')
+  const canManageTickets = can('tickets.manage')
   const canManageInbox = canAssign || canReply
   const requestedConversationId = searchParams.get('conversationId')
 
@@ -717,11 +718,23 @@ export default function UnifiedInboxPage() {
                       حجز موعد
                     </Link>
                   ) : null}
+                  {canManageTickets ? (
+                    <Link className="app-button app-button-secondary control-safe text-safe" to={`/tickets?new=1&customerId=${selectedConversation.customerId}&conversationId=${selectedConversation.id}&customerName=${encodeURIComponent(selectedConversation.customerName)}`}>
+                      إنشاء تذكرة
+                    </Link>
+                  ) : null}
                 </>
               ) : (
-                <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?new=1&phone=${encodeURIComponent(selectedConversation.customerPhone)}&name=${encodeURIComponent(selectedConversation.customerName)}`}>
-                  إنشاء عميل من المحادثة
-                </Link>
+                <>
+                  <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?new=1&phone=${encodeURIComponent(selectedConversation.customerPhone)}&name=${encodeURIComponent(selectedConversation.customerName)}`}>
+                    إنشاء عميل من المحادثة
+                  </Link>
+                  {canManageTickets ? (
+                    <Link className="app-button app-button-secondary control-safe text-safe" to={`/tickets?new=1&conversationId=${selectedConversation.id}&customerName=${encodeURIComponent(selectedConversation.customerName)}`}>
+                      إنشاء تذكرة
+                    </Link>
+                  ) : null}
+                </>
               )}
             </div>
 

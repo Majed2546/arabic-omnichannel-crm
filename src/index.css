@@ -9458,6 +9458,123 @@ body:has(.inbox-layout) {
   width: min(760px, calc(100vw - 32px));
 }
 
+.tickets-page {
+  gap: 14px;
+}
+
+.tickets-filters {
+  display: grid;
+  grid-template-columns: minmax(150px, 180px) minmax(150px, 180px) minmax(170px, 1fr) minmax(190px, 260px);
+  gap: 10px;
+  align-items: center;
+}
+
+.ticket-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ticket-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.ticket-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ticket-card h2,
+.ticket-card p,
+.ticket-card dl {
+  margin: 0;
+}
+
+.ticket-card h2 {
+  color: var(--saas-navy);
+  font-size: 1.05rem;
+}
+
+.ticket-card-header p,
+.ticket-description,
+.ticket-card dt {
+  color: var(--saas-muted);
+}
+
+.ticket-badges,
+.ticket-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ticket-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ticket-meta dt,
+.ticket-meta dd {
+  margin: 0;
+}
+
+.ticket-meta dd,
+.ticket-description,
+.ticket-conversation-link span {
+  overflow-wrap: anywhere;
+}
+
+.ticket-conversation-link {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.ticket-conversation-link .app-button {
+  width: max-content;
+  text-decoration: none;
+}
+
+.ticket-actions {
+  padding-top: 4px;
+}
+
+.ticket-modal {
+  width: min(840px, calc(100vw - 32px));
+}
+
+.ticket-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ticket-form-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--saas-muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.ticket-form-wide {
+  grid-column: 1 / -1;
+}
+
+.ticket-form-grid textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9502,11 +9619,13 @@ body:has(.inbox-layout) {
   }
 
   .appointments-layout,
-  .appointments-filters {
+  .appointments-filters,
+  .tickets-filters {
     grid-template-columns: 1fr;
   }
 
-  .appointment-card dl {
+  .appointment-card dl,
+  .ticket-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -9520,8 +9639,11 @@ body:has(.inbox-layout) {
   .customer-form-grid,
   .appointment-card dl,
   .meeting-card dl,
+  .ticket-meta,
+  .ticket-form-grid,
   .meetings-filters,
-  .meeting-card-grid {
+  .meeting-card-grid,
+  .ticket-card-grid {
     grid-template-columns: 1fr;
   }
 

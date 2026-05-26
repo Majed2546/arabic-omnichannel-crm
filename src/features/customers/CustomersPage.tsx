@@ -13,6 +13,7 @@ import { useUiStore } from '../../stores/uiStore'
 import { useTenant } from '../../tenants/useTenant'
 import { getChannelLabel } from '../../shared/utils'
 import { fetchAppointments, type Appointment } from '../appointments/appointmentData'
+import { fetchTickets, type Ticket } from '../tickets/ticketData'
 import {
   createCustomer,
   deleteCustomer,
@@ -41,6 +42,14 @@ const appointmentStatusLabels: Record<string, string> = {
   CANCELLED: 'ملغي',
   COMPLETED: 'مكتمل',
   NO_SHOW: 'لم يحضر',
+}
+
+const ticketStatusLabels: Record<string, string> = {
+  OPEN: 'مفتوحة',
+  IN_PROGRESS: 'قيد المعالجة',
+  WAITING_CUSTOMER: 'بانتظار العميل',
+  RESOLVED: 'تم الحل',
+  CLOSED: 'مغلقة',
 }
 
 const sourceChannelOptions: CustomerSourceChannel[] = ['WHATSAPP', 'EMAIL', 'WEBCHAT', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'VOICE', 'X']
@@ -219,6 +228,7 @@ export default function CustomersPage() {
   const { currentTenantId } = useTenant()
   const canManageCustomers = can('customers.manage')
   const canManageAppointments = can('appointments.manage')
+  const canManageTickets = can('tickets.manage')
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [search, setSearch] = useState('')
@@ -228,6 +238,7 @@ export default function CustomersPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(searchParams.get('new') === '1' ? 'create' : null)
   const [relatedConversations, setRelatedConversations] = useState<CustomerConversation[]>([])
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([])
+  const [linkedTickets, setLinkedTickets] = useState<Ticket[]>([])
   const previousTenantIdRef = useRef<string | null>(null)
 
   const selectedId = searchParams.get('customerId')
@@ -304,6 +315,7 @@ export default function CustomersPage() {
     if (!selectedCustomer?.id || !currentTenantId) {
       setRelatedConversations([])
       setUpcomingAppointments([])
+      setLinkedTickets([])
       return
     }
 
@@ -328,6 +340,14 @@ export default function CustomersPage() {
         if (!disposed) setUpcomingAppointments([])
       })
 
+    fetchTickets({ customerId: selectedCustomer.id })
+      .then((tickets) => {
+        if (!disposed) setLinkedTickets(tickets.slice(0, 4))
+      })
+      .catch(() => {
+        if (!disposed) setLinkedTickets([])
+      })
+
     return () => {
       disposed = true
     }
@@ -345,8 +365,16 @@ export default function CustomersPage() {
     navigate(firstConversation ? `/inbox?conversationId=${firstConversation.id}` : '/inbox')
   }
 
-  function createTicketPlaceholder() {
-    showToast('سيتم ربط إنشاء التذاكر من ملف العميل ضمن إصدار التذاكر القادم', 'info')
+  function openTicketCreation() {
+    if (!selectedCustomer) return
+    const firstConversation = relatedConversations[0] ?? selectedCustomer.conversations?.[0]
+    const params = new URLSearchParams({
+      new: '1',
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
+    })
+    if (firstConversation?.id) params.set('conversationId', firstConversation.id)
+    navigate(`/tickets?${params.toString()}`)
   }
 
   function openAppointmentBooking() {
@@ -520,7 +548,7 @@ export default function CustomersPage() {
                 {canManageCustomers ? <AppButton variant="primary" onClick={() => setModalMode('edit')}>تعديل العميل</AppButton> : null}
                 <AppButton variant="secondary" onClick={openConversations}>فتح المحادثات</AppButton>
                 {canManageAppointments ? <AppButton variant="secondary" onClick={openAppointmentBooking}>حجز موعد</AppButton> : null}
-                <AppButton variant="ghost" onClick={createTicketPlaceholder}>إنشاء تذكرة</AppButton>
+                {canManageTickets ? <AppButton variant="ghost" onClick={openTicketCreation}>إنشاء تذكرة</AppButton> : null}
               </div>
 
               <dl className="meta-list customer-detail-meta">
@@ -572,6 +600,19 @@ export default function CustomersPage() {
                       <Link to={`/appointments?date=${appointment.startAt.slice(0, 10)}&customerId=${appointment.customerId}`}>فتح المواعيد</Link>
                     </article>
                   )) : <EmptyState title="لا توجد مواعيد قادمة" message="يمكنك حجز موعد جديد من ملف العميل." />}
+                </div>
+              </div>
+
+              <div className="profile-section">
+                <h4>التذاكر المرتبطة</h4>
+                <div className="context-activity-list">
+                  {linkedTickets.length ? linkedTickets.map((ticket) => (
+                    <article key={ticket.id}>
+                      <strong>{ticket.title}</strong>
+                      <small>{ticketStatusLabels[ticket.status]} · {ticket.category || 'بدون تصنيف'} · {formatDate(ticket.dueAt)}</small>
+                      <Link to={`/tickets?customerId=${selectedCustomer.id}`}>فتح التذاكر</Link>
+                    </article>
+                  )) : <EmptyState title="لا توجد تذاكر مرتبطة" message="يمكنك إنشاء تذكرة متابعة من ملف العميل." />}
                 </div>
               </div>
             </>
