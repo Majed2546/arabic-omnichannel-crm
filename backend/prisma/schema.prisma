@@ -251,6 +251,7 @@ model Tenant {
   automationRules AutomationRule[]
   automationLogs  AutomationLog[]
   onboardingRequest OnboardingRequest?
+  settings      TenantSettings?
 
   @@index([status])
   @@index([plan])
@@ -258,6 +259,30 @@ model Tenant {
   @@index([createdAt])
   @@index([deletedAt])
   @@map("tenants")
+}
+
+model TenantSettings {
+  id                                String               @id @default(cuid())
+  tenantId                          String               @unique @map("tenant_id")
+  companyDisplayName                String?              @map("company_display_name")
+  logoUrl                           String?              @map("logo_url")
+  timezone                          String               @default("Asia/Riyadh")
+  language                          String               @default("ar")
+  workingDays                       Json                 @map("working_days")
+  workingHours                      Json                 @map("working_hours")
+  slaFirstResponseMinutes           Int                  @default(15) @map("sla_first_response_minutes")
+  slaResolutionMinutes              Int                  @default(240) @map("sla_resolution_minutes")
+  notificationSettings              Json                 @map("notification_settings")
+  defaultConversationPriority       ConversationPriority @default(NORMAL) @map("default_conversation_priority")
+  defaultTicketPriority             TicketPriority       @default(MEDIUM) @map("default_ticket_priority")
+  defaultAppointmentDurationMinutes Int                  @default(30) @map("default_appointment_duration_minutes")
+  messageSignature                  String?              @map("message_signature")
+  createdAt                         DateTime             @default(now()) @map("created_at")
+  updatedAt                         DateTime             @updatedAt @map("updated_at")
+  tenant                            Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_settings")
 }
 
 model OnboardingRequest {

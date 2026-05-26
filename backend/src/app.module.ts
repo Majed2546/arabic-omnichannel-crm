@@ -30,6 +30,7 @@ import { TicketsModule } from './modules/tickets/tickets.module'
 import { ReportsModule } from './modules/reports/reports.module'
 import { BillingModule } from './modules/billing/billing.module'
 import { MetaModule } from './modules/meta/meta.module'
+import { SettingsModule } from './modules/settings/settings.module'
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { MetaModule } from './modules/meta/meta.module'
     ReportsModule,
     BillingModule,
     MetaModule,
+    SettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

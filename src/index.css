@@ -10151,6 +10151,121 @@ body:has(.inbox-layout) {
   overflow-wrap: anywhere;
 }
 
+.settings-page {
+  gap: 14px;
+}
+
+.settings-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.settings-tabs {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.settings-tabs button {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--saas-muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 11px 12px;
+  text-align: right;
+}
+
+.settings-tabs button.active,
+.settings-tabs button:hover {
+  border-color: var(--saas-border);
+  background: var(--saas-soft);
+  color: var(--saas-navy);
+}
+
+.settings-panel {
+  min-width: 0;
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-form-grid label,
+.settings-label {
+  display: grid;
+  gap: 8px;
+  color: var(--saas-navy);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.settings-form-grid input,
+.settings-form-grid select,
+.settings-form-grid textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--saas-navy);
+  font: inherit;
+  padding: 11px 12px;
+}
+
+.settings-form-grid input:disabled,
+.settings-form-grid select:disabled,
+.settings-form-grid textarea:disabled {
+  background: var(--saas-soft);
+  color: var(--saas-muted);
+}
+
+.settings-form-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-check-grid label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: var(--saas-soft);
+  color: var(--saas-navy);
+  font-weight: 800;
+}
+
+.settings-check-grid input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--saas-green);
+}
+
+.settings-note {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.08);
+  color: var(--saas-muted);
+  line-height: 1.7;
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -10203,7 +10318,9 @@ body:has(.inbox-layout) {
   .reports-filters,
   .report-metric-grid,
   .billing-plan-grid,
-  .billing-usage-grid {
+  .billing-usage-grid,
+  .settings-shell,
+  .settings-check-grid {
     grid-template-columns: 1fr;
   }
 
@@ -10233,7 +10350,8 @@ body:has(.inbox-layout) {
   .meetings-filters,
   .meeting-card-grid,
   .ticket-card-grid,
-  .billing-plan-card dl {
+  .billing-plan-card dl,
+  .settings-form-grid {
     grid-template-columns: 1fr;
   }
 

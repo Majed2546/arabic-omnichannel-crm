@@ -10,13 +10,13 @@ import {
   IdentityIntegrationsPage,
   MeetingsPage,
   MetaSettingsPage,
-  ModulePlaceholderPage,
   PlatformCompaniesPage,
   PlatformDashboardPage,
   PlatformOnboardingRequestsPage,
   PlatformUsagePage,
   ReportsPage,
   RolesPage,
+  SettingsPage,
   TenantsPage,
   TemplatesPage,
   TicketsPage,
@@ -59,7 +59,7 @@ function App() {
         <Route path="templates" element={<RequireTenant><RequireAuth requiredPermissions={['templates.view']}><TemplatesPage /></RequireAuth></RequireTenant>} />
         <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ReportsPage /></RequireAuth></RequireTenant>} />
         <Route path="billing" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><BillingPage /></RequireAuth></RequireTenant>} />
-        <Route path="settings" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.view']}><ModulePlaceholderPage title="الإعدادات" description="تهيئة إعدادات النظام العامة وسياسات التشغيل." /></RequireAuth></RequireTenant>} />
+        <Route path="settings" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['settings.view']}><SettingsPage /></RequireAuth></RequireTenant>} />
         <Route path="platform" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformDashboardPage /></RequireAuth></RequireTenant>} />
         <Route path="platform/companies" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformCompaniesPage /></RequireAuth></RequireTenant>} />
         <Route path="platform/onboarding-requests" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformOnboardingRequestsPage /></RequireAuth></RequireTenant>} />

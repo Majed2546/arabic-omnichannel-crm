@@ -62,6 +62,7 @@ export const ROLE_PERMISSIONS: Record<AuthUserRole, CrmPermission[]> = {
     'automation.view',
     'reports.view',
     'reports.export',
+    'settings.view',
   ],
 }
 
