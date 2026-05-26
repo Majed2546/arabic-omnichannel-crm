@@ -9778,6 +9778,97 @@ body:has(.inbox-layout) {
   accent-color: var(--saas-blue);
 }
 
+.reports-page {
+  gap: 14px;
+}
+
+.reports-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.reports-filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--saas-muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.report-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.report-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.report-metric-card > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--saas-blue);
+}
+
+.report-metric-card strong {
+  display: block;
+  color: var(--saas-navy);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.report-metric-card small,
+.reports-page .panel-header p,
+.report-pair-list span {
+  color: var(--saas-muted);
+}
+
+.reports-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.reports-section-grid .app-card {
+  display: grid;
+  gap: 12px;
+}
+
+.report-pair-list {
+  display: grid;
+  gap: 8px;
+}
+
+.report-pair-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.report-pair-list strong {
+  color: var(--saas-navy);
+}
+
+.reports-usage-table td small,
+.reports-usage-table td strong {
+  display: block;
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9826,13 +9917,16 @@ body:has(.inbox-layout) {
   .tickets-filters,
   .automation-summary-grid,
   .automation-template-grid,
-  .automation-filters {
+  .automation-filters,
+  .reports-filters,
+  .report-metric-grid {
     grid-template-columns: 1fr;
   }
 
   .appointment-card dl,
   .ticket-card-grid,
-  .automation-rule-grid {
+  .automation-rule-grid,
+  .reports-section-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -9851,6 +9945,7 @@ body:has(.inbox-layout) {
   .automation-rule-grid,
   .automation-rule-meta,
   .automation-form-grid,
+  .reports-section-grid,
   .meetings-filters,
   .meeting-card-grid,
   .ticket-card-grid {

@@ -21,6 +21,7 @@ const pageTitles: Record<string, string> = {
   '/channels': 'القنوات',
   '/automation': 'الأتمتة',
   '/workflows': 'الأتمتة',
+  '/reports': 'التقارير',
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',
   '/whatsapp': 'واتساب',
@@ -44,6 +45,7 @@ const pageSubtitles: Record<string, string> = {
   '/platform/onboarding-requests': 'إدارة طلبات الشركات قبل إنشاء الاشتراك.',
   '/platform/subscriptions': 'تعريف الباقات وحدود الاشتراك لكل شركة.',
   '/platform/usage': 'مراقبة الاستهلاك الشهري وحدود المنصة.',
+  '/reports': 'تقارير الأداء والاستخدام حسب الشركة والفترة الزمنية.',
 }
 
 export function Topbar() {

@@ -27,6 +27,7 @@ import { TemplatesModule } from './modules/templates/templates.module'
 import { AppointmentsModule } from './modules/appointments/appointments.module'
 import { MeetingsModule } from './modules/meetings/meetings.module'
 import { TicketsModule } from './modules/tickets/tickets.module'
+import { ReportsModule } from './modules/reports/reports.module'
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { TicketsModule } from './modules/tickets/tickets.module'
     AppointmentsModule,
     MeetingsModule,
     TicketsModule,
+    ReportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

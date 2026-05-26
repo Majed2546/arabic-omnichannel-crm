@@ -14,6 +14,7 @@ import {
   PlatformOnboardingRequestsPage,
   PlatformSubscriptionsPage,
   PlatformUsagePage,
+  ReportsPage,
   RolesPage,
   TenantsPage,
   TemplatesPage,
@@ -54,7 +55,7 @@ function App() {
         <Route path="meetings" element={<RequireTenant><RequireAuth requiredPermissions={['meetings.view']}><MeetingsPage /></RequireAuth></RequireTenant>} />
         <Route path="tickets" element={<RequireTenant><RequireAuth requiredPermissions={['tickets.view']}><TicketsPage /></RequireAuth></RequireTenant>} />
         <Route path="templates" element={<RequireTenant><RequireAuth requiredPermissions={['templates.view']}><TemplatesPage /></RequireAuth></RequireTenant>} />
-        <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ModulePlaceholderPage title="التقارير" description="قراءة مؤشرات الأداء والتقارير التشغيلية." /></RequireAuth></RequireTenant>} />
+        <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ReportsPage /></RequireAuth></RequireTenant>} />
         <Route path="settings" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.view']}><ModulePlaceholderPage title="الإعدادات" description="تهيئة إعدادات النظام العامة وسياسات التشغيل." /></RequireAuth></RequireTenant>} />
         <Route path="platform" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformDashboardPage /></RequireAuth></RequireTenant>} />
         <Route path="platform/companies" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformCompaniesPage /></RequireAuth></RequireTenant>} />
