@@ -25,6 +25,7 @@ import { AutomationModule } from './modules/automation/automation.module'
 import { RealtimeModule } from './modules/realtime/realtime.module'
 import { TemplatesModule } from './modules/templates/templates.module'
 import { AppointmentsModule } from './modules/appointments/appointments.module'
+import { MeetingsModule } from './modules/meetings/meetings.module'
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AppointmentsModule } from './modules/appointments/appointments.module'
     RealtimeModule,
     TemplatesModule,
     AppointmentsModule,
+    MeetingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

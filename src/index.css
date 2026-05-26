@@ -9376,6 +9376,88 @@ body:has(.inbox-layout) {
   width: min(820px, calc(100vw - 32px));
 }
 
+.meetings-page {
+  gap: 14px;
+}
+
+.meetings-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(180px, 240px);
+  gap: 10px;
+  align-items: center;
+}
+
+.meeting-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.meeting-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--saas-shadow);
+}
+
+.meeting-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.meeting-card h3,
+.meeting-card p,
+.meeting-card dl {
+  margin: 0;
+}
+
+.meeting-card h3 {
+  color: var(--saas-navy);
+  font-size: 1rem;
+}
+
+.meeting-card header p,
+.meeting-card dt,
+.meeting-notes {
+  color: var(--saas-muted);
+}
+
+.meeting-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.meeting-card dt,
+.meeting-card dd {
+  margin: 0;
+}
+
+.meeting-card dd,
+.meeting-card a {
+  overflow-wrap: anywhere;
+}
+
+.meeting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.meeting-actions .app-button {
+  text-decoration: none;
+}
+
+.meeting-modal {
+  width: min(760px, calc(100vw - 32px));
+}
+
 @media (max-width: 1280px) {
   .template-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9436,7 +9518,10 @@ body:has(.inbox-layout) {
 
   .customer-list-card dl,
   .customer-form-grid,
-  .appointment-card dl {
+  .appointment-card dl,
+  .meeting-card dl,
+  .meetings-filters,
+  .meeting-card-grid {
     grid-template-columns: 1fr;
   }
 

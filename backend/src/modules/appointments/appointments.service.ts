@@ -34,6 +34,11 @@ function appointmentSelectSql() {
     c.phone AS "customerPhone",
     c.email AS "customerEmail",
     u.name AS "assignedUserName"
+    ,
+    m.id AS "visualMeetingId",
+    m.provider AS "meetingProvider",
+    m.meeting_link AS "visualMeetingLink",
+    m.status AS "meetingStatus"
   `
 }
 
@@ -60,6 +65,7 @@ export class AppointmentsService {
       FROM appointments a
       JOIN customers c ON c.id = a.customer_id AND c.tenant_id = a.tenant_id
       LEFT JOIN users u ON u.id = a.assigned_user_id AND u.tenant_id = a.tenant_id
+      LEFT JOIN meetings m ON m.appointment_id = a.id AND m.tenant_id = a.tenant_id AND m.deleted_at IS NULL
       WHERE ${Prisma.join(conditions, ' AND ')}
       ORDER BY a.start_at ASC
       LIMIT 300
@@ -72,6 +78,7 @@ export class AppointmentsService {
       FROM appointments a
       JOIN customers c ON c.id = a.customer_id AND c.tenant_id = a.tenant_id
       LEFT JOIN users u ON u.id = a.assigned_user_id AND u.tenant_id = a.tenant_id
+      LEFT JOIN meetings m ON m.appointment_id = a.id AND m.tenant_id = a.tenant_id AND m.deleted_at IS NULL
       WHERE a.id = ${id} AND a.tenant_id = ${tenantId} AND a.deleted_at IS NULL
       LIMIT 1
     `) as unknown[]

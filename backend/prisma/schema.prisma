@@ -170,6 +170,22 @@ enum AppointmentMeetingType {
   ONLINE
 }
 
+enum MeetingProvider {
+  ZOOM
+  WEBEX
+  TEAMS
+  GOOGLE_MEET
+  CUSTOM
+}
+
+enum MeetingStatus {
+  NOT_CREATED
+  LINK_ADDED
+  SENT
+  COMPLETED
+  CANCELLED
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
@@ -199,6 +215,7 @@ model Tenant {
   quickReplies  QuickReply[]
   whatsappTemplates WhatsAppTemplate[]
   appointments  Appointment[]
+  meetings      Meeting[]
   onboardingRequest OnboardingRequest?
 
   @@index([status])
@@ -355,6 +372,7 @@ model Customer {
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   appointments Appointment[]
+  meetings     Meeting[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -453,6 +471,7 @@ model Conversation {
   messages       Message[]
   notifications  Notification[]
   appointments   Appointment[]
+  meetings       Meeting[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -490,6 +509,7 @@ model Appointment {
   customer       Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
   conversation   Conversation?          @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   assignedUser   User?                  @relation("AppointmentAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  meeting        Meeting?
 
   @@index([tenantId])
   @@index([tenantId, startAt])
@@ -498,6 +518,33 @@ model Appointment {
   @@index([tenantId, assignedUserId])
   @@index([deletedAt])
   @@map("appointments")
+}
+
+model Meeting {
+  id             String          @id @default(cuid())
+  tenantId       String          @map("tenant_id")
+  appointmentId  String          @unique @map("appointment_id")
+  customerId     String          @map("customer_id")
+  conversationId String?         @map("conversation_id")
+  provider       MeetingProvider
+  meetingLink    String          @map("meeting_link")
+  meetingId      String?         @map("meeting_id")
+  status         MeetingStatus   @default(LINK_ADDED)
+  notes          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment    Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  conversation   Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, provider])
+  @@index([tenantId, status])
+  @@index([tenantId, customerId])
+  @@index([deletedAt])
+  @@map("meetings")
 }
 
 model Message {

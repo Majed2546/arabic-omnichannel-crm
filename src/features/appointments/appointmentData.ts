@@ -16,6 +16,10 @@ export type Appointment = {
   status: AppointmentStatus
   meetingType: AppointmentMeetingType
   meetingLink?: string | null
+  visualMeetingId?: string | null
+  meetingProvider?: string | null
+  visualMeetingLink?: string | null
+  meetingStatus?: string | null
   location?: string | null
   notes?: string | null
   createdAt: string

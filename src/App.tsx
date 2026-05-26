@@ -7,6 +7,7 @@ import {
   ActivityFeedPage,
   DashboardPage,
   IdentityIntegrationsPage,
+  MeetingsPage,
   ModulePlaceholderPage,
   PlatformCompaniesPage,
   PlatformDashboardPage,
@@ -48,7 +49,7 @@ function App() {
         <Route path="inbox" element={<RequireTenant><UnifiedInboxPage /></RequireTenant>} />
         <Route path="customers" element={<RequireTenant><RequireAuth requiredPermissions={['customers.view']}><CustomersPage /></RequireAuth></RequireTenant>} />
         <Route path="appointments" element={<RequireTenant><RequireAuth requiredPermissions={['appointments.view']}><AppointmentsPage /></RequireAuth></RequireTenant>} />
-        <Route path="meetings" element={<RequireTenant><RequireAuth requiredPermissions={['meetings.view']}><ModulePlaceholderPage title="الاجتماعات المرئية" description="متابعة اجتماعات العملاء وروابط الجلسات المرئية." /></RequireAuth></RequireTenant>} />
+        <Route path="meetings" element={<RequireTenant><RequireAuth requiredPermissions={['meetings.view']}><MeetingsPage /></RequireAuth></RequireTenant>} />
         <Route path="tickets" element={<RequireTenant><RequireAuth requiredPermissions={['tickets.view']}><ModulePlaceholderPage title="التذاكر" description="تنظيم طلبات الدعم والتصعيد ومتابعة حالات الحل." /></RequireAuth></RequireTenant>} />
         <Route path="templates" element={<RequireTenant><RequireAuth requiredPermissions={['templates.view']}><TemplatesPage /></RequireAuth></RequireTenant>} />
         <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ModulePlaceholderPage title="التقارير" description="قراءة مؤشرات الأداء والتقارير التشغيلية." /></RequireAuth></RequireTenant>} />

@@ -12,6 +12,7 @@ import { useAuth } from '../../auth/useAuth'
 import { useTenant } from '../../tenants/useTenant'
 import { useUiStore } from '../../stores/uiStore'
 import { fetchCustomers, type Customer } from '../customers/customerData'
+import { meetingProviderLabels, meetingStatusLabels, type MeetingProvider, type MeetingStatus } from '../meetings/meetingData'
 import {
   createAppointment,
   deleteAppointment,
@@ -129,6 +130,16 @@ function formatDateTime(value: string) {
   return new Date(value).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function providerLabel(value?: string | null) {
+  if (!value) return 'رابط مخصص'
+  return meetingProviderLabels[value as MeetingProvider] ?? value
+}
+
+function visualMeetingStatusLabel(value?: string | null) {
+  if (!value) return 'لم ينشأ'
+  return meetingStatusLabels[value as MeetingStatus] ?? value
+}
+
 export default function AppointmentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { can } = useAuth()
@@ -226,6 +237,15 @@ export default function AppointmentsPage() {
     }
   }
 
+  async function copyMeetingLink(link?: string | null) {
+    if (!link) {
+      showToast('لا يوجد رابط اجتماع لنسخه', 'warning')
+      return
+    }
+    await navigator.clipboard.writeText(link)
+    showToast('تم نسخ رابط الاجتماع', 'success')
+  }
+
   return (
     <div className="page-layout appointments-page">
       <PageHeader
@@ -270,13 +290,17 @@ export default function AppointmentsPage() {
                   <div><dt>النهاية</dt><dd>{formatDateTime(appointment.endAt)}</dd></div>
                   <div><dt>المستشار</dt><dd>{appointment.assignedUserName || appointment.assignedUserId || 'غير محدد'}</dd></div>
                   <div><dt>الموقع/الرابط</dt><dd>{appointment.meetingLink || appointment.location || 'غير محدد'}</dd></div>
+                  <div><dt>مزود الاجتماع</dt><dd>{appointment.visualMeetingLink || appointment.meetingLink ? providerLabel(appointment.meetingProvider) : 'غير محدد'}</dd></div>
+                  <div><dt>حالة الاجتماع</dt><dd>{visualMeetingStatusLabel(appointment.meetingStatus)}</dd></div>
                 </dl>
                 {appointment.notes ? <p className="appointment-notes">{appointment.notes}</p> : null}
                 <div className="appointment-actions">
                   {appointment.conversationId ? <Link className="app-button app-button-secondary control-safe text-safe" to={`/inbox?conversationId=${appointment.conversationId}`}>فتح المحادثة</Link> : null}
+                  {appointment.visualMeetingId ? <Link className="app-button app-button-secondary control-safe text-safe" to="/meetings">فتح الاجتماع</Link> : null}
+                  {appointment.visualMeetingLink || appointment.meetingLink ? <AppButton variant="ghost" onClick={() => copyMeetingLink(appointment.visualMeetingLink ?? appointment.meetingLink)}>نسخ الرابط</AppButton> : null}
                   {canManage ? <AppButton variant="ghost" onClick={() => openEdit(appointment)}><Edit3 size={15} /> تعديل</AppButton> : null}
                   {canManage ? <AppButton variant="ghost" onClick={() => changeStatus(appointment, 'CONFIRMED')}><CheckCircle2 size={15} /> تأكيد</AppButton> : null}
-                  {canManage ? <AppButton variant="ghost" onClick={() => showToast('سيتم ربط تذكيرات واتساب في إصدار لاحق.', 'info')}><MessageCircle size={15} /> إرسال تأكيد الموعد</AppButton> : null}
+                  {canManage ? <AppButton variant="ghost" onClick={() => showToast('سيتم إرسال الرابط عبر واتساب أو القالب في إصدار لاحق', 'info')}><MessageCircle size={15} /> إرسال رابط الاجتماع</AppButton> : null}
                   {canManage ? <AppButton variant="ghost" onClick={() => removeAppointment(appointment)}><Trash2 size={15} /> حذف</AppButton> : null}
                 </div>
               </article>
