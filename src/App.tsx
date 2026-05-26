@@ -9,6 +9,7 @@ import {
   DashboardPage,
   IdentityIntegrationsPage,
   MeetingsPage,
+  MetaSettingsPage,
   ModulePlaceholderPage,
   PlatformCompaniesPage,
   PlatformDashboardPage,
@@ -46,6 +47,7 @@ function App() {
         <Route path="users" element={<RequireTenant><UsersPage /></RequireTenant>} />
         <Route path="roles" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['roles.view']}><RolesPage /></RequireAuth></RequireTenant>} />
         <Route path="identity" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']}><IdentityIntegrationsPage /></RequireAuth></RequireTenant>} />
+        <Route path="integrations/meta" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><MetaSettingsPage /></RequireAuth></RequireTenant>} />
         <Route path="channels" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support']} requiredPermissions={['channels.view']}><ChannelsPage /></RequireAuth></RequireTenant>} />
         <Route path="automation" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['automation.view']}><WorkflowsPage /></RequireAuth></RequireTenant>} />
         <Route path="workflows" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['automation.view']}><WorkflowsPage /></RequireAuth></RequireTenant>} />

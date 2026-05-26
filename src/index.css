@@ -2506,6 +2506,76 @@ td {
   accent-color: var(--saas-green);
 }
 
+.meta-admin-page {
+  gap: 14px;
+}
+
+.meta-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.meta-admin-grid .meta-settings-panel {
+  margin-top: 0;
+}
+
+.meta-checklist.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.meta-admin-updated {
+  align-self: center;
+  color: var(--saas-muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.meta-readiness-card {
+  display: grid;
+  gap: 14px;
+}
+
+.meta-readiness-list {
+  display: grid;
+  gap: 10px;
+}
+
+.meta-readiness-list article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: var(--saas-soft);
+}
+
+.meta-readiness-list article > span {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.meta-readiness-list article > span.ready {
+  background: var(--saas-green-soft);
+  color: var(--saas-green);
+}
+
+.meta-readiness-list article > span.missing {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+}
+
+.meta-readiness-list strong {
+  color: var(--saas-navy);
+}
+
 .whatsapp-signup-modal p {
   margin: 12px 0 0;
   color: var(--saas-muted);
@@ -2514,7 +2584,8 @@ td {
 
 @media (max-width: 1024px) {
   .whatsapp-onboarding-layout,
-  .meta-checklist {
+  .meta-checklist,
+  .meta-admin-grid {
     grid-template-columns: 1fr;
   }
 }

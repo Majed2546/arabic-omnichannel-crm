@@ -11,6 +11,10 @@ export class UpdateMetaSettingsDto {
 
   @IsOptional()
   @IsString()
+  embeddedSignupConfigId?: string
+
+  @IsOptional()
+  @IsString()
   redirectUri?: string
 
   @IsOptional()
@@ -18,13 +22,17 @@ export class UpdateMetaSettingsDto {
   webhookCallbackUrl?: string
 
   @IsOptional()
+  @IsString()
+  webhookUrl?: string
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   requiredPermissions?: string[]
 
   @IsOptional()
-  @IsIn(['NOT_STARTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'])
-  appReviewStatus?: 'NOT_STARTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED'
+  @IsIn(['NOT_STARTED', 'IN_PROGRESS', 'IN_REVIEW', 'APPROVED', 'REJECTED'])
+  appReviewStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED'
 
   @IsOptional()
   @IsBoolean()
@@ -41,6 +49,10 @@ export class UpdateMetaSettingsDto {
   @IsOptional()
   @IsBoolean()
   webhookConfigured?: boolean
+
+  @IsOptional()
+  @IsString()
+  notes?: string
 }
 
 export class EmbeddedSignupStartDto {

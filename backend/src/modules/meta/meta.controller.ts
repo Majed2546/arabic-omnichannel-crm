@@ -26,6 +26,12 @@ export class MetaController {
     return this.meta.embeddedSignupStatus()
   }
 
+  @Get('readiness')
+  @RequirePermissions('channels.view')
+  readiness() {
+    return this.meta.readiness()
+  }
+
   @Post('embedded-signup/start')
   @RequirePermissions('channels.manage')
   startEmbeddedSignup(@Body() dto: EmbeddedSignupStartDto) {

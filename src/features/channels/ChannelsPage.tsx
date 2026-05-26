@@ -75,10 +75,14 @@ type MetaSettings = {
   redirectUri: string
   webhookCallbackUrl: string
   requiredPermissions: string[]
-  appReviewStatus: 'NOT_STARTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED'
+  appReviewStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'APPROVED' | 'REJECTED'
   embeddedSignupEnabled: boolean
   appSecretConfigured?: boolean
   checklist: {
+    appIdConfigured?: boolean
+    configIdConfigured?: boolean
+    redirectUriConfigured?: boolean
+    webhookUrlConfigured?: boolean
     techProviderVerified: boolean
     appLive: boolean
     appReviewApproved: boolean
@@ -274,13 +278,17 @@ function operationModeLabel(value?: string | null) {
 
 const appReviewLabels: Record<MetaSettings['appReviewStatus'], string> = {
   NOT_STARTED: 'لم يبدأ',
-  IN_REVIEW: 'قيد المراجعة',
+  IN_PROGRESS: 'قيد المراجعة',
   APPROVED: 'معتمد',
   REJECTED: 'مرفوض',
 }
 
 function checklistLabel(key: keyof MetaSettings['checklist']) {
   const labels: Record<keyof MetaSettings['checklist'], string> = {
+    appIdConfigured: 'Meta App ID Configured',
+    configIdConfigured: 'Embedded Signup Configured',
+    redirectUriConfigured: 'Redirect URI Configured',
+    webhookUrlConfigured: 'Webhook URL Configured',
     techProviderVerified: 'Tech Provider Verified',
     appLive: 'App Live',
     appReviewApproved: 'App Review Approved',

@@ -23,6 +23,7 @@ const pageTitles: Record<string, string> = {
   '/workflows': 'الأتمتة',
   '/reports': 'التقارير',
   '/billing': 'الاشتراكات والباقات',
+  '/integrations/meta': 'إعدادات Meta',
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',
   '/whatsapp': 'واتساب',
@@ -48,6 +49,7 @@ const pageSubtitles: Record<string, string> = {
   '/platform/usage': 'مراقبة الاستهلاك الشهري وحدود المنصة.',
   '/reports': 'تقارير الأداء والاستخدام حسب الشركة والفترة الزمنية.',
   '/billing': 'جاهزية الاشتراكات وحدود الاستخدام دون دفع إلكتروني.',
+  '/integrations/meta': 'إعدادات مالك المنصة لتطبيق Meta و Embedded Signup.',
 }
 
 export function Topbar() {

@@ -52,6 +52,7 @@ const navigation: Array<{
   { path: '/reports', label: 'التقارير', icon: BarChart3, allowedRoles: ['admin', 'analyst'], permission: 'reports.view' },
   { path: '/roles', label: 'الأدوار والصلاحيات', icon: ShieldCheck, allowedRoles: ['admin'], permission: 'roles.view' },
   { path: '/identity', label: 'إدارة الهوية والتكاملات', icon: KeyRound, allowedRoles: ['admin'], permission: 'settings.manage' },
+  { path: '/integrations/meta', label: 'إعدادات Meta', icon: KeyRound, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/settings', label: 'الإعدادات', icon: Settings, allowedRoles: ['admin'], permission: 'settings.view' },
 ]
 
