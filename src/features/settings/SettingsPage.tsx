@@ -122,7 +122,7 @@ export default function SettingsPage() {
   const canManageSettings = can('settings.manage')
 
   const description = useMemo(() => {
-    return `إعدادات تشغيل ${currentTenant?.name ?? 'الشركة الحالية'} المستخدمة في الوارد والتذاكر والمواعيد والتقارير.`
+    return `إعدادات تشغيل ${currentTenant?.name ?? 'الشركة الحالية'} المستخدمة في الوارد والتذاكر والمواعيد والأتمتة والتقارير.`
   }, [currentTenant?.name])
 
   function refresh() {
@@ -141,6 +141,7 @@ export default function SettingsPage() {
   }, [currentTenantId])
 
   async function saveSettings() {
+    if (!canManageSettings) return
     setSaving(true)
     try {
       const response = await apiFetch(apiUrl('/settings'), {
@@ -210,7 +211,6 @@ export default function SettingsPage() {
                 </div>
                 <label>وقت بداية الدوام<input type="time" disabled={!canManageSettings} value={settings.workingHours.start} onChange={(event) => setSettings((current) => ({ ...current, workingHours: { ...current.workingHours, start: event.target.value } }))} /></label>
                 <label>وقت نهاية الدوام<input type="time" disabled={!canManageSettings} value={settings.workingHours.end} onChange={(event) => setSettings((current) => ({ ...current, workingHours: { ...current.workingHours, end: event.target.value } }))} /></label>
-                <p className="settings-note settings-form-wide">سيتم استخدام هذه الإعدادات لاحقًا في SLA والأتمتة.</p>
               </div>
             ) : null}
 
@@ -249,7 +249,7 @@ export default function SettingsPage() {
 
             {activeTab === 'signature' ? (
               <div className="settings-form-grid">
-                <label className="settings-form-wide">توقيع افتراضي يمكن استخدامه لاحقًا في الرسائل<textarea rows={6} disabled={!canManageSettings} value={settings.messageSignature} onChange={(event) => setSettings((current) => ({ ...current, messageSignature: event.target.value }))} /></label>
+                <label className="settings-form-wide">توقيع افتراضي للرسائل<textarea rows={6} disabled={!canManageSettings} value={settings.messageSignature} onChange={(event) => setSettings((current) => ({ ...current, messageSignature: event.target.value }))} /></label>
               </div>
             ) : null}
           </AppCard>
