@@ -307,6 +307,15 @@ export class MessageService {
     return messages
   }
 
+  async fetchConversationMessagesForSuperAdmin(conversationId: string, query: ListMessagesQueryDto) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, deletedAt: null },
+      select: { tenantId: true },
+    })
+    if (!conversation) throw new NotFoundException('Conversation not found')
+    return this.fetchConversationMessages(conversation.tenantId, conversationId, query)
+  }
+
   async fetchUnreadCounts(tenantId: string) {
     const conversations = await this.prisma.conversation.findMany({
       where: { tenantId, deletedAt: null },

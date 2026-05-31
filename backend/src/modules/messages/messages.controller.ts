@@ -27,7 +27,11 @@ export class MessagesController {
     @Query() query: ListMessagesQueryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.messages.fetchConversationMessages(this.tenantAccess.requireTenantAccess({ requestedTenantId: localTenantId || tenantId, user }), conversationId, query)
+    const requestedTenantId = localTenantId || tenantId
+    if (!requestedTenantId && this.tenantAccess.isSuperAdmin(user)) {
+      return this.messages.fetchConversationMessagesForSuperAdmin(conversationId, query)
+    }
+    return this.messages.fetchConversationMessages(this.tenantAccess.requireTenantAccess({ requestedTenantId, user }), conversationId, query)
   }
 
   @Post()
