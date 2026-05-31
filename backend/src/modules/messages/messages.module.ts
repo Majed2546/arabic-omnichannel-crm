@@ -5,6 +5,7 @@ import { MESSAGE_QUEUE } from '../../events/queue.constants'
 import { ConversationsModule } from '../conversations/conversations.module'
 import { NotificationsModule } from '../notifications/notifications.module'
 import { RealtimeModule } from '../realtime/realtime.module'
+import { SlaModule } from '../sla/sla.module'
 import { MessagesController } from './messages.controller'
 import { MessageProcessor } from './message.processor'
 import { MessageService } from './message.service'
@@ -16,6 +17,7 @@ import { MessageService } from './message.service'
     ConversationsModule,
     NotificationsModule,
     RealtimeModule,
+    SlaModule,
   ],
   controllers: [MessagesController],
   providers: [MessageService, MessageProcessor],

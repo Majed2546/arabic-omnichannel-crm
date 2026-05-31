@@ -35,6 +35,9 @@ type RestConversation = {
   updatedAt?: string
   createdAt?: string
   slaDeadline?: string | null
+  firstResponseDueAt?: string | null
+  resolutionDueAt?: string | null
+  slaStatus?: 'ON_TRACK' | 'WARNING' | 'BREACHED' | 'PAUSED' | 'MET'
   customer?: RestCustomer | null
   channel?: RestChannel | null
   assignedUser?: { id: string; name: string } | null
@@ -151,7 +154,9 @@ function mapConversation(conversation: RestConversation, messages: RestMessage[]
     },
     updatedAt,
     slaDueAt: conversation.slaDeadline ? formatDate(conversation.slaDeadline) : 'غير محدد',
-    slaDeadlineMs: conversation.slaDeadline ? new Date(conversation.slaDeadline).getTime() : Date.now() + 60 * 60 * 1000,
+    slaDeadlineMs: (conversation.firstResponseDueAt ?? conversation.slaDeadline) ? new Date(conversation.firstResponseDueAt ?? conversation.slaDeadline ?? '').getTime() : Date.now() + 60 * 60 * 1000,
+    slaStatus: conversation.slaStatus,
+    firstResponseDueAt: conversation.firstResponseDueAt ? formatDate(conversation.firstResponseDueAt) : undefined,
   }
 }
 

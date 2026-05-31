@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common'
 import { CommonModule } from '../../common/common.module'
 import { DatabaseModule } from '../../database/database.module'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { SlaModule } from '../sla/sla.module'
 import { TicketsController } from './tickets.controller'
 import { TicketsService } from './tickets.service'
 
 @Module({
-  imports: [CommonModule, DatabaseModule, NotificationsModule],
+  imports: [CommonModule, DatabaseModule, NotificationsModule, SlaModule],
   controllers: [TicketsController],
   providers: [TicketsService],
 })

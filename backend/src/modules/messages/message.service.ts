@@ -8,6 +8,7 @@ import { createQueueJobId } from '../../events/queue-job-id'
 import { RealtimeService } from '../realtime/realtime.service'
 import { ConversationService } from '../conversations/conversation.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { SlaService } from '../sla/sla.service'
 import type { CreateMessageDto, ListMessagesQueryDto, UpdateMessageStatusDto } from './dto'
 
 function asJson(value: Record<string, unknown> | undefined): Prisma.InputJsonValue | undefined {
@@ -21,6 +22,7 @@ export class MessageService {
     private readonly conversations: ConversationService,
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
+    private readonly sla: SlaService,
     @InjectQueue(MESSAGE_QUEUE) private readonly messageQueue: Queue,
   ) {}
 
@@ -75,6 +77,12 @@ export class MessageService {
       status: message.status,
       createdAt: message.createdAt.toISOString(),
     }, 'queue')
+
+    if (message.senderType === MessageSenderType.CUSTOMER) {
+      await this.sla.ensureConversationSla(message.tenantId, message.conversationId, message.createdAt)
+    } else if (message.senderType === MessageSenderType.AGENT && message.messageType !== MessageType.INTERNAL_NOTE) {
+      await this.sla.markConversationFirstResponse(message.tenantId, message.conversationId, message.createdAt)
+    }
 
     return message
   }
@@ -172,6 +180,7 @@ export class MessageService {
           source: 'whatsapp',
         },
       })
+      await this.sla.ensureConversationSla(input.tenantId, result.conversation.id, result.message.createdAt)
     }
 
     return result

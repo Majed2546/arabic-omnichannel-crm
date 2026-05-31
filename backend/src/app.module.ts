@@ -33,6 +33,7 @@ import { MetaModule } from './modules/meta/meta.module'
 import { SettingsModule } from './modules/settings/settings.module'
 import { RolesModule } from './modules/roles/roles.module'
 import { TeamsModule } from './modules/teams/teams.module'
+import { SlaModule } from './modules/sla/sla.module'
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { TeamsModule } from './modules/teams/teams.module'
     SettingsModule,
     RolesModule,
     TeamsModule,
+    SlaModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

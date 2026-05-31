@@ -47,6 +47,8 @@ export type Conversation = {
   updatedAt: string
   slaDueAt: string
   slaDeadlineMs: number
+  slaStatus?: 'ON_TRACK' | 'WARNING' | 'BREACHED' | 'PAUSED' | 'MET'
+  firstResponseDueAt?: string
   archived?: boolean
 }
 

@@ -2,6 +2,7 @@ import { apiFetch, apiUrl } from '../../lib/apiClient'
 
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'RESOLVED' | 'CLOSED'
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+export type TicketSlaStatus = 'ON_TRACK' | 'WARNING' | 'BREACHED' | 'PAUSED' | 'MET'
 
 export type Ticket = {
   id: string
@@ -17,6 +18,13 @@ export type Ticket = {
   category?: string | null
   tags: string[]
   dueAt?: string | null
+  firstResponseDueAt?: string | null
+  resolutionDueAt?: string | null
+  firstRespondedAt?: string | null
+  resolvedAt?: string | null
+  slaStatus?: TicketSlaStatus | null
+  escalatedAt?: string | null
+  escalationLevel?: number | null
   createdAt: string
   updatedAt: string
   customerName?: string | null

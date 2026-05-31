@@ -22,6 +22,7 @@ const pageTitles: Record<string, string> = {
   '/automation': 'الأتمتة',
   '/workflows': 'الأتمتة',
   '/reports': 'التقارير',
+  '/sla': 'SLA والتصعيد',
   '/billing': 'الاشتراكات والباقات',
   '/teams': 'الفرق',
   '/notifications': 'الإشعارات',

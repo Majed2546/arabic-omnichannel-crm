@@ -22,6 +22,7 @@ import {
   type Ticket,
   type TicketPayload,
   type TicketPriority,
+  type TicketSlaStatus,
   type TicketStatus,
 } from './ticketData'
 
@@ -38,6 +39,14 @@ const priorityLabels: Record<TicketPriority, string> = {
   MEDIUM: 'متوسطة',
   HIGH: 'عالية',
   URGENT: 'عاجلة',
+}
+
+const slaLabels: Record<TicketSlaStatus, string> = {
+  ON_TRACK: 'ضمن الوقت',
+  WARNING: 'تحذير',
+  BREACHED: 'متأخر',
+  PAUSED: 'متوقف',
+  MET: 'تم الالتزام',
 }
 
 type AssignmentUser = {
@@ -93,6 +102,13 @@ function priorityTone(priority: TicketPriority) {
   if (priority === 'HIGH') return 'warning'
   if (priority === 'MEDIUM') return 'info'
   return 'muted'
+}
+
+function slaTone(status?: TicketSlaStatus | null) {
+  if (status === 'BREACHED') return 'danger'
+  if (status === 'WARNING') return 'warning'
+  if (status === 'MET') return 'success'
+  return 'info'
 }
 
 function formatDate(value?: string | null) {
@@ -443,6 +459,7 @@ export default function TicketsPage() {
               <div className="ticket-badges">
                 <StatusBadge label={statusLabels[ticket.status]} tone={statusTone(ticket.status)} />
                 <StatusBadge label={priorityLabels[ticket.priority]} tone={priorityTone(ticket.priority)} />
+                {ticket.slaStatus ? <StatusBadge label={slaLabels[ticket.slaStatus]} tone={slaTone(ticket.slaStatus)} /> : null}
               </div>
             </header>
 
@@ -452,6 +469,7 @@ export default function TicketsPage() {
               <div><dt>التصنيف</dt><dd>{ticket.category || 'غير محدد'}</dd></div>
               <div><dt>الموظف المسند</dt><dd>{ticket.assignedUserName || ticket.assignedUserId || 'غير مسند'}</dd></div>
               <div><dt>الفريق المسند</dt><dd>{ticket.assignedTeamName || ticket.assignedTeamId || 'غير مسند'}</dd></div>
+              <div><dt>SLA الحل</dt><dd>{formatDate(ticket.resolutionDueAt ?? ticket.dueAt)}</dd></div>
               <div><dt>تاريخ الاستحقاق</dt><dd>{formatDate(ticket.dueAt)}</dd></div>
               <div><dt>آخر تحديث</dt><dd>{formatDate(ticket.updatedAt)}</dd></div>
             </dl>

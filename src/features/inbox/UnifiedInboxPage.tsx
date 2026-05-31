@@ -55,6 +55,14 @@ const deliveryLabels = {
   read: 'مقروءة',
 } as const
 
+const slaStatusLabels = {
+  ON_TRACK: 'ضمن الوقت',
+  WARNING: 'تحذير',
+  BREACHED: 'متأخر',
+  PAUSED: 'متوقف',
+  MET: 'تم الالتزام',
+} as const
+
 const filterLabels: Record<InboxFilter, string> = {
   all: 'الكل',
   unread: 'غير مقروء',
@@ -746,6 +754,14 @@ export default function UnifiedInboxPage() {
               <div>
                 <dt>SLA</dt>
                 <dd className={`sla-text ${getSlaState(selectedConversation, now)}`}>{formatSlaCountdown(selectedConversation, now)}</dd>
+              </div>
+              <div>
+                <dt>حالة SLA</dt>
+                <dd>{selectedConversation.slaStatus ? slaStatusLabels[selectedConversation.slaStatus] : 'غير محدد'}</dd>
+              </div>
+              <div>
+                <dt>موعد الرد الأول</dt>
+                <dd>{selectedConversation.firstResponseDueAt ?? selectedConversation.slaDueAt}</dd>
               </div>
               <div>
                 <dt>البريد</dt>

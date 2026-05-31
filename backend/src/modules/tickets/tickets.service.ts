@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { SlaService } from '../sla/sla.service'
 import type { AssignTicketDto, ListTicketsQueryDto, SaveTicketDto } from './dto'
 
 function cuid(prefix: string) {
@@ -32,6 +33,13 @@ function ticketSelectSql() {
     t.category,
     t.tags,
     t.due_at AS "dueAt",
+    t.first_response_due_at AS "firstResponseDueAt",
+    t.resolution_due_at AS "resolutionDueAt",
+    t.first_responded_at AS "firstRespondedAt",
+    t.resolved_at AS "resolvedAt",
+    t.sla_status AS "slaStatus",
+    t.escalated_at AS "escalatedAt",
+    t.escalation_level AS "escalationLevel",
     t.created_at AS "createdAt",
     t.updated_at AS "updatedAt",
     c.name AS "customerName",
@@ -49,6 +57,7 @@ export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly sla: SlaService,
   ) {}
 
   list(tenantId: string, query: ListTicketsQueryDto) {
@@ -92,11 +101,13 @@ export class TicketsService {
     await this.validateReferences(tenantId, dto)
     const dueAt = dto.dueAt ? new Date(dto.dueAt) : null
     if (dueAt && Number.isNaN(dueAt.getTime())) throw new BadRequestException('Invalid dueAt')
+    const now = new Date()
+    const resolutionDueAt = dueAt ?? await this.sla.resolutionDueForTicket(tenantId, now)
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       INSERT INTO tickets (
         id, tenant_id, customer_id, conversation_id, assigned_user_id, assigned_team_id, title, description,
-        status, priority, category, tags, due_at, updated_at
+        status, priority, category, tags, due_at, resolution_due_at, sla_status, updated_at
       )
       VALUES (
         ${cuid('ticket')},
@@ -111,7 +122,9 @@ export class TicketsService {
         ${dto.priority ?? 'MEDIUM'}::"TicketPriority",
         ${blankToNull(dto.category)},
         ${normalizeTags(dto.tags)},
-        ${dueAt},
+        ${resolutionDueAt},
+        ${resolutionDueAt},
+        'ON_TRACK'::"SlaStatus",
         CURRENT_TIMESTAMP
       )
       RETURNING id
@@ -163,6 +176,23 @@ export class TicketsService {
       WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
     `)
 
+    return this.findById(tenantId, id)
+  }
+
+  async updateStatus(tenantId: string, id: string, status: string) {
+    const current = await this.findById(tenantId, id) as { resolutionDueAt?: Date | string | null }
+    const resolvedAt = status === 'RESOLVED' || status === 'CLOSED' ? new Date() : null
+    const resolutionDueAt = current.resolutionDueAt ? new Date(current.resolutionDueAt) : null
+    const slaStatus = resolvedAt ? this.sla.ticketStatusForResolution(status, resolutionDueAt, resolvedAt) : null
+    await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE tickets
+      SET
+        status = ${status}::"TicketStatus",
+        resolved_at = ${resolvedAt},
+        sla_status = COALESCE(${slaStatus}::"SlaStatus", sla_status),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
+    `)
     const ticket = await this.findById(tenantId, id) as {
       id: string
       title: string
@@ -185,16 +215,6 @@ export class TicketsService {
       metadata: { ticketId: ticket.id, assignedUserId: ticket.assignedUserId, assignedTeamId: ticket.assignedTeamId },
     })
     return ticket
-  }
-
-  async updateStatus(tenantId: string, id: string, status: string) {
-    await this.findById(tenantId, id)
-    await this.prisma.$executeRaw(Prisma.sql`
-      UPDATE tickets
-      SET status = ${status}::"TicketStatus", updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
-    `)
-    return this.findById(tenantId, id)
   }
 
   async assign(tenantId: string, id: string, dto: AssignTicketDto) {

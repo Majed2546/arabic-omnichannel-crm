@@ -254,6 +254,14 @@ enum TeamMemberRole {
   MEMBER
 }
 
+enum SlaStatus {
+  ON_TRACK
+  WARNING
+  BREACHED
+  PAUSED
+  MET
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
@@ -563,6 +571,13 @@ model Conversation {
   slaDeadline    DateTime?            @map("sla_deadline")
   slaWarnedAt     DateTime?            @map("sla_warned_at")
   slaBreachedAt   DateTime?            @map("sla_breached_at")
+  firstResponseDueAt DateTime?         @map("first_response_due_at")
+  resolutionDueAt DateTime?            @map("resolution_due_at")
+  firstRespondedAt DateTime?           @map("first_responded_at")
+  resolvedAt     DateTime?             @map("resolved_at")
+  slaStatus      SlaStatus             @default(ON_TRACK) @map("sla_status")
+  escalatedAt    DateTime?             @map("escalated_at")
+  escalationLevel Int?                 @map("escalation_level")
   lastMessageAt   DateTime?            @map("last_message_at")
   lastMessagePreview String?           @map("last_message_preview")
   unreadCount     Int                  @default(0) @map("unread_count")
@@ -592,6 +607,9 @@ model Conversation {
   @@index([tenantId, assignedUserId, status])
   @@index([tenantId, assignedTeamId, status])
   @@index([tenantId, slaDeadline])
+  @@index([tenantId, slaStatus])
+  @@index([tenantId, firstResponseDueAt])
+  @@index([tenantId, resolutionDueAt])
   @@index([tenantId, lastMessageAt])
   @@index([createdAt])
   @@index([tenantId, createdAt])
@@ -676,6 +694,13 @@ model Ticket {
   category       String?
   tags           String[]       @default([])
   dueAt          DateTime?      @map("due_at")
+  firstResponseDueAt DateTime?  @map("first_response_due_at")
+  resolutionDueAt DateTime?     @map("resolution_due_at")
+  firstRespondedAt DateTime?    @map("first_responded_at")
+  resolvedAt     DateTime?      @map("resolved_at")
+  slaStatus      SlaStatus      @default(ON_TRACK) @map("sla_status")
+  escalatedAt    DateTime?      @map("escalated_at")
+  escalationLevel Int?          @map("escalation_level")
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
   deletedAt      DateTime?      @map("deleted_at")
@@ -692,6 +717,8 @@ model Ticket {
   @@index([tenantId, assignedUserId])
   @@index([tenantId, assignedTeamId])
   @@index([tenantId, dueAt])
+  @@index([tenantId, slaStatus])
+  @@index([tenantId, resolutionDueAt])
   @@index([deletedAt])
   @@map("tickets")
 }
