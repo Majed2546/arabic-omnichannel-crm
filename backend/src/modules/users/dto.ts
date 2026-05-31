@@ -17,8 +17,12 @@ export class UserQueryDto {
   roleId?: string
 
   @IsOptional()
-  @IsEnum(UserType)
-  userType?: UserType
+  @IsString()
+  userType?: string
+
+  @IsOptional()
+  @IsEnum(PlatformRole)
+  platformRole?: PlatformRole
 
   @IsOptional()
   @IsEnum(UserStatusDto)

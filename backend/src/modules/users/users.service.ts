@@ -18,7 +18,8 @@ export class UsersService {
       tenantId,
       deletedAt: null,
       ...(query.roleId ? { roleId: query.roleId } : {}),
-      ...(query.userType ? { userType: query.userType } : {}),
+      ...(query.userType ? { userType: { in: this.parseUserTypes(query.userType) } } : {}),
+      ...(query.platformRole ? { platformRole: query.platformRole } : {}),
       ...(query.status ? { status: this.toPrismaStatus(query.status) } : {}),
     }
 
@@ -155,6 +156,15 @@ export class UsersService {
   private userTypeFromPlatformRole(platformRole: PlatformRole) {
     if (platformRole === PlatformRole.COMPANY_ADMIN || platformRole === PlatformRole.SUPER_ADMIN) return UserType.COMPANY_ADMIN
     return UserType.AGENT
+  }
+
+  private parseUserTypes(value: string) {
+    const allowed = new Set(Object.values(UserType))
+    const userTypes = value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item): item is UserType => allowed.has(item as UserType))
+    return userTypes.length ? userTypes : Array.from(allowed)
   }
 
   private toPrismaStatus(status: UserStatusDto | string) {

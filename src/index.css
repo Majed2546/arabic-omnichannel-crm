@@ -10434,6 +10434,22 @@ body:has(.inbox-layout) {
   font-weight: 800;
 }
 
+.user-form-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 10px;
+  background: rgba(14, 165, 233, 0.08);
+  color: var(--saas-muted);
+  font-weight: 800;
+}
+
+.user-form-note.warning {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(245, 158, 11, 0.09);
+  color: #92400e;
+}
+
 .settings-page {
   gap: 14px;
 }

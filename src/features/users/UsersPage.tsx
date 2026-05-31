@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
 import { AppInput } from '../../components/ui/AppInput'
@@ -111,7 +112,18 @@ function normalizeRole(payload: Partial<RoleOption>): RoleOption {
   }
 }
 
+function userTypeForRoleName(roleName: string): UserType | null {
+  const normalized = roleName.toUpperCase()
+  if (normalized.includes('VIEWER') || normalized.includes('مشاهد')) return 'VIEWER'
+  if (normalized.includes('COMPANY_ADMIN') || normalized.includes('مدير')) return 'COMPANY_ADMIN'
+  if (normalized.includes('SUPERVISOR') || normalized.includes('مشرف')) return 'SUPERVISOR'
+  if (normalized.includes('CONSULTANT') || normalized.includes('مستشار')) return 'CONSULTANT'
+  if (normalized.includes('AGENT') || normalized.includes('وكيل')) return 'AGENT'
+  return null
+}
+
 export default function UsersPage() {
+  const location = useLocation()
   const { can } = useAuth()
   const { currentTenant, currentTenantId } = useTenant()
   const showToast = useUiStore((state) => state.showToast)
@@ -124,8 +136,14 @@ export default function UsersPage() {
   const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [form, setForm] = useState<UserForm | null>(null)
+  const isAgentsView = location.pathname === '/tenants'
+  const operationalUserTypes: UserType[] = ['AGENT', 'CONSULTANT']
 
   const filteredRoles = useMemo(() => roles.filter((role) => role.scope === 'TENANT'), [roles])
+  const pageTitle = isAgentsView ? 'المستشارون والوكلاء' : 'المستخدمون'
+  const pageDescription = isAgentsView
+    ? `يعرض فقط المستخدمين التشغيليين من نوع وكيل أو مستشار في ${currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'}.`
+    : `إدارة المستخدمين والمستشارين والوكلاء في ${currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'}.`
 
   function loadUsers() {
     if (!currentTenantId) return
@@ -133,7 +151,8 @@ export default function UsersPage() {
     const params = new URLSearchParams()
     if (search.trim()) params.set('search', search.trim())
     if (roleId) params.set('roleId', roleId)
-    if (userType) params.set('userType', userType)
+    if (isAgentsView) params.set('userType', operationalUserTypes.join(','))
+    else if (userType) params.set('userType', userType)
     if (status) params.set('status', status)
 
     apiFetch(apiUrl(`/users${params.toString() ? `?${params.toString()}` : ''}`))
@@ -156,7 +175,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     loadUsers()
-  }, [currentTenantId, search, roleId, userType, status])
+  }, [currentTenantId, search, roleId, userType, status, isAgentsView])
 
   function openEdit(user: ManagedUser) {
     setForm({
@@ -171,6 +190,19 @@ export default function UsersPage() {
     })
   }
 
+  function updateFormRole(nextRoleId: string) {
+    setForm((current) => {
+      if (!current) return current
+      const selectedRole = filteredRoles.find((role) => role.id === nextRoleId)
+      const nextUserType = selectedRole ? userTypeForRoleName(selectedRole.name) : null
+      return {
+        ...current,
+        roleId: nextRoleId,
+        userType: nextUserType ?? current.userType,
+      }
+    })
+  }
+
   async function submitUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form || !canManage) return
@@ -181,12 +213,9 @@ export default function UsersPage() {
         body: JSON.stringify(form),
       })
       if (!response.ok) throw new Error('تعذر حفظ المستخدم')
-      const saved = normalizeUser(await response.json())
-      setUsers((current) => {
-        const exists = current.some((item) => item.id === saved.id)
-        return exists ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]
-      })
+      await response.json()
       setForm(null)
+      loadUsers()
       showToast('تم حفظ المستخدم', 'success')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'تعذر حفظ المستخدم', 'warning')
@@ -202,8 +231,8 @@ export default function UsersPage() {
         body: JSON.stringify({ status: nextStatus }),
       })
       if (!response.ok) throw new Error('تعذر تحديث حالة المستخدم')
-      const saved = normalizeUser(await response.json())
-      setUsers((current) => current.map((item) => item.id === saved.id ? saved : item))
+      await response.json()
+      loadUsers()
       showToast('تم تحديث حالة المستخدم', 'success')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'تعذر تحديث حالة المستخدم', 'warning')
@@ -213,8 +242,8 @@ export default function UsersPage() {
   return (
     <div className="page-layout users-page">
       <PageHeader
-        title="المستخدمون"
-        description={`إدارة المستخدمين والمستشارين والوكلاء في ${currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'}.`}
+        title={pageTitle}
+        description={pageDescription}
         actions={canManage ? <AppButton variant="primary" onClick={() => setForm(emptyForm)}>إنشاء مستخدم</AppButton> : <StatusBadge label="عرض فقط" tone="muted" />}
       />
 
@@ -224,7 +253,7 @@ export default function UsersPage() {
           <option value="">كل الأدوار</option>
           {filteredRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
         </AppSelect>
-        <AppSelect value={userType} onChange={(event) => setUserType(event.target.value)} aria-label="تصفية حسب نوع المستخدم">
+        <AppSelect value={userType} onChange={(event) => setUserType(event.target.value)} aria-label="تصفية حسب نوع المستخدم" disabled={isAgentsView}>
           <option value="">كل الأنواع</option>
           {Object.entries(userTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </AppSelect>
@@ -284,9 +313,11 @@ export default function UsersPage() {
               <label>الجوال<AppInput value={form.phone} onChange={(event) => setForm((current) => current ? { ...current, phone: event.target.value } : current)} /></label>
               <label>المسمى الوظيفي<AppInput value={form.jobTitle} onChange={(event) => setForm((current) => current ? { ...current, jobTitle: event.target.value } : current)} /></label>
               <label>نوع المستخدم<AppSelect value={form.userType} onChange={(event) => setForm((current) => current ? { ...current, userType: event.target.value as UserType } : current)}>{Object.entries(userTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</AppSelect></label>
-              <label>الدور<AppSelect value={form.roleId} onChange={(event) => setForm((current) => current ? { ...current, roleId: event.target.value } : current)}><option value="">بدون دور</option>{filteredRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</AppSelect></label>
+              <label>الدور<AppSelect value={form.roleId} onChange={(event) => updateFormRole(event.target.value)}><option value="">بدون دور</option>{filteredRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</AppSelect></label>
               <label>الحالة<AppSelect value={form.status} onChange={(event) => setForm((current) => current ? { ...current, status: event.target.value as UserStatus } : current)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</AppSelect></label>
             </div>
+            {form.userType === 'VIEWER' ? <p className="user-form-note">اختيار نوع مشاهد يمنع ظهور المستخدم في صفحة المستشارين والوكلاء.</p> : null}
+            {isAgentsView && !operationalUserTypes.includes(form.userType) ? <p className="user-form-note warning">هذا المستخدم لن يظهر في صفحة المستشارين والوكلاء بعد الحفظ لأن نوعه ليس وكيلاً أو مستشاراً.</p> : null}
             <div className="modal-actions">
               <AppButton type="button" variant="ghost" onClick={() => setForm(null)}>إلغاء</AppButton>
               <AppButton type="submit" variant="primary">حفظ المستخدم</AppButton>
