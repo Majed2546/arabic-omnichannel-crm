@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
 import { WHATSAPP_MESSAGE_QUEUE, WHATSAPP_OUTBOUND_QUEUE, WHATSAPP_WEBHOOK_QUEUE } from '../../events/queue.constants'
 import { CommonModule } from '../../common/common.module'
@@ -29,7 +29,7 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service'
     AutomationModule,
     RealtimeModule,
     ChannelsModule,
-    BotModule,
+    forwardRef(() => BotModule),
   ],
   controllers: [WhatsAppController, WhatsAppWebhookController, TenantWhatsAppOnboardingController],
   providers: [
@@ -40,5 +40,6 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service'
     WhatsAppMessageDispatcher,
     WhatsAppOutboundQueue,
   ],
+  exports: [WhatsAppSendService],
 })
 export class WhatsAppModule {}

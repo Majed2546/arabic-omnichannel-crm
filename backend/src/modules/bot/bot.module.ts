@@ -1,9 +1,8 @@
-import { BullModule } from '@nestjs/bullmq'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CommonModule } from '../../common/common.module'
 import { DatabaseModule } from '../../database/database.module'
-import { WHATSAPP_OUTBOUND_QUEUE } from '../../events/queue.constants'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { WhatsAppModule } from '../whatsapp/whatsapp.module'
 import { BotController } from './bot.controller'
 import { BotService } from './bot.service'
 
@@ -12,7 +11,7 @@ import { BotService } from './bot.service'
     CommonModule,
     DatabaseModule,
     NotificationsModule,
-    BullModule.registerQueue({ name: WHATSAPP_OUTBOUND_QUEUE }),
+    forwardRef(() => WhatsAppModule),
   ],
   controllers: [BotController],
   providers: [BotService],

@@ -9,9 +9,9 @@ export type WhatsAppOutboundJob = {
   recipient: string
   message: string
   messageType: WhatsAppOutboundMessageType
-  accessToken?: string
   apiVersion: string
   testMode: boolean
+  source?: 'manual' | 'bot'
 }
 
 export type MetaSendResult = {

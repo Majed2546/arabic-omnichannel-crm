@@ -1,13 +1,9 @@
-import { InjectQueue } from '@nestjs/bullmq'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { BotFlowType, BotStateStatus, MessageSenderType, MessageStatus, MessageType, NotificationPriority, Prisma } from '@prisma/client'
-import type { Queue } from 'bullmq'
 import { PrismaService } from '../../database/prisma.service'
-import { WHATSAPP_OUTBOUND_QUEUE } from '../../events/queue.constants'
-import { createQueueJobId } from '../../events/queue-job-id'
 import { NotificationsService } from '../notifications/notifications.service'
 import { WhatsAppOutboundMessageType } from '../whatsapp/whatsapp-send.dto'
-import type { WhatsAppOutboundJob } from '../whatsapp/whatsapp-send.types'
+import { WhatsAppSendService } from '../whatsapp/whatsapp-send.service'
 import type { InboundBotMessage, TestBotMessageDto, UpdateBotSettingsDto } from './dto'
 
 const DEFAULT_WELCOME = 'أهلًا بك 👋\nكيف نقدر نخدمك؟\n1. حجز موعد\n2. الدعم الفني\n3. متابعة طلب\n4. التحدث مع موظف'
@@ -63,7 +59,7 @@ export class BotService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
-    @InjectQueue(WHATSAPP_OUTBOUND_QUEUE) private readonly outboundQueue: Queue<WhatsAppOutboundJob>,
+    private readonly whatsappSend: WhatsAppSendService,
   ) {}
 
   async getSettings(tenantId: string) {
@@ -571,7 +567,6 @@ export class BotService {
       return { ok: existing.status !== MessageStatus.FAILED, messageId: existing.id, duplicate: true }
     }
 
-    const config = this.readChannelConfig(conversation.channel.config)
     const saved = await this.prisma.message.create({
       data: {
         tenantId: context.tenantId,
@@ -595,24 +590,14 @@ export class BotService {
       },
     })
     try {
-      await this.outboundQueue.add('whatsapp.outbound.send', {
+      await this.whatsappSend.enqueueExistingMessage({
         tenantId: context.tenantId,
         conversationId: context.conversationId,
         messageId: saved.id,
-        channelId: conversation.channelId,
-        phoneNumberId: config.phoneNumberId ?? conversation.channel.externalId ?? 'test-phone-number-id',
         recipient: context.recipient,
         message: context.message,
         messageType: WhatsAppOutboundMessageType.TEXT,
-        accessToken: config.accessToken,
-        apiVersion: 'v21.0',
-        testMode: false,
-      }, {
-        jobId: createQueueJobId('whatsapp-bot-outbound', saved.id, Date.now()),
-        attempts: 5,
-        backoff: { type: 'exponential', delay: 5_000 },
-        removeOnComplete: 500,
-        removeOnFail: 1_000,
+        source: 'bot',
       })
       this.logBotSend({
         botStateId: context.botStateId,
@@ -778,10 +763,5 @@ export class BotService {
       const user = await this.prisma.user.findFirst({ where: { id: dto.defaultAssignedUserId, tenantId, deletedAt: null }, select: { id: true } })
       if (!user) throw new BadRequestException('Default user does not belong to tenant')
     }
-  }
-
-  private readChannelConfig(config: Prisma.JsonValue | null) {
-    if (!config || typeof config !== 'object' || Array.isArray(config)) return {} as { phoneNumberId?: string; accessToken?: string }
-    return config as { phoneNumberId?: string; accessToken?: string }
   }
 }

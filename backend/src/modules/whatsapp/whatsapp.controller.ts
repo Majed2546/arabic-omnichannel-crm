@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { RequirePermissions } from '../auth/auth.decorators'
 import { DirectWhatsAppTestDto, SendWhatsAppMessageDto } from './whatsapp-send.dto'
@@ -35,6 +35,11 @@ export class WhatsAppController {
   @RequirePermissions('inbox.reply')
   send(@Body() body: SendWhatsAppMessageDto) {
     return this.sendService.send(body)
+  }
+
+  @Get('send-config/diagnostics')
+  diagnostics(@Query('tenantId') tenantId?: string, @Query('conversationId') conversationId?: string) {
+    return this.sendService.getSendConfigDiagnostics(tenantId, conversationId)
   }
 
   @Post('send/test')
