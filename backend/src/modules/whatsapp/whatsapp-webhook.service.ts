@@ -9,6 +9,7 @@ import { createQueueJobId } from '../../events/queue-job-id'
 import { PrismaService } from '../../database/prisma.service'
 import { MessageService } from '../messages/message.service'
 import { AutomationExecutorService } from '../automation/automation-executor.service'
+import { BotService } from '../bot/bot.service'
 import { WhatsAppEventPublisher } from './whatsapp-event.publisher'
 import { WhatsAppMessageMapper } from './whatsapp-message.mapper'
 import type {
@@ -44,6 +45,7 @@ export class WhatsAppWebhookService {
     private readonly prisma: PrismaService,
     private readonly messages: MessageService,
     private readonly automation: AutomationExecutorService,
+    private readonly bot: BotService,
     private readonly mapper: WhatsAppMessageMapper,
     private readonly publisher: WhatsAppEventPublisher,
     @InjectQueue(WHATSAPP_WEBHOOK_QUEUE) private readonly webhookQueue: Queue,
@@ -135,6 +137,17 @@ export class WhatsAppWebhookService {
               messageText: mapped.content,
             },
           })
+
+          if (!persisted.duplicate) {
+            await this.bot.handleInbound({
+              tenantId: mapped.tenantId,
+              conversationId: persisted.conversation.id,
+              customerId: persisted.conversation.customerId,
+              customerPhone: mapped.customerPhone,
+              content: mapped.content,
+              externalMessageId: mapped.externalMessageId,
+            })
+          }
 
           results.push(this.result('message.received', mapped.tenantId, 'processed', `Message ${mapped.externalMessageId} mapped to ${persisted.conversation.id}`, mapped.channelId, mapped.externalMessageId))
         }

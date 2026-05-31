@@ -50,6 +50,7 @@ const navigation: Array<{
   { path: '/notifications', label: 'الإشعارات', icon: Bell, allowedRoles: ['admin', 'support', 'analyst'], permission: 'notifications.view' },
   { path: '/channels', label: 'القنوات', icon: Cable, allowedRoles: ['admin', 'support', 'analyst'], permission: 'channels.view' },
   { path: '/templates', label: 'القوالب والردود', icon: MessageSquareText, allowedRoles: ['admin', 'support', 'analyst'], permission: 'templates.view' },
+  { path: '/bot', label: 'وكيل واتساب الذكي', icon: Bot, allowedRoles: ['admin', 'support'], permission: 'bot.view' },
   { path: '/users', label: 'المستخدمون', icon: Users, allowedRoles: ['admin'], permission: 'users.view' },
   { path: '/teams', label: 'الفرق', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },
   { path: '/tenants', label: 'المستشارون والوكلاء', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },

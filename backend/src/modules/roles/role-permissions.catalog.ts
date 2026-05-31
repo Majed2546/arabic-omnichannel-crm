@@ -21,6 +21,7 @@ export const PERMISSION_CATEGORY_BY_PREFIX: Record<string, PermissionCategory> =
   roles: PermissionCategory.SYSTEM,
   settings: PermissionCategory.SYSTEM,
   notifications: PermissionCategory.SYSTEM,
+  bot: PermissionCategory.SYSTEM,
 }
 
 const allPermissions = [...CRM_PERMISSIONS]
@@ -50,6 +51,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleKey, CrmPermission[]> =
     'reports.view',
     'billing.view',
     'notifications.view',
+    'bot.view',
   ],
   AGENT: [
     'dashboard.view',
@@ -63,6 +65,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleKey, CrmPermission[]> =
     'meetings.view',
     'templates.view',
     'notifications.view',
+    'bot.view',
   ],
   VIEWER: [
     'dashboard.view',

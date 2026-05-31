@@ -262,6 +262,20 @@ enum SlaStatus {
   MET
 }
 
+enum BotFlowType {
+  MAIN_MENU
+  BOOK_APPOINTMENT
+  CREATE_TICKET
+  HANDOFF
+}
+
+enum BotStateStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  HANDED_OFF
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
@@ -299,6 +313,8 @@ model Tenant {
   settings      TenantSettings?
   teams         Team[]
   teamMembers   TeamMember[]
+  whatsappBotSettings WhatsAppBotSettings?
+  conversationBotStates ConversationBotState[]
 
   @@index([status])
   @@index([plan])
@@ -330,6 +346,30 @@ model TenantSettings {
 
   @@index([tenantId])
   @@map("tenant_settings")
+}
+
+model WhatsAppBotSettings {
+  id                                String   @id @default(cuid())
+  tenantId                          String   @unique @map("tenant_id")
+  isEnabled                         Boolean  @default(false) @map("is_enabled")
+  welcomeMessage                    String   @default("أهلًا بك 👋\nكيف نقدر نخدمك؟\n1. حجز موعد\n2. الدعم الفني\n3. متابعة طلب\n4. التحدث مع موظف") @map("welcome_message")
+  handoffMessage                    String   @default("تم تحويلك لأحد موظفينا، سيتم الرد عليك قريبًا.") @map("handoff_message")
+  appointmentEnabled                Boolean  @default(true) @map("appointment_enabled")
+  ticketEnabled                     Boolean  @default(true) @map("ticket_enabled")
+  workingHoursOnly                  Boolean  @default(false) @map("working_hours_only")
+  defaultAppointmentDurationMinutes Int      @default(30) @map("default_appointment_duration_minutes")
+  defaultAssignedTeamId             String?  @map("default_assigned_team_id")
+  defaultAssignedUserId             String?  @map("default_assigned_user_id")
+  createdAt                         DateTime @default(now()) @map("created_at")
+  updatedAt                         DateTime @updatedAt @map("updated_at")
+  tenant                            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  defaultAssignedTeam               Team?    @relation("BotDefaultAssignedTeam", fields: [defaultAssignedTeamId], references: [id], onDelete: SetNull)
+  defaultAssignedUser               User?    @relation("BotDefaultAssignedUser", fields: [defaultAssignedUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([defaultAssignedTeamId])
+  @@index([defaultAssignedUserId])
+  @@map("whatsapp_bot_settings")
 }
 
 model OnboardingRequest {
@@ -387,6 +427,7 @@ model User {
   tickets      Ticket[]       @relation("TicketAssignedUser")
   notifications Notification[]
   teamMembers  TeamMember[]
+  botDefaultSettings WhatsAppBotSettings[] @relation("BotDefaultAssignedUser")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -489,6 +530,7 @@ model Customer {
   appointments Appointment[]
   meetings     Meeting[]
   tickets      Ticket[]
+  botStates    ConversationBotState[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -598,6 +640,7 @@ model Conversation {
   appointments   Appointment[]
   meetings       Meeting[]
   tickets        Ticket[]
+  botStates      ConversationBotState[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -739,6 +782,7 @@ model Team {
   tickets      Ticket[]       @relation("TicketAssignedTeam")
   appointments Appointment[]  @relation("AppointmentAssignedTeam")
   notifications Notification[]
+  botDefaultSettings WhatsAppBotSettings[] @relation("BotDefaultAssignedTeam")
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -764,6 +808,28 @@ model TeamMember {
   @@index([tenantId, teamId])
   @@index([tenantId, userId])
   @@map("team_members")
+}
+
+model ConversationBotState {
+  id             String         @id @default(cuid())
+  tenantId       String         @map("tenant_id")
+  conversationId String         @map("conversation_id")
+  customerId     String?        @map("customer_id")
+  flowType       BotFlowType    @default(MAIN_MENU) @map("flow_type")
+  step           String
+  collectedData  Json           @default("{}") @map("collected_data")
+  status         BotStateStatus @default(ACTIVE)
+  lastMessageAt  DateTime       @default(now()) @map("last_message_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  customer       Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, conversationId, status])
+  @@index([tenantId, customerId])
+  @@map("conversation_bot_states")
 }
 
 model AutomationRule {

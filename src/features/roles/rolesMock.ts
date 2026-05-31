@@ -50,6 +50,8 @@ const permissionLabels: Record<PermissionKey, { label: string; group: string }> 
   'settings.manage': { label: 'إدارة الإعدادات', group: 'الإعدادات' },
   'notifications.view': { label: 'عرض الإشعارات', group: 'الإشعارات' },
   'notifications.manage': { label: 'إدارة الإشعارات', group: 'الإشعارات' },
+  'bot.view': { label: 'عرض وكيل واتساب', group: 'وكيل واتساب' },
+  'bot.manage': { label: 'إدارة وكيل واتساب', group: 'وكيل واتساب' },
 }
 
 export const permissionDefinitions: PermissionDefinition[] = CRM_PERMISSIONS.map((key) => ({

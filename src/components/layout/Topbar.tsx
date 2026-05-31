@@ -23,6 +23,8 @@ const pageTitles: Record<string, string> = {
   '/workflows': 'الأتمتة',
   '/reports': 'التقارير',
   '/sla': 'SLA والتصعيد',
+  '/bot': 'وكيل واتساب الذكي',
+  '/ai-agent': 'وكيل واتساب الذكي',
   '/billing': 'الاشتراكات والباقات',
   '/teams': 'الفرق',
   '/notifications': 'الإشعارات',

@@ -13,6 +13,7 @@ import { useInboxStore } from './inboxStore'
 import { assignInboxConversation, fetchInboxConversations } from './inboxRest'
 import { sendConversationWhatsAppMessage } from './inboxSend'
 import { fetchQuickReplies, fetchWhatsAppTemplates, type QuickReply, type WhatsAppTemplate } from '../templates/templateData'
+import { fetchConversationBotState, handoffConversationBot, resetConversationBot, type ConversationBotState } from '../bot/botData'
 import {
   inboxRealtimeConfig,
   type AgentPresence,
@@ -147,6 +148,7 @@ export default function UnifiedInboxPage() {
   const [assignmentTeams, setAssignmentTeams] = useState<AssignmentTeam[]>([])
   const [assignmentUserId, setAssignmentUserId] = useState('')
   const [assignmentTeamId, setAssignmentTeamId] = useState('')
+  const [botState, setBotState] = useState<ConversationBotState | null>(null)
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([])
   const [approvedTemplates, setApprovedTemplates] = useState<WhatsAppTemplate[]>([])
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
@@ -166,6 +168,8 @@ export default function UnifiedInboxPage() {
   const canAssign = can('inbox.assign')
   const canManageAppointments = can('appointments.manage')
   const canManageTickets = can('tickets.manage')
+  const canViewBot = can('bot.view')
+  const canManageBot = can('bot.manage') || canAssign
   const canManageInbox = canAssign || canReply
   const requestedConversationId = searchParams.get('conversationId')
 
@@ -354,6 +358,16 @@ export default function UnifiedInboxPage() {
     }
   }, [selectedConversation?.messages.length, selectedConversation?.timeline.length, typingConversationId])
 
+  useEffect(() => {
+    if (!selectedConversation || !canViewBot) {
+      setBotState(null)
+      return
+    }
+    fetchConversationBotState(selectedConversation.id)
+      .then(setBotState)
+      .catch(() => setBotState(null))
+  }, [selectedConversation?.id, canViewBot])
+
   function handleSelectConversation(conversationId: string) {
     selectConversation(conversationId)
     setSearchParams({ conversationId })
@@ -453,6 +467,20 @@ export default function UnifiedInboxPage() {
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'تعذر إسناد المحادثة', 'warning')
     }
+  }
+
+  async function handleBotReset() {
+    if (!selectedConversation) return
+    await resetConversationBot(selectedConversation.id)
+    fetchConversationBotState(selectedConversation.id).then(setBotState).catch(() => setBotState(null))
+    showToast('تمت إعادة تشغيل الوكيل لهذه المحادثة', 'success')
+  }
+
+  async function handleBotHandoff() {
+    if (!selectedConversation) return
+    await handoffConversationBot(selectedConversation.id)
+    fetchConversationBotState(selectedConversation.id).then(setBotState).catch(() => setBotState(null))
+    showToast('تم تحويل المحادثة لموظف', 'success')
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -786,6 +814,20 @@ export default function UnifiedInboxPage() {
             </dl>
 
             <div className="profile-section profile-actions">
+              {canViewBot ? (
+                <div className="bot-conversation-card">
+                  <strong>وكيل واتساب</strong>
+                  <span>حالة الوكيل: {botState?.isEnabled ? 'مفعل' : 'غير مفعل'}</span>
+                  <span>حالة المحادثة الآلية: {botState?.state?.status === 'ACTIVE' ? 'نشطة' : botState?.state?.status === 'COMPLETED' ? 'مكتملة' : botState?.state?.status === 'HANDED_OFF' ? 'محولة لموظف' : 'غير نشطة'}</span>
+                  {canManageBot ? (
+                    <div>
+                      <AppButton variant="ghost" onClick={handleBotReset}>إيقاف الوكيل لهذه المحادثة</AppButton>
+                      <AppButton variant="ghost" onClick={handleBotHandoff}>تحويل لموظف</AppButton>
+                      <AppButton variant="ghost" onClick={handleBotReset}>إعادة تشغيل الوكيل</AppButton>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               {selectedConversation.customerId ? (
                 <>
                   <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?customerId=${selectedConversation.customerId}`}>

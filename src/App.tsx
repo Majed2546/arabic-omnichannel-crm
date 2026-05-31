@@ -6,6 +6,7 @@ import {
   CustomersPage,
   ActivityFeedPage,
   BillingPage,
+  BotPage,
   DashboardPage,
   IdentityIntegrationsPage,
   MeetingsPage,
@@ -63,6 +64,8 @@ function App() {
         <Route path="templates" element={<RequireTenant><RequireAuth requiredPermissions={['templates.view']}><TemplatesPage /></RequireAuth></RequireTenant>} />
         <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ReportsPage /></RequireAuth></RequireTenant>} />
         <Route path="sla" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support', 'analyst']} requiredPermissions={['reports.view']}><SlaPage /></RequireAuth></RequireTenant>} />
+        <Route path="bot" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support']} requiredPermissions={['bot.view']}><BotPage /></RequireAuth></RequireTenant>} />
+        <Route path="ai-agent" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'support']} requiredPermissions={['bot.view']}><BotPage /></RequireAuth></RequireTenant>} />
         <Route path="billing" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['billing.view']}><BillingPage /></RequireAuth></RequireTenant>} />
         <Route path="settings" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['settings.view']}><SettingsPage /></RequireAuth></RequireTenant>} />
         <Route path="platform" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><PlatformDashboardPage /></RequireAuth></RequireTenant>} />

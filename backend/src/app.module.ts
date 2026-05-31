@@ -34,6 +34,7 @@ import { SettingsModule } from './modules/settings/settings.module'
 import { RolesModule } from './modules/roles/roles.module'
 import { TeamsModule } from './modules/teams/teams.module'
 import { SlaModule } from './modules/sla/sla.module'
+import { BotModule } from './modules/bot/bot.module'
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { SlaModule } from './modules/sla/sla.module'
     RolesModule,
     TeamsModule,
     SlaModule,
+    BotModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

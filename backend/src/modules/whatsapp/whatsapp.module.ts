@@ -6,6 +6,7 @@ import { MessagesModule } from '../messages/messages.module'
 import { AutomationModule } from '../automation/automation.module'
 import { RealtimeModule } from '../realtime/realtime.module'
 import { ChannelsModule } from '../channels/channels.module'
+import { BotModule } from '../bot/bot.module'
 import { WhatsAppController } from './whatsapp.controller'
 import { WhatsAppEventPublisher } from './whatsapp-event.publisher'
 import { WhatsAppMessageMapper } from './whatsapp-message.mapper'
@@ -28,6 +29,7 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service'
     AutomationModule,
     RealtimeModule,
     ChannelsModule,
+    BotModule,
   ],
   controllers: [WhatsAppController, WhatsAppWebhookController, TenantWhatsAppOnboardingController],
   providers: [

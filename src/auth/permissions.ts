@@ -31,6 +31,8 @@ export const CRM_PERMISSIONS = [
   'settings.manage',
   'notifications.view',
   'notifications.manage',
+  'bot.view',
+  'bot.manage',
 ] as const
 
 export type CrmPermission = (typeof CRM_PERMISSIONS)[number]
@@ -56,6 +58,7 @@ export const ROLE_PERMISSIONS: Record<AuthUserRole, CrmPermission[]> = {
     'agents.view',
     'users.view',
     'notifications.view',
+    'bot.view',
   ],
   analyst: [
     'dashboard.view',
