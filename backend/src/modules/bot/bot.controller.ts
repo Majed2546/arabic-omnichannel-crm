@@ -44,6 +44,11 @@ export class BotController {
     return this.bot.reset(this.tenantId(tenantId, localTenantId, user), conversationId)
   }
 
+  @Post('conversations/:conversationId/stop')
+  stop(@Headers('x-tenant-id') tenantId: string | undefined, @Headers('x-local-tenant-id') localTenantId: string | undefined, @Param('conversationId') conversationId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.bot.stop(this.tenantId(tenantId, localTenantId, user), conversationId)
+  }
+
   @Get('conversations/:conversationId/state')
   state(@Headers('x-tenant-id') tenantId: string | undefined, @Headers('x-local-tenant-id') localTenantId: string | undefined, @Param('conversationId') conversationId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.bot.getConversationState(this.tenantId(tenantId, localTenantId, user), conversationId)

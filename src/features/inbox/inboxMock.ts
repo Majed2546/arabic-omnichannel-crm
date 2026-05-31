@@ -23,6 +23,7 @@ export type ConversationMessage = {
   sentAt: string
   deliveryStatus?: MessageDeliveryStatus
   kind?: 'message' | 'internal_note'
+  botFailed?: boolean
 }
 
 export type Conversation = {

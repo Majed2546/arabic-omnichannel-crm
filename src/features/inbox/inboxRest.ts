@@ -52,6 +52,7 @@ type RestMessage = {
   messageType?: string
   status?: string
   createdAt?: string
+  metadata?: Record<string, unknown> | null
 }
 
 const channelMap: Record<string, ConversationChannel> = {
@@ -111,15 +112,20 @@ function resolveAssignment(conversation: RestConversation): AssignmentState {
 function mapMessage(message: RestMessage, customerName: string): ConversationMessage {
   const isCustomer = message.senderType === 'CUSTOMER'
   const isInternalNote = message.messageType === 'INTERNAL_NOTE'
+  const whatsappMetadata = message.metadata?.whatsapp
+  const whatsapp = whatsappMetadata && typeof whatsappMetadata === 'object' ? whatsappMetadata as Record<string, unknown> : null
+  const isBotMessage = whatsapp?.bot === true
+  const botFailed = !isCustomer && isBotMessage && message.status === 'FAILED'
 
   return {
     id: message.id,
     direction: isCustomer ? 'incoming' : 'outgoing',
     kind: isInternalNote ? 'internal_note' : 'message',
     body: message.content ?? '',
-    author: isCustomer ? customerName : 'الفريق',
+    author: isCustomer ? customerName : isBotMessage ? 'وكيل واتساب' : 'الفريق',
     sentAt: formatDate(message.createdAt),
     deliveryStatus: deliveryMap[message.status ?? ''] ?? undefined,
+    botFailed,
   }
 }
 

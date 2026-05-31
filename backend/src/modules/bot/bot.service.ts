@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { BotFlowType, BotStateStatus, MessageSenderType, MessageStatus, MessageType, NotificationPriority, Prisma } from '@prisma/client'
 import type { Queue } from 'bullmq'
 import { PrismaService } from '../../database/prisma.service'
@@ -21,12 +21,45 @@ function readData(value: Prisma.JsonValue | null): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
 
+function processedInboundIds(data: Record<string, unknown>) {
+  return Array.isArray(data.processedInboundMessageIds)
+    ? data.processedInboundMessageIds.filter((id): id is string => typeof id === 'string')
+    : []
+}
+
+function withProcessedInbound(data: Record<string, unknown>, inboundMessageId: string) {
+  return {
+    ...data,
+    lastExternalMessageId: inboundMessageId,
+    processedInboundMessageIds: Array.from(new Set([...processedInboundIds(data), inboundMessageId])).slice(-30),
+  }
+}
+
 function normalize(input: string) {
   return input.trim().toLowerCase()
 }
 
+type BotStateLite = {
+  id: string
+  flowType: BotFlowType
+  step: string
+  collectedData: Prisma.JsonValue
+}
+
+type BotSendContext = {
+  tenantId: string
+  conversationId: string
+  recipient: string
+  message: string
+  inboundMessageId: string
+  botStateId?: string
+  step?: string
+}
+
 @Injectable()
 export class BotService {
+  private readonly logger = new Logger(BotService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
@@ -99,10 +132,27 @@ export class BotService {
   async reset(tenantId: string, conversationId: string) {
     await this.ensureConversation(tenantId, conversationId)
     await this.prisma.conversationBotState.updateMany({
-      where: { tenantId, conversationId, status: BotStateStatus.ACTIVE },
+      where: { tenantId, conversationId, status: { in: [BotStateStatus.ACTIVE, BotStateStatus.HANDED_OFF] } },
       data: { status: BotStateStatus.CANCELLED },
     })
     return { reset: true, conversationId }
+  }
+
+  async stop(tenantId: string, conversationId: string) {
+    const conversation = await this.ensureConversation(tenantId, conversationId)
+    await this.cancelActive(tenantId, conversationId)
+    await this.prisma.conversationBotState.create({
+      data: {
+        tenantId,
+        conversationId,
+        customerId: conversation.customerId,
+        flowType: BotFlowType.HANDOFF,
+        step: 'stopped',
+        status: BotStateStatus.HANDED_OFF,
+        collectedData: asJson({ stoppedAt: new Date().toISOString(), reason: 'manual_stop' }),
+      },
+    })
+    return { stopped: true, conversationId }
   }
 
   async handoff(tenantId: string, conversationId: string) {
@@ -134,36 +184,50 @@ export class BotService {
     })
     if (!conversation) return { skipped: true, reason: 'conversation_not_found' }
 
-    const duplicate = await this.prisma.conversationBotState.findFirst({
-      where: {
-        tenantId: input.tenantId,
-        conversationId: input.conversationId,
-        collectedData: { path: ['lastExternalMessageId'], equals: input.externalMessageId },
-      },
-    })
-    if (duplicate) return { skipped: true, reason: 'duplicate' }
+    if (await this.isDuplicateInbound(input)) return { skipped: true, reason: 'duplicate' }
 
-    const active = await this.prisma.conversationBotState.findFirst({
-      where: { tenantId: input.tenantId, conversationId: input.conversationId, status: BotStateStatus.ACTIVE },
-      orderBy: { updatedAt: 'desc' },
-    })
+    const [active, latestState] = await Promise.all([
+      this.prisma.conversationBotState.findFirst({
+        where: { tenantId: input.tenantId, conversationId: input.conversationId, status: BotStateStatus.ACTIVE },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.conversationBotState.findFirst({
+        where: { tenantId: input.tenantId, conversationId: input.conversationId },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ])
 
-    if (conversation.assignedUserId && active?.flowType === BotFlowType.HANDOFF) {
-      return { skipped: true, reason: 'human_handoff' }
+    if (!active && latestState?.status === BotStateStatus.HANDED_OFF) {
+      return { skipped: true, reason: latestState.step === 'stopped' ? 'bot_stopped' : 'human_handoff' }
     }
 
     const text = normalize(input.content)
     if (text === 'إلغاء' || text === 'الغاء' || text === 'cancel') {
       await this.cancelActive(input.tenantId, input.conversationId)
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'تم إلغاء الطلب الحالي. يمكنك إرسال أي رسالة لبدء القائمة من جديد.')
+      await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'تم إلغاء الطلب الحالي. يمكنك إرسال أي رسالة لبدء القائمة من جديد.',
+        inboundMessageId: input.externalMessageId,
+        step: 'cancel',
+      })
       return { cancelled: true }
     }
 
     if (!active) {
       const choice = this.detectChoice(input.content)
       if (!choice) {
-        await this.createState(input, BotFlowType.MAIN_MENU, 'awaiting_choice', { lastExternalMessageId: input.externalMessageId })
-        await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, settings.welcomeMessage)
+        const state = await this.createState(input, BotFlowType.MAIN_MENU, 'awaiting_choice', withProcessedInbound({}, input.externalMessageId))
+        await this.sendBotReply({
+          tenantId: input.tenantId,
+          conversationId: input.conversationId,
+          recipient: input.customerPhone,
+          message: settings.welcomeMessage,
+          inboundMessageId: input.externalMessageId,
+          botStateId: state.id,
+          step: 'awaiting_choice',
+        })
         return { started: true, flow: 'MAIN_MENU' }
       }
       return this.startFlow(input, settings, choice)
@@ -175,30 +239,69 @@ export class BotService {
   private async startFlow(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, choice: BotFlowType | 'FOLLOW_UP') {
     await this.cancelActive(input.tenantId, input.conversationId)
     if (choice === BotFlowType.BOOK_APPOINTMENT && settings.appointmentEnabled) {
-      await this.createState(input, BotFlowType.BOOK_APPOINTMENT, 'appointment_type', { lastExternalMessageId: input.externalMessageId })
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'اختر نوع الموعد:\n1. عرض تجريبي\n2. استشارة\n3. دعم فني')
+      const state = await this.createState(input, BotFlowType.BOOK_APPOINTMENT, 'appointment_type', withProcessedInbound({}, input.externalMessageId))
+      await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'اختر نوع الموعد:\n1. عرض تجريبي\n2. استشارة\n3. دعم فني',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'appointment_type',
+      })
       return { flow: 'BOOK_APPOINTMENT' }
     }
     if ((choice === BotFlowType.CREATE_TICKET || choice === 'FOLLOW_UP') && settings.ticketEnabled) {
-      await this.createState(input, BotFlowType.CREATE_TICKET, 'summary', { category: choice === 'FOLLOW_UP' ? 'متابعة' : 'دعم فني', lastExternalMessageId: input.externalMessageId })
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'اكتب ملخص الطلب أو المشكلة وسنفتح لك تذكرة متابعة.')
+      const state = await this.createState(input, BotFlowType.CREATE_TICKET, 'summary', withProcessedInbound({ category: choice === 'FOLLOW_UP' ? 'متابعة' : 'دعم فني' }, input.externalMessageId))
+      await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'اكتب ملخص الطلب أو المشكلة وسنفتح لك تذكرة متابعة.',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'summary',
+      })
       return { flow: 'CREATE_TICKET' }
     }
     if (choice === BotFlowType.HANDOFF) {
-      await this.markHandoff(input.tenantId, input.conversationId, input.customerId ?? null, settings)
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, settings.handoffMessage)
+      const state = await this.markHandoff(input.tenantId, input.conversationId, input.customerId ?? null, settings)
+      await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: settings.handoffMessage,
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'handoff',
+      })
       return { flow: 'HANDOFF' }
     }
-    await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, settings.welcomeMessage)
+    await this.sendBotReply({
+      tenantId: input.tenantId,
+      conversationId: input.conversationId,
+      recipient: input.customerPhone,
+      message: settings.welcomeMessage,
+      inboundMessageId: input.externalMessageId,
+      step: 'awaiting_choice',
+    })
     return { flow: 'MAIN_MENU' }
   }
 
-  private async continueFlow(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, state: { id: string; flowType: BotFlowType; step: string; collectedData: Prisma.JsonValue }) {
+  private async continueFlow(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, state: BotStateLite) {
     if (state.flowType === BotFlowType.MAIN_MENU) {
       const choice = this.detectChoice(input.content)
       if (!choice) {
-        await this.updateState(state.id, { lastExternalMessageId: input.externalMessageId })
-        await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, settings.welcomeMessage)
+        await this.updateState(state.id, withProcessedInbound(readData(state.collectedData), input.externalMessageId))
+        await this.sendBotReply({
+          tenantId: input.tenantId,
+          conversationId: input.conversationId,
+          recipient: input.customerPhone,
+          message: settings.welcomeMessage,
+          inboundMessageId: input.externalMessageId,
+          botStateId: state.id,
+          step: 'awaiting_choice',
+        })
         return { flow: 'MAIN_MENU' }
       }
       return this.startFlow(input, settings, choice)
@@ -209,47 +312,95 @@ export class BotService {
     return { skipped: true }
   }
 
-  private async continueAppointment(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, state: { id: string; step: string; collectedData: Prisma.JsonValue }) {
-    const data: Record<string, unknown> = { ...readData(state.collectedData), lastExternalMessageId: input.externalMessageId }
+  private async continueAppointment(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, state: BotStateLite) {
+    const data: Record<string, unknown> = withProcessedInbound(readData(state.collectedData), input.externalMessageId)
     if (state.step === 'appointment_type') {
       data.appointmentType = this.appointmentType(input.content)
-      await this.updateState(state.id, data, 'date')
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'ما اليوم أو التاريخ المناسب؟ مثال: غدًا أو 2026-06-01')
+      const sent = await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'ما اليوم أو التاريخ المناسب؟ مثال: غدًا أو 2026-06-01',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'date',
+      })
+      await this.updateState(state.id, sent.ok ? data : this.withSendFailure(data, sent.messageId), sent.ok ? 'date' : undefined)
       return { step: 'date' }
     }
     if (state.step === 'date') {
       data.date = input.content.trim()
-      await this.updateState(state.id, data, 'time')
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'ما الوقت المناسب؟ مثال: 10:30 صباحًا')
+      const sent = await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'ما الوقت المناسب؟ مثال: 10:30 صباحًا',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'time',
+      })
+      await this.updateState(state.id, sent.ok ? data : this.withSendFailure(data, sent.messageId), sent.ok ? 'time' : undefined)
       return { step: 'time' }
     }
     if (state.step === 'time') {
       data.time = input.content.trim()
-      await this.updateState(state.id, data, 'meeting_type')
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'اختر نوع اللقاء:\n1. اتصال\n2. أونلاين\n3. حضوري')
+      const sent = await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'اختر نوع اللقاء:\n1. اتصال\n2. أونلاين\n3. حضوري',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'meeting_type',
+      })
+      await this.updateState(state.id, sent.ok ? data : this.withSendFailure(data, sent.messageId), sent.ok ? 'meeting_type' : undefined)
       return { step: 'meeting_type' }
     }
 
     data.meetingType = this.meetingType(input.content)
     const appointment = await this.createAppointment(input, settings, data)
     await this.completeState(state.id, data)
-    await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, `تم تسجيل طلب الموعد بنجاح. رقم الموعد: ${appointment.id}`)
+    await this.sendBotReply({
+      tenantId: input.tenantId,
+      conversationId: input.conversationId,
+      recipient: input.customerPhone,
+      message: `تم تسجيل طلب الموعد بنجاح. رقم الموعد: ${appointment.id}`,
+      inboundMessageId: input.externalMessageId,
+      botStateId: state.id,
+      step: 'completed',
+    })
     return { completed: true, appointmentId: appointment.id }
   }
 
-  private async continueTicket(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, state: { id: string; step: string; collectedData: Prisma.JsonValue }) {
-    const data: Record<string, unknown> = { ...readData(state.collectedData), lastExternalMessageId: input.externalMessageId }
+  private async continueTicket(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, state: BotStateLite) {
+    const data: Record<string, unknown> = withProcessedInbound(readData(state.collectedData), input.externalMessageId)
     if (state.step === 'summary') {
       data.summary = input.content.trim()
-      await this.updateState(state.id, data, 'priority')
-      await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, 'اختر الأولوية:\n1. عادي\n2. مهم\n3. عاجل')
+      const sent = await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'اختر الأولوية:\n1. عادي\n2. مهم\n3. عاجل',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'priority',
+      })
+      await this.updateState(state.id, sent.ok ? data : this.withSendFailure(data, sent.messageId), sent.ok ? 'priority' : undefined)
       return { step: 'priority' }
     }
 
     data.priority = this.ticketPriority(input.content)
     const ticket = await this.createTicket(input, settings, data)
     await this.completeState(state.id, data)
-    await this.sendBotReply(input.tenantId, input.conversationId, input.customerPhone, `تم إنشاء تذكرة لك بنجاح. رقم التذكرة: ${ticket.id}`)
+    await this.sendBotReply({
+      tenantId: input.tenantId,
+      conversationId: input.conversationId,
+      recipient: input.customerPhone,
+      message: `تم إنشاء تذكرة لك بنجاح. رقم التذكرة: ${ticket.id}`,
+      inboundMessageId: input.externalMessageId,
+      botStateId: state.id,
+      step: 'completed',
+    })
     return { completed: true, ticketId: ticket.id }
   }
 
@@ -357,7 +508,7 @@ export class BotService {
 
   private async markHandoff(tenantId: string, conversationId: string, customerId: string | null, settings: Awaited<ReturnType<BotService['getSettings']>>) {
     await this.cancelActive(tenantId, conversationId)
-    await this.prisma.conversationBotState.create({
+    const state = await this.prisma.conversationBotState.create({
       data: {
         tenantId,
         conversationId,
@@ -389,46 +540,123 @@ export class BotService {
       priority: NotificationPriority.HIGH,
       metadata: { source: 'whatsapp-bot', flow: 'handoff' },
     })
+    return state
   }
 
-  private async sendBotReply(tenantId: string, conversationId: string, recipient: string, message: string) {
+  private async sendBotReply(context: BotSendContext) {
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, tenantId, deletedAt: null },
+      where: { id: context.conversationId, tenantId: context.tenantId, deletedAt: null },
       include: { channel: true },
     })
-    if (!conversation || conversation.channel.type !== 'WHATSAPP') return
+    if (!conversation || conversation.channel.type !== 'WHATSAPP') return { ok: false }
+
+    const existing = await this.prisma.message.findFirst({
+      where: {
+        tenantId: context.tenantId,
+        conversationId: context.conversationId,
+        senderType: MessageSenderType.SYSTEM,
+        metadata: { path: ['whatsapp', 'botInboundExternalMessageId'], equals: context.inboundMessageId },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (existing) {
+      this.logBotSend({
+        botStateId: context.botStateId,
+        conversationId: context.conversationId,
+        inboundMessageId: context.inboundMessageId,
+        outboundMessageId: existing.id,
+        mode: 'retry',
+        sendStatus: existing.status,
+      })
+      return { ok: existing.status !== MessageStatus.FAILED, messageId: existing.id, duplicate: true }
+    }
+
     const config = this.readChannelConfig(conversation.channel.config)
     const saved = await this.prisma.message.create({
       data: {
-        tenantId,
-        conversationId,
+        tenantId: context.tenantId,
+        conversationId: context.conversationId,
         channelId: conversation.channelId,
         senderType: MessageSenderType.SYSTEM,
-        content: message,
+        content: context.message,
         messageType: MessageType.TEXT,
         status: MessageStatus.PENDING,
-        metadata: asJson({ whatsapp: { recipient, outboundType: 'TEXT', bot: true } }),
+        metadata: asJson({
+          whatsapp: {
+            recipient: context.recipient,
+            outboundType: 'TEXT',
+            bot: true,
+            botStateId: context.botStateId,
+            botStep: context.step,
+            botInboundExternalMessageId: context.inboundMessageId,
+            botFresh: true,
+          },
+        }),
       },
     })
-    await this.outboundQueue.add('whatsapp.outbound.send', {
-      tenantId,
-      conversationId,
-      messageId: saved.id,
-      channelId: conversation.channelId,
-      phoneNumberId: config.phoneNumberId ?? conversation.channel.externalId ?? 'test-phone-number-id',
-      recipient,
-      message,
-      messageType: WhatsAppOutboundMessageType.TEXT,
-      accessToken: config.accessToken,
-      apiVersion: 'v21.0',
-      testMode: false,
-    }, {
-      jobId: createQueueJobId('whatsapp-bot-outbound', saved.id),
-      attempts: 5,
-      backoff: { type: 'exponential', delay: 5_000 },
-      removeOnComplete: 500,
-      removeOnFail: 1_000,
-    })
+    try {
+      await this.outboundQueue.add('whatsapp.outbound.send', {
+        tenantId: context.tenantId,
+        conversationId: context.conversationId,
+        messageId: saved.id,
+        channelId: conversation.channelId,
+        phoneNumberId: config.phoneNumberId ?? conversation.channel.externalId ?? 'test-phone-number-id',
+        recipient: context.recipient,
+        message: context.message,
+        messageType: WhatsAppOutboundMessageType.TEXT,
+        accessToken: config.accessToken,
+        apiVersion: 'v21.0',
+        testMode: false,
+      }, {
+        jobId: createQueueJobId('whatsapp-bot-outbound', saved.id, Date.now()),
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 5_000 },
+        removeOnComplete: 500,
+        removeOnFail: 1_000,
+      })
+      this.logBotSend({
+        botStateId: context.botStateId,
+        conversationId: context.conversationId,
+        inboundMessageId: context.inboundMessageId,
+        outboundMessageId: saved.id,
+        mode: 'fresh',
+        sendStatus: 'queued',
+      })
+      return { ok: true, messageId: saved.id }
+    } catch (error) {
+      await this.prisma.message.update({
+        where: { id: saved.id },
+        data: {
+          status: MessageStatus.FAILED,
+          metadata: asJson({
+            whatsapp: {
+              recipient: context.recipient,
+              outboundType: 'TEXT',
+              bot: true,
+              botStateId: context.botStateId,
+              botStep: context.step,
+              botInboundExternalMessageId: context.inboundMessageId,
+              botFresh: true,
+              sendFailure: error instanceof Error ? error.message : 'queue_failed',
+            },
+          }),
+        },
+      })
+      if (context.botStateId) {
+        const state = await this.prisma.conversationBotState.findUnique({ where: { id: context.botStateId } })
+        await this.updateState(context.botStateId, this.withSendFailure(readData(state?.collectedData ?? null), saved.id))
+      }
+      this.logBotSend({
+        botStateId: context.botStateId,
+        conversationId: context.conversationId,
+        inboundMessageId: context.inboundMessageId,
+        outboundMessageId: saved.id,
+        mode: 'fresh',
+        sendStatus: 'failed',
+        error: error instanceof Error ? error.message : 'queue_failed',
+      })
+      return { ok: false, messageId: saved.id }
+    }
   }
 
   private async createState(input: InboundBotMessage, flowType: BotFlowType, step: string, collectedData: Record<string, unknown>) {
@@ -467,6 +695,52 @@ export class BotService {
       where: { tenantId, conversationId, status: BotStateStatus.ACTIVE },
       data: { status: BotStateStatus.CANCELLED },
     })
+  }
+
+  private async isDuplicateInbound(input: InboundBotMessage) {
+    const [states, message] = await Promise.all([
+      this.prisma.conversationBotState.findMany({
+        where: { tenantId: input.tenantId, conversationId: input.conversationId },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.message.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          conversationId: input.conversationId,
+          senderType: MessageSenderType.SYSTEM,
+          metadata: { path: ['whatsapp', 'botInboundExternalMessageId'], equals: input.externalMessageId },
+        },
+        select: { id: true },
+      }),
+    ])
+    if (message) return true
+    return states.some((state) => {
+      const data = readData(state.collectedData)
+      return data.lastExternalMessageId === input.externalMessageId || processedInboundIds(data).includes(input.externalMessageId)
+    })
+  }
+
+  private withSendFailure(data: Record<string, unknown>, outboundMessageId?: string) {
+    return {
+      ...data,
+      lastSendFailure: {
+        outboundMessageId,
+        failedAt: new Date().toISOString(),
+      },
+    }
+  }
+
+  private logBotSend(event: {
+    botStateId?: string
+    conversationId: string
+    inboundMessageId: string
+    outboundMessageId: string
+    mode: 'fresh' | 'retry'
+    sendStatus: string
+    error?: string
+  }) {
+    this.logger.log(JSON.stringify({ event: 'whatsapp_bot_send', ...event }))
   }
 
   private async ensureConversation(tenantId: string, conversationId: string) {

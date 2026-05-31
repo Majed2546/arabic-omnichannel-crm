@@ -13,7 +13,7 @@ import { useInboxStore } from './inboxStore'
 import { assignInboxConversation, fetchInboxConversations } from './inboxRest'
 import { sendConversationWhatsAppMessage } from './inboxSend'
 import { fetchQuickReplies, fetchWhatsAppTemplates, type QuickReply, type WhatsAppTemplate } from '../templates/templateData'
-import { fetchConversationBotState, handoffConversationBot, resetConversationBot, type ConversationBotState } from '../bot/botData'
+import { fetchConversationBotState, handoffConversationBot, resetConversationBot, stopConversationBot, type ConversationBotState } from '../bot/botData'
 import {
   inboxRealtimeConfig,
   type AgentPresence,
@@ -476,6 +476,13 @@ export default function UnifiedInboxPage() {
     showToast('تمت إعادة تشغيل الوكيل لهذه المحادثة', 'success')
   }
 
+  async function handleBotStop() {
+    if (!selectedConversation) return
+    await stopConversationBot(selectedConversation.id)
+    fetchConversationBotState(selectedConversation.id).then(setBotState).catch(() => setBotState(null))
+    showToast('تم إيقاف الوكيل لهذه المحادثة', 'success')
+  }
+
   async function handleBotHandoff() {
     if (!selectedConversation) return
     await handoffConversationBot(selectedConversation.id)
@@ -672,12 +679,13 @@ export default function UnifiedInboxPage() {
                 >
                   {message.kind === 'internal_note' ? <b className="internal-note-badge">ملاحظة داخلية</b> : null}
                   <p>{message.body}</p>
+                  {message.botFailed ? <b className="bot-failed-label">تعذر إرسال رد الوكيل. يمكنك إعادة تشغيل الوكيل أو تحويل المحادثة لموظف.</b> : null}
                   <footer>
                     {!grouped ? <span>{message.author}</span> : null}
                     <span>{message.sentAt}</span>
                     {message.deliveryStatus ? <span>{deliveryLabels[message.deliveryStatus]}</span> : null}
                     {message.deliveryStatus === 'pending' ? <i className="sending-dots" aria-label="جار الإرسال" /> : null}
-                    {message.deliveryStatus === 'failed' ? (
+                    {message.deliveryStatus === 'failed' && !message.botFailed ? (
                       <button type="button" onClick={() => retryMessage(selectedConversation.id, message.id)}>
                         إعادة المحاولة
                       </button>
@@ -821,7 +829,7 @@ export default function UnifiedInboxPage() {
                   <span>حالة المحادثة الآلية: {botState?.state?.status === 'ACTIVE' ? 'نشطة' : botState?.state?.status === 'COMPLETED' ? 'مكتملة' : botState?.state?.status === 'HANDED_OFF' ? 'محولة لموظف' : 'غير نشطة'}</span>
                   {canManageBot ? (
                     <div>
-                      <AppButton variant="ghost" onClick={handleBotReset}>إيقاف الوكيل لهذه المحادثة</AppButton>
+                      <AppButton variant="ghost" onClick={handleBotStop}>إيقاف الوكيل لهذه المحادثة</AppButton>
                       <AppButton variant="ghost" onClick={handleBotHandoff}>تحويل لموظف</AppButton>
                       <AppButton variant="ghost" onClick={handleBotReset}>إعادة تشغيل الوكيل</AppButton>
                     </div>

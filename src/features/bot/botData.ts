@@ -64,6 +64,10 @@ export async function resetConversationBot(conversationId: string) {
   return parseResponse<{ reset: boolean }>(await apiFetch(apiUrl(`/bot/conversations/${conversationId}/reset`), { method: 'POST' }), 'تعذر إعادة تشغيل الوكيل')
 }
 
+export async function stopConversationBot(conversationId: string) {
+  return parseResponse<{ stopped: boolean }>(await apiFetch(apiUrl(`/bot/conversations/${conversationId}/stop`), { method: 'POST' }), 'تعذر إيقاف الوكيل')
+}
+
 export async function handoffConversationBot(conversationId: string) {
   return parseResponse<{ handedOff: boolean }>(await apiFetch(apiUrl(`/bot/conversations/${conversationId}/handoff`), { method: 'POST' }), 'تعذر تحويل المحادثة')
 }

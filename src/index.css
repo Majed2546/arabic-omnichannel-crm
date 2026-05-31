@@ -3615,6 +3615,18 @@ td {
   background: rgba(127, 29, 29, 0.24);
 }
 
+.bot-failed-label {
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.14);
+  color: #fecaca;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .internal-note-badge {
   width: fit-content;
   padding: 3px 8px;
