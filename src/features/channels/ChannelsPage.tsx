@@ -56,6 +56,7 @@ type TenantChannelsResponse = {
   tenant?: {
     id: string
     name: string
+    displayName?: string
     slug?: string
   } | null
   items?: ChannelRecord[]
@@ -495,7 +496,7 @@ export default function ChannelsPage() {
 
         <section className="channels-tenant-strip" aria-label="نطاق الشركة">
           <span>الشركة الحالية</span>
-          <strong>{tenantChannelState?.tenant?.name ?? currentTenant?.name ?? tenantId}</strong>
+          <strong>{tenantChannelState?.tenant?.displayName ?? tenantChannelState?.tenant?.name ?? currentTenant?.displayName ?? currentTenant?.name ?? tenantId}</strong>
           <small>{tenantId}</small>
         </section>
 

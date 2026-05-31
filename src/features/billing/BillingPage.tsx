@@ -158,7 +158,7 @@ export default function BillingPage() {
     <div className="page-layout billing-page">
       <PageHeader
         title="الاشتراكات والباقات"
-        description={isSuperAdmin ? 'جاهزية التحكم بالباقات وحالات الاشتراك دون ربط بوابة دفع.' : `اشتراك ${currentTenant?.name ?? 'الشركة الحالية'} واستخدام الحدود الشهرية.`}
+        description={isSuperAdmin ? 'جاهزية التحكم بالباقات وحالات الاشتراك دون ربط بوابة دفع.' : `اشتراك ${currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'} واستخدام الحدود الشهرية.`}
         actions={!isSuperAdmin ? <AppButton variant="primary" onClick={() => showToast('تم تسجيل طلب الترقية كإجراء Placeholder', 'info')}>طلب ترقية</AppButton> : null}
       />
 

@@ -4,6 +4,7 @@ export type TenantPlan = 'starter' | 'professional' | 'enterprise'
 export type Tenant = {
   id: string
   name: string
+  displayName?: string
   slug?: string
   logoUrl?: string
   plan: TenantPlan
@@ -28,4 +29,5 @@ export type TenantContextValue = {
   currentTenantId: string | null
   setCurrentTenantId: (tenantId: string) => void
   canAccessTenant: (tenantId: string) => boolean
+  refreshTenants: () => Promise<void>
 }

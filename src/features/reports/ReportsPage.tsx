@@ -165,7 +165,7 @@ export default function ReportsPage() {
     <div className="page-layout reports-page">
       <PageHeader
         title="التقارير"
-        description={isSuperAdmin ? 'مؤشرات استخدام المنصة وأداء الشركات ضمن الفترة المحددة.' : `مؤشرات أداء ${currentTenant?.name ?? 'الشركة الحالية'} ضمن الفترة المحددة.`}
+        description={isSuperAdmin ? 'مؤشرات استخدام المنصة وأداء الشركات ضمن الفترة المحددة.' : `مؤشرات أداء ${currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'} ضمن الفترة المحددة.`}
         actions={<AppButton variant="secondary" disabled>تصدير التقرير</AppButton>}
       />
 

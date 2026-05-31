@@ -21,30 +21,42 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
   const userTenant = useMemo(() => {
     if (!user?.tenant) return null
-    return tenants.find((tenant) => tenant.id === user.tenant || tenant.slug === user.tenant || tenant.name === user.tenant) ?? findTenantByName(user.tenant)
+    return tenants.find((tenant) => tenant.id === user.tenant || tenant.slug === user.tenant || tenant.name === user.tenant || tenant.displayName === user.tenant) ?? findTenantByName(user.tenant)
   }, [tenants, user?.tenant])
   const canUseAnyTenant = user?.platformRole === 'SUPER_ADMIN'
   const effectiveTenantId = userTenant && !canUseAnyTenant ? userTenant.id : currentTenantId
+
+  const loadTenants = useCallback(async () => {
+    if (!user) return TENANTS
+    try {
+      const response = await apiFetch(apiUrl('/tenants'))
+      if (!response.ok) throw new Error('Failed to load tenants')
+      const payload = await response.json()
+      const items = unwrapItems<RemoteTenant>(payload).map(normalizeTenant)
+      return mergeTenants(TENANTS, items)
+    } catch {
+      return TENANTS
+    }
+  }, [user?.platformRole, user?.tenant])
+
+  const refreshTenants = useCallback(async () => {
+    setTenants(await loadTenants())
+  }, [loadTenants])
 
   useEffect(() => {
     if (!user) return
     let isActive = true
 
-    apiFetch(apiUrl('/tenants'))
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((payload) => {
+    loadTenants()
+      .then((nextTenants) => {
         if (!isActive) return
-        const items = unwrapItems<Partial<Tenant> & { createdAt?: string }>(payload).map(normalizeTenant)
-        setTenants(mergeTenants(TENANTS, items))
-      })
-      .catch(() => {
-        if (isActive) setTenants(TENANTS)
+        setTenants(nextTenants)
       })
 
     return () => {
       isActive = false
     }
-  }, [user?.platformRole, user?.tenant])
+  }, [loadTenants, user?.platformRole, user?.tenant])
 
   useEffect(() => {
     if (!effectiveTenantId) return
@@ -84,8 +96,9 @@ export function TenantProvider({ children }: TenantProviderProps) {
       currentTenantId: effectiveTenantId,
       setCurrentTenantId,
       canAccessTenant,
+      refreshTenants,
     }),
-    [tenants, effectiveTenantId, setCurrentTenantId, canAccessTenant],
+    [tenants, effectiveTenantId, setCurrentTenantId, canAccessTenant, refreshTenants],
   )
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
@@ -113,11 +126,21 @@ const planMap: Record<string, TenantPlan> = {
   enterprise: 'enterprise',
 }
 
-function normalizeTenant(item: Partial<Tenant> & { createdAt?: string }): Tenant {
+type RemoteTenant = Partial<Tenant> & {
+  createdAt?: string
+  settings?: {
+    companyDisplayName?: string | null
+  } | null
+}
+
+function normalizeTenant(item: RemoteTenant): Tenant {
   const id = String(item.id ?? item.slug ?? 'default-tenant')
+  const name = String(item.name ?? id)
+  const displayName = item.displayName ?? item.settings?.companyDisplayName ?? name
   return {
     id,
-    name: String(item.name ?? id),
+    name,
+    displayName: String(displayName).trim() || name,
     slug: item.slug ? String(item.slug) : id,
     logoUrl: item.logoUrl,
     status: statusMap[String(item.status ?? 'active')] ?? 'active',

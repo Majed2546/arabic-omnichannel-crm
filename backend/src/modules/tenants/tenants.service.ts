@@ -7,11 +7,12 @@ import type { CreateTenantDto, UpdateTenantDto, UpdateTenantStatusDto } from './
 export class TenantsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list() {
-    return this.prisma.tenant.findMany({
+  async list() {
+    const tenants = await this.prisma.tenant.findMany({
       where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
+        settings: { select: { companyDisplayName: true } },
         _count: { select: { users: true } },
         users: {
           where: { platformRole: PlatformRole.COMPANY_ADMIN, deletedAt: null },
@@ -20,14 +21,16 @@ export class TenantsService {
         },
       },
     })
+    return tenants.map((tenant) => this.withDisplayName(tenant))
   }
 
-  listForUser(tenantId?: string) {
+  async listForUser(tenantId?: string) {
     if (!tenantId) throw new ForbiddenException('Tenant access denied')
-    return this.prisma.tenant.findMany({
+    const tenants = await this.prisma.tenant.findMany({
       where: { id: tenantId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
+        settings: { select: { companyDisplayName: true } },
         _count: { select: { users: true } },
         users: {
           where: { platformRole: PlatformRole.COMPANY_ADMIN, deletedAt: null },
@@ -36,6 +39,7 @@ export class TenantsService {
         },
       },
     })
+    return tenants.map((tenant) => this.withDisplayName(tenant))
   }
 
   denyTenantAccess(): never {
@@ -45,10 +49,13 @@ export class TenantsService {
   async findById(id: string) {
     const tenant = await this.prisma.tenant.findFirst({
       where: { id, deletedAt: null },
-      include: { users: { where: { deletedAt: null }, select: { id: true, name: true, email: true, platformRole: true, status: true } } },
+      include: {
+        settings: { select: { companyDisplayName: true } },
+        users: { where: { deletedAt: null }, select: { id: true, name: true, email: true, platformRole: true, status: true } },
+      },
     })
     if (!tenant) throw new NotFoundException('Tenant not found')
-    return tenant
+    return this.withDisplayName(tenant)
   }
 
   async create(dto: CreateTenantDto) {
@@ -106,7 +113,7 @@ export class TenantsService {
   async update(id: string, dto: UpdateTenantDto) {
     await this.ensureExists(id)
 
-    return this.prisma.tenant.update({
+    await this.prisma.tenant.update({
       where: { id },
       data: {
         ...dto,
@@ -115,6 +122,7 @@ export class TenantsService {
         updatedBy: 'platform-admin',
       },
     })
+    return this.findById(id)
   }
 
   async updateStatus(id: string, dto: UpdateTenantStatusDto) {
@@ -132,5 +140,12 @@ export class TenantsService {
   private async ensureExists(id: string) {
     const tenant = await this.prisma.tenant.findFirst({ where: { id, deletedAt: null }, select: { id: true } })
     if (!tenant) throw new NotFoundException('Tenant not found')
+  }
+
+  private withDisplayName<T extends { name: string; settings?: { companyDisplayName: string | null } | null }>(tenant: T) {
+    return {
+      ...tenant,
+      displayName: tenant.settings?.companyDisplayName?.trim() || tenant.name,
+    }
   }
 }

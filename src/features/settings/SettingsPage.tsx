@@ -112,7 +112,7 @@ function numberValue(value: string, fallback: number) {
 
 export default function SettingsPage() {
   const { can } = useAuth()
-  const { currentTenant, currentTenantId } = useTenant()
+  const { currentTenant, currentTenantId, refreshTenants } = useTenant()
   const showToast = useUiStore((state) => state.showToast)
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number][0]>('company')
   const [settings, setSettings] = useState<TenantSettings>(defaultSettings)
@@ -122,8 +122,8 @@ export default function SettingsPage() {
   const canManageSettings = can('settings.manage')
 
   const description = useMemo(() => {
-    return `إعدادات تشغيل ${currentTenant?.name ?? 'الشركة الحالية'} المستخدمة في الوارد والتذاكر والمواعيد والأتمتة والتقارير.`
-  }, [currentTenant?.name])
+    return `إعدادات تشغيل ${currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'} المستخدمة في الوارد والتذاكر والمواعيد والأتمتة والتقارير.`
+  }, [currentTenant?.displayName, currentTenant?.name])
 
   function refresh() {
     setLoading(true)
@@ -151,6 +151,7 @@ export default function SettingsPage() {
       })
       if (!response.ok) throw new Error('تعذر حفظ الإعدادات')
       setSettings(normalizeSettings(await response.json()))
+      await refreshTenants()
       showToast('تم حفظ الإعدادات', 'success')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'تعذر حفظ الإعدادات', 'warning')

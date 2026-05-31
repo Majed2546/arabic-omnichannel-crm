@@ -62,7 +62,7 @@ export function LocalTestContextSwitcher() {
         >
           {tenants.map((tenant) => (
             <option key={tenant.id} value={tenant.id}>
-              {tenant.name}
+              {tenant.displayName ?? tenant.name}
             </option>
           ))}
         </AppSelect>

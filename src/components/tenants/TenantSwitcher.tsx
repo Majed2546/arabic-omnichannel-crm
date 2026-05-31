@@ -19,7 +19,7 @@ export function TenantSwitcher() {
       >
         {tenants.map((tenant) => (
           <option key={tenant.id} value={tenant.id} disabled={!canAccessTenant(tenant.id)}>
-            {tenant.name}
+            {tenant.displayName ?? tenant.name}
           </option>
         ))}
       </AppSelect>

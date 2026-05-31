@@ -118,7 +118,7 @@ export default function DashboardPage() {
         <Card>
           <PageHeader
             title="مؤشرات الأداء الرئيسية"
-            description={`نظرة خاصة بحساب ${currentTenant?.name ?? 'المستأجر الحالي'} على أداء الدعم والقنوات.`}
+            description={`نظرة خاصة بحساب ${currentTenant?.displayName ?? currentTenant?.name ?? 'المستأجر الحالي'} على أداء الدعم والقنوات.`}
           />
           <div className="stats-grid">
             <StatCard value={metrics.activeConversations} label="محادثات نشطة" />

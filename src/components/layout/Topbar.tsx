@@ -89,7 +89,7 @@ export function Topbar() {
         <NotificationCenter />
         <TopbarControl className="tenant-chip card-safe">
           <small>الحساب الحالي</small>
-          <strong className="text-safe">{currentTenant?.name ?? 'غير محدد'}</strong>
+          <strong className="text-safe">{currentTenant?.displayName ?? currentTenant?.name ?? 'غير محدد'}</strong>
         </TopbarControl>
         <UserCard
           name={user?.name ?? 'ضيف'}
