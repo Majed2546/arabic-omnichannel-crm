@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck, Eye, Inbox, Trash2 } from 'lucide-react'
+import { LOCAL_TEST_CONTEXT_EVENT } from '../../auth/localTestContext'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
 import { AppCard } from '../../components/ui/AppCard'
@@ -81,7 +82,11 @@ export default function NotificationsPage() {
   }, [filter, type])
 
   function loadNotifications() {
-    if (!currentTenantId) return
+    if (!currentTenantId) {
+      setNotifications([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     fetchNotifications(filters)
       .then(setNotifications)
@@ -90,30 +95,68 @@ export default function NotificationsPage() {
   }
 
   useEffect(() => {
+    setNotifications([])
     loadNotifications()
+    const interval = window.setInterval(loadNotifications, 15_000)
+    return () => window.clearInterval(interval)
   }, [currentTenantId, filters])
 
+  useEffect(() => {
+    function handleContextChange() {
+      setNotifications([])
+      window.setTimeout(loadNotifications, 0)
+    }
+
+    window.addEventListener(LOCAL_TEST_CONTEXT_EVENT, handleContextChange)
+    window.addEventListener('storage', handleContextChange)
+    return () => {
+      window.removeEventListener(LOCAL_TEST_CONTEXT_EVENT, handleContextChange)
+      window.removeEventListener('storage', handleContextChange)
+    }
+  }, [filters, currentTenantId])
+
   async function markRead(notification: ApiNotification) {
-    await markNotificationRead(notification.id)
-    loadNotifications()
+    setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, status: 'READ', readAt: new Date().toISOString() } : item))
+    try {
+      await markNotificationRead(notification.id)
+      loadNotifications()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر تعليم الإشعار كمقروء', 'warning')
+      loadNotifications()
+    }
   }
 
   async function archive(notification: ApiNotification) {
-    await archiveNotification(notification.id)
-    loadNotifications()
+    setNotifications((items) => items.filter((item) => item.id !== notification.id))
+    try {
+      await archiveNotification(notification.id)
+      loadNotifications()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر أرشفة الإشعار', 'warning')
+      loadNotifications()
+    }
   }
 
   async function openNotification(notification: ApiNotification) {
-    if (notification.status === 'UNREAD') await markNotificationRead(notification.id)
+    if (notification.status === 'UNREAD') {
+      setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, status: 'READ', readAt: new Date().toISOString() } : item))
+      await markNotificationRead(notification.id)
+    }
     const path = targetPath(notification)
     if (path) navigate(path)
     else loadNotifications()
   }
 
   async function readAll() {
-    await markAllNotificationsRead()
-    loadNotifications()
-    showToast('تم تعليم كل الإشعارات كمقروءة', 'success')
+    setNotifications((items) => items.map((item) => ({ ...item, status: 'READ', readAt: item.readAt ?? new Date().toISOString() })))
+    try {
+      await markAllNotificationsRead()
+      loadNotifications()
+      showToast('تم تعليم كل الإشعارات كمقروءة', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر تحديث الإشعارات', 'warning')
+      loadNotifications()
+    }
   }
 
   async function testNotification() {
