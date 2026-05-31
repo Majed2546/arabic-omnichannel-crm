@@ -38,6 +38,7 @@ type RestConversation = {
   customer?: RestCustomer | null
   channel?: RestChannel | null
   assignedUser?: { id: string; name: string } | null
+  assignedTeam?: { id: string; name: string } | null
   queue?: { name: string } | null
 }
 
@@ -145,7 +146,7 @@ function mapConversation(conversation: RestConversation, messages: RestMessage[]
     assignee: {
       id: conversation.assignedUser?.id ?? 'unassigned',
       name: conversation.assignedUser?.name ?? 'غير مسند',
-      team: resolveQueue(conversation.queue?.name),
+      team: conversation.assignedTeam?.name ?? resolveQueue(conversation.queue?.name),
       presence: (conversation.assignedUser ? 'online' : 'offline') as AgentPresence,
     },
     updatedAt,
@@ -154,8 +155,8 @@ function mapConversation(conversation: RestConversation, messages: RestMessage[]
   }
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await apiFetch(apiUrl(path))
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await apiFetch(apiUrl(path), init)
   if (!response.ok) {
     const detail = await response.text().catch(() => '')
     throw new Error(`REST request failed: ${response.status}${detail ? ` ${detail}` : ''}`)
@@ -173,4 +174,12 @@ export async function fetchInboxConversations(): Promise<Conversation[]> {
   )
 
   return conversationsWithMessages
+}
+
+export async function assignInboxConversation(conversationId: string, payload: { assignedUserId?: string; assignedTeamId?: string }) {
+  await fetchJson<RestConversation>(`/conversations/${conversationId}/assign`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
 }

@@ -23,6 +23,7 @@ const pageTitles: Record<string, string> = {
   '/workflows': 'الأتمتة',
   '/reports': 'التقارير',
   '/billing': 'الاشتراكات والباقات',
+  '/teams': 'الفرق',
   '/integrations/meta': 'إعدادات Meta',
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',

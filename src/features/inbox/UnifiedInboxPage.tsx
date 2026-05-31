@@ -5,11 +5,12 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { useUiStore } from '../../stores/uiStore'
 import { useAuth } from '../../auth/useAuth'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
 import { useTenant } from '../../tenants/useTenant'
 import { realtimeEventBus } from '../../modules/realtime/eventBus'
 import { ConversationCard } from './ConversationCard'
 import { useInboxStore } from './inboxStore'
-import { fetchInboxConversations } from './inboxRest'
+import { assignInboxConversation, fetchInboxConversations } from './inboxRest'
 import { sendConversationWhatsAppMessage } from './inboxSend'
 import { fetchQuickReplies, fetchWhatsAppTemplates, type QuickReply, type WhatsAppTemplate } from '../templates/templateData'
 import {
@@ -21,6 +22,18 @@ import {
 } from './inboxMock'
 
 type InboxFilter = 'all' | 'unread' | 'pending' | 'resolved' | 'unclassified'
+
+type AssignmentUser = {
+  id: string
+  name: string
+  email?: string
+}
+
+type AssignmentTeam = {
+  id: string
+  name: string
+  isActive?: boolean
+}
 
 const priorityLabels: Record<ConversationPriority, string> = {
   VIP: 'VIP',
@@ -121,6 +134,11 @@ export default function UnifiedInboxPage() {
   const [profilePopupOpen, setProfilePopupOpen] = useState(false)
   const [quickRepliesOpen, setQuickRepliesOpen] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [assignmentModalOpen, setAssignmentModalOpen] = useState(false)
+  const [assignmentUsers, setAssignmentUsers] = useState<AssignmentUser[]>([])
+  const [assignmentTeams, setAssignmentTeams] = useState<AssignmentTeam[]>([])
+  const [assignmentUserId, setAssignmentUserId] = useState('')
+  const [assignmentTeamId, setAssignmentTeamId] = useState('')
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([])
   const [approvedTemplates, setApprovedTemplates] = useState<WhatsAppTemplate[]>([])
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
@@ -223,6 +241,8 @@ export default function UnifiedInboxPage() {
     if (!currentTenantId) {
       setQuickReplies([])
       setApprovedTemplates([])
+      setAssignmentUsers([])
+      setAssignmentTeams([])
       return
     }
 
@@ -238,6 +258,24 @@ export default function UnifiedInboxPage() {
         if (!disposed) setApprovedTemplates(items)
       })
       .catch(() => undefined)
+
+    apiFetch(apiUrl('/users?userType=AGENT,CONSULTANT,SUPERVISOR&status=ACTIVE'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((items) => {
+        if (!disposed) setAssignmentUsers(Array.isArray(items) ? items : [])
+      })
+      .catch(() => {
+        if (!disposed) setAssignmentUsers([])
+      })
+
+    apiFetch(apiUrl('/teams'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((items) => {
+        if (!disposed) setAssignmentTeams(Array.isArray(items) ? items.filter((team: AssignmentTeam) => team.isActive !== false) : [])
+      })
+      .catch(() => {
+        if (!disposed) setAssignmentTeams([])
+      })
 
     return () => {
       disposed = true
@@ -383,6 +421,30 @@ export default function UnifiedInboxPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     void submitComposer()
+  }
+
+  function openAssignmentModal() {
+    if (!selectedConversation) return
+    setAssignmentUserId(selectedConversation.assignee.id === 'unassigned' ? '' : selectedConversation.assignee.id)
+    setAssignmentTeamId('')
+    setAssignmentModalOpen(true)
+  }
+
+  async function saveAssignment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selectedConversation) return
+    try {
+      await assignInboxConversation(selectedConversation.id, {
+        assignedUserId: assignmentUserId || undefined,
+        assignedTeamId: assignmentTeamId || undefined,
+      })
+      const items = await fetchInboxConversations()
+      replaceConversations(items)
+      setAssignmentModalOpen(false)
+      showToast('تم إسناد المحادثة', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر إسناد المحادثة', 'warning')
+    }
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -713,6 +775,11 @@ export default function UnifiedInboxPage() {
                   <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?customerId=${selectedConversation.customerId}`}>
                     فتح ملف العميل
                   </Link>
+                  {canAssign ? (
+                    <AppButton variant="secondary" onClick={openAssignmentModal}>
+                      إسناد المحادثة
+                    </AppButton>
+                  ) : null}
                   {canManageAppointments ? (
                     <Link className="app-button app-button-secondary control-safe text-safe" to={`/appointments?new=1&customerId=${selectedConversation.customerId}&conversationId=${selectedConversation.id}&customerName=${encodeURIComponent(selectedConversation.customerName)}`}>
                       حجز موعد
@@ -729,6 +796,11 @@ export default function UnifiedInboxPage() {
                   <Link className="app-button app-button-secondary control-safe text-safe" to={`/customers?new=1&phone=${encodeURIComponent(selectedConversation.customerPhone)}&name=${encodeURIComponent(selectedConversation.customerName)}`}>
                     إنشاء عميل من المحادثة
                   </Link>
+                  {canAssign ? (
+                    <AppButton variant="secondary" onClick={openAssignmentModal}>
+                      إسناد المحادثة
+                    </AppButton>
+                  ) : null}
                   {canManageTickets ? (
                     <Link className="app-button app-button-secondary control-safe text-safe" to={`/tickets?new=1&conversationId=${selectedConversation.id}&customerName=${encodeURIComponent(selectedConversation.customerName)}`}>
                       إنشاء تذكرة
@@ -809,6 +881,39 @@ export default function UnifiedInboxPage() {
           </div>
           <AppButton variant="secondary" onClick={() => handleTemplatePlaceholder()}>إرسال قالب لاحقًا</AppButton>
         </section>
+      </div>
+    ) : null}
+    {assignmentModalOpen && selectedConversation ? (
+      <div className="modal-backdrop" role="presentation">
+        <form className="customer-modal panel-panel inbox-picker-modal" role="dialog" aria-modal="true" aria-label="إسناد المحادثة" onSubmit={saveAssignment}>
+          <div className="panel-header split-header">
+            <div>
+              <h2>إسناد المحادثة</h2>
+              <p>{selectedConversation.customerName} · اختر مسؤولاً أو فريقاً داخل الشركة الحالية.</p>
+            </div>
+            <AppButton type="button" variant="ghost" onClick={() => setAssignmentModalOpen(false)}>إغلاق</AppButton>
+          </div>
+          <div className="customer-form-grid">
+            <label>
+              <span>المسؤول</span>
+              <select className="app-select" value={assignmentUserId} onChange={(event) => setAssignmentUserId(event.target.value)}>
+                <option value="">غير مسند لموظف</option>
+                {assignmentUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.email || user.id}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>الفريق</span>
+              <select className="app-select" value={assignmentTeamId} onChange={(event) => setAssignmentTeamId(event.target.value)}>
+                <option value="">غير مسند لفريق</option>
+                {assignmentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="form-actions">
+            <AppButton type="button" variant="ghost" onClick={() => setAssignmentModalOpen(false)}>إلغاء</AppButton>
+            <AppButton type="submit" variant="primary">حفظ الإسناد</AppButton>
+          </div>
+        </form>
       </div>
     ) : null}
     </>

@@ -3,7 +3,7 @@ import { CurrentUser } from '../../decorators/current-user.decorator'
 import { TenantAccessService } from '../../common/tenant-access.service'
 import { RequirePermissions } from '../auth/auth.decorators'
 import type { AuthenticatedUser } from '../auth/auth.types'
-import { ListTicketsQueryDto, SaveTicketDto, UpdateTicketStatusDto } from './dto'
+import { AssignTicketDto, ListTicketsQueryDto, SaveTicketDto, UpdateTicketStatusDto } from './dto'
 import { TicketsService } from './tickets.service'
 
 @RequirePermissions('tickets.view')
@@ -45,6 +45,12 @@ export class TicketsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.tickets.updateStatus(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id, dto.status)
+  }
+
+  @Patch(':id/assign')
+  @RequirePermissions('tickets.manage')
+  assign(@Headers('x-tenant-id') tenantId: string | undefined, @Param('id') id: string, @Body() dto: AssignTicketDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.tickets.assign(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id, dto)
   }
 
   @Delete(':id')

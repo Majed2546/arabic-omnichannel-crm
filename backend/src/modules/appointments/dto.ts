@@ -30,6 +30,10 @@ export class ListAppointmentsQueryDto {
   @IsOptional()
   @IsString()
   assignedUserId?: string
+
+  @IsOptional()
+  @IsString()
+  assignedTeamId?: string
 }
 
 export class SaveAppointmentDto {
@@ -43,6 +47,10 @@ export class SaveAppointmentDto {
   @IsOptional()
   @IsString()
   assignedUserId?: string
+
+  @IsOptional()
+  @IsString()
+  assignedTeamId?: string
 
   @IsString()
   @MaxLength(180)
@@ -85,4 +93,14 @@ export class SaveAppointmentDto {
 export class UpdateAppointmentStatusDto {
   @IsEnum(AppointmentStatusDto)
   status!: AppointmentStatusDto
+}
+
+export class AssignAppointmentDto {
+  @IsOptional()
+  @IsString()
+  assignedUserId?: string
+
+  @IsOptional()
+  @IsString()
+  assignedTeamId?: string
 }

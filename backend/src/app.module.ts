@@ -32,6 +32,7 @@ import { BillingModule } from './modules/billing/billing.module'
 import { MetaModule } from './modules/meta/meta.module'
 import { SettingsModule } from './modules/settings/settings.module'
 import { RolesModule } from './modules/roles/roles.module'
+import { TeamsModule } from './modules/teams/teams.module'
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { RolesModule } from './modules/roles/roles.module'
     MetaModule,
     SettingsModule,
     RolesModule,
+    TeamsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

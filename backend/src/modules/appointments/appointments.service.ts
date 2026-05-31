@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
-import type { ListAppointmentsQueryDto, SaveAppointmentDto } from './dto'
+import type { AssignAppointmentDto, ListAppointmentsQueryDto, SaveAppointmentDto } from './dto'
 
 function cuid(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
@@ -19,6 +19,7 @@ function appointmentSelectSql() {
     a.customer_id AS "customerId",
     a.conversation_id AS "conversationId",
     a.assigned_user_id AS "assignedUserId",
+    a.assigned_team_id AS "assignedTeamId",
     a.title,
     a.description,
     a.start_at AS "startAt",
@@ -33,8 +34,8 @@ function appointmentSelectSql() {
     c.name AS "customerName",
     c.phone AS "customerPhone",
     c.email AS "customerEmail",
-    u.name AS "assignedUserName"
-    ,
+    u.name AS "assignedUserName",
+    tm.name AS "assignedTeamName",
     m.id AS "visualMeetingId",
     m.provider AS "meetingProvider",
     m.meeting_link AS "visualMeetingLink",
@@ -51,6 +52,7 @@ export class AppointmentsService {
     if (query.status) conditions.push(Prisma.sql`a.status = ${query.status}::"AppointmentStatus"`)
     if (query.customerId) conditions.push(Prisma.sql`a.customer_id = ${query.customerId}`)
     if (query.assignedUserId) conditions.push(Prisma.sql`a.assigned_user_id = ${query.assignedUserId}`)
+    if (query.assignedTeamId) conditions.push(Prisma.sql`a.assigned_team_id = ${query.assignedTeamId}`)
     if (query.date) {
       const start = new Date(query.date)
       if (Number.isNaN(start.getTime())) throw new BadRequestException('Invalid date')
@@ -65,6 +67,7 @@ export class AppointmentsService {
       FROM appointments a
       JOIN customers c ON c.id = a.customer_id AND c.tenant_id = a.tenant_id
       LEFT JOIN users u ON u.id = a.assigned_user_id AND u.tenant_id = a.tenant_id
+      LEFT JOIN teams tm ON tm.id = a.assigned_team_id AND tm.tenant_id = a.tenant_id
       LEFT JOIN meetings m ON m.appointment_id = a.id AND m.tenant_id = a.tenant_id AND m.deleted_at IS NULL
       WHERE ${Prisma.join(conditions, ' AND ')}
       ORDER BY a.start_at ASC
@@ -78,6 +81,7 @@ export class AppointmentsService {
       FROM appointments a
       JOIN customers c ON c.id = a.customer_id AND c.tenant_id = a.tenant_id
       LEFT JOIN users u ON u.id = a.assigned_user_id AND u.tenant_id = a.tenant_id
+      LEFT JOIN teams tm ON tm.id = a.assigned_team_id AND tm.tenant_id = a.tenant_id
       LEFT JOIN meetings m ON m.appointment_id = a.id AND m.tenant_id = a.tenant_id AND m.deleted_at IS NULL
       WHERE a.id = ${id} AND a.tenant_id = ${tenantId} AND a.deleted_at IS NULL
       LIMIT 1
@@ -92,7 +96,7 @@ export class AppointmentsService {
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       INSERT INTO appointments (
-        id, tenant_id, customer_id, conversation_id, assigned_user_id, title, description,
+        id, tenant_id, customer_id, conversation_id, assigned_user_id, assigned_team_id, title, description,
         start_at, end_at, status, meeting_type, meeting_link, location, notes, updated_at
       )
       VALUES (
@@ -101,6 +105,7 @@ export class AppointmentsService {
         ${dto.customerId},
         ${blankToNull(dto.conversationId)},
         ${blankToNull(dto.assignedUserId)},
+        ${blankToNull(dto.assignedTeamId)},
         ${dto.title.trim()},
         ${blankToNull(dto.description)},
         ${startAt},
@@ -129,6 +134,7 @@ export class AppointmentsService {
         customer_id = ${dto.customerId},
         conversation_id = ${blankToNull(dto.conversationId)},
         assigned_user_id = ${blankToNull(dto.assignedUserId)},
+        assigned_team_id = ${blankToNull(dto.assignedTeamId)},
         title = ${dto.title.trim()},
         description = ${blankToNull(dto.description)},
         start_at = ${startAt},
@@ -150,6 +156,17 @@ export class AppointmentsService {
     await this.prisma.$executeRaw(Prisma.sql`
       UPDATE appointments
       SET status = ${status}::"AppointmentStatus", updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
+    `)
+    return this.findById(tenantId, id)
+  }
+
+  async assign(tenantId: string, id: string, dto: AssignAppointmentDto) {
+    await this.findById(tenantId, id)
+    await this.validateAssignment(tenantId, dto)
+    await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE appointments
+      SET assigned_user_id = ${blankToNull(dto.assignedUserId)}, assigned_team_id = ${blankToNull(dto.assignedTeamId)}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
     `)
     return this.findById(tenantId, id)
@@ -196,6 +213,18 @@ export class AppointmentsService {
         select: { id: true },
       })
       if (!user) throw new BadRequestException('Assigned user does not belong to current tenant')
+    }
+    await this.validateAssignment(tenantId, dto)
+  }
+
+  private async validateAssignment(tenantId: string, dto: { assignedUserId?: string; assignedTeamId?: string }) {
+    if (dto.assignedUserId) {
+      const user = await this.prisma.user.findFirst({ where: { id: dto.assignedUserId, tenantId, deletedAt: null }, select: { id: true } })
+      if (!user) throw new BadRequestException('Assigned user does not belong to current tenant')
+    }
+    if (dto.assignedTeamId) {
+      const team = await this.prisma.team.findFirst({ where: { id: dto.assignedTeamId, tenantId, deletedAt: null, isActive: true }, select: { id: true } })
+      if (!team) throw new BadRequestException('Assigned team does not belong to current tenant')
     }
   }
 }

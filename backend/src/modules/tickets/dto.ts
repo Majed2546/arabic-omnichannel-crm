@@ -34,6 +34,10 @@ export class ListTicketsQueryDto {
 
   @IsOptional()
   @IsString()
+  assignedTeamId?: string
+
+  @IsOptional()
+  @IsString()
   customerId?: string
 }
 
@@ -49,6 +53,10 @@ export class SaveTicketDto {
   @IsOptional()
   @IsString()
   assignedUserId?: string
+
+  @IsOptional()
+  @IsString()
+  assignedTeamId?: string
 
   @IsString()
   @MaxLength(180)
@@ -85,4 +93,14 @@ export class SaveTicketDto {
 export class UpdateTicketStatusDto {
   @IsEnum(TicketStatusDto)
   status!: TicketStatusDto
+}
+
+export class AssignTicketDto {
+  @IsOptional()
+  @IsString()
+  assignedUserId?: string
+
+  @IsOptional()
+  @IsString()
+  assignedTeamId?: string
 }

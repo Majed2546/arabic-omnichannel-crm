@@ -70,3 +70,13 @@ export class UpdateConversationSummaryDto {
   @IsDateString()
   slaDeadline?: string
 }
+
+export class AssignConversationDto {
+  @IsOptional()
+  @IsString()
+  assignedUserId?: string
+
+  @IsOptional()
+  @IsString()
+  assignedTeamId?: string
+}

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
-import type { ListTicketsQueryDto, SaveTicketDto } from './dto'
+import type { AssignTicketDto, ListTicketsQueryDto, SaveTicketDto } from './dto'
 
 function cuid(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
@@ -23,6 +23,7 @@ function ticketSelectSql() {
     t.customer_id AS "customerId",
     t.conversation_id AS "conversationId",
     t.assigned_user_id AS "assignedUserId",
+    t.assigned_team_id AS "assignedTeamId",
     t.title,
     t.description,
     t.status,
@@ -37,7 +38,8 @@ function ticketSelectSql() {
     c.email AS "customerEmail",
     cv.last_message_preview AS "conversationPreview",
     cv.status AS "conversationStatus",
-    u.name AS "assignedUserName"
+    u.name AS "assignedUserName",
+    tm.name AS "assignedTeamName"
   `
 }
 
@@ -51,6 +53,7 @@ export class TicketsService {
     if (query.priority) conditions.push(Prisma.sql`t.priority = ${query.priority}::"TicketPriority"`)
     if (query.category?.trim()) conditions.push(Prisma.sql`t.category = ${query.category.trim()}`)
     if (query.assignedUserId) conditions.push(Prisma.sql`t.assigned_user_id = ${query.assignedUserId}`)
+    if (query.assignedTeamId) conditions.push(Prisma.sql`t.assigned_team_id = ${query.assignedTeamId}`)
     if (query.customerId) conditions.push(Prisma.sql`t.customer_id = ${query.customerId}`)
 
     return this.prisma.$queryRaw(Prisma.sql`
@@ -59,6 +62,7 @@ export class TicketsService {
       LEFT JOIN customers c ON c.id = t.customer_id AND c.tenant_id = t.tenant_id
       LEFT JOIN conversations cv ON cv.id = t.conversation_id AND cv.tenant_id = t.tenant_id
       LEFT JOIN users u ON u.id = t.assigned_user_id AND u.tenant_id = t.tenant_id
+      LEFT JOIN teams tm ON tm.id = t.assigned_team_id AND tm.tenant_id = t.tenant_id
       WHERE ${Prisma.join(conditions, ' AND ')}
       ORDER BY t.updated_at DESC, t.created_at DESC
       LIMIT 300
@@ -72,6 +76,7 @@ export class TicketsService {
       LEFT JOIN customers c ON c.id = t.customer_id AND c.tenant_id = t.tenant_id
       LEFT JOIN conversations cv ON cv.id = t.conversation_id AND cv.tenant_id = t.tenant_id
       LEFT JOIN users u ON u.id = t.assigned_user_id AND u.tenant_id = t.tenant_id
+      LEFT JOIN teams tm ON tm.id = t.assigned_team_id AND tm.tenant_id = t.tenant_id
       WHERE t.id = ${id} AND t.tenant_id = ${tenantId} AND t.deleted_at IS NULL
       LIMIT 1
     `) as unknown[]
@@ -86,7 +91,7 @@ export class TicketsService {
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       INSERT INTO tickets (
-        id, tenant_id, customer_id, conversation_id, assigned_user_id, title, description,
+        id, tenant_id, customer_id, conversation_id, assigned_user_id, assigned_team_id, title, description,
         status, priority, category, tags, due_at, updated_at
       )
       VALUES (
@@ -95,6 +100,7 @@ export class TicketsService {
         ${blankToNull(dto.customerId)},
         ${blankToNull(dto.conversationId)},
         ${blankToNull(dto.assignedUserId)},
+        ${blankToNull(dto.assignedTeamId)},
         ${dto.title.trim()},
         ${blankToNull(dto.description)},
         ${dto.status ?? 'OPEN'}::"TicketStatus",
@@ -122,6 +128,7 @@ export class TicketsService {
         customer_id = ${blankToNull(dto.customerId)},
         conversation_id = ${blankToNull(dto.conversationId)},
         assigned_user_id = ${blankToNull(dto.assignedUserId)},
+        assigned_team_id = ${blankToNull(dto.assignedTeamId)},
         title = ${dto.title.trim()},
         description = ${blankToNull(dto.description)},
         status = ${dto.status ?? 'OPEN'}::"TicketStatus",
@@ -141,6 +148,17 @@ export class TicketsService {
     await this.prisma.$executeRaw(Prisma.sql`
       UPDATE tickets
       SET status = ${status}::"TicketStatus", updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
+    `)
+    return this.findById(tenantId, id)
+  }
+
+  async assign(tenantId: string, id: string, dto: AssignTicketDto) {
+    await this.findById(tenantId, id)
+    await this.validateAssignment(tenantId, dto)
+    await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE tickets
+      SET assigned_user_id = ${blankToNull(dto.assignedUserId)}, assigned_team_id = ${blankToNull(dto.assignedTeamId)}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
     `)
     return this.findById(tenantId, id)
@@ -178,6 +196,18 @@ export class TicketsService {
     if (dto.assignedUserId) {
       const user = await this.prisma.user.findFirst({ where: { id: dto.assignedUserId, tenantId, deletedAt: null }, select: { id: true } })
       if (!user) throw new BadRequestException('Assigned user does not belong to current tenant')
+    }
+    await this.validateAssignment(tenantId, dto)
+  }
+
+  private async validateAssignment(tenantId: string, dto: { assignedUserId?: string; assignedTeamId?: string }) {
+    if (dto.assignedUserId) {
+      const user = await this.prisma.user.findFirst({ where: { id: dto.assignedUserId, tenantId, deletedAt: null }, select: { id: true } })
+      if (!user) throw new BadRequestException('Assigned user does not belong to current tenant')
+    }
+    if (dto.assignedTeamId) {
+      const team = await this.prisma.team.findFirst({ where: { id: dto.assignedTeamId, tenantId, deletedAt: null, isActive: true }, select: { id: true } })
+      if (!team) throw new BadRequestException('Assigned team does not belong to current tenant')
     }
   }
 }

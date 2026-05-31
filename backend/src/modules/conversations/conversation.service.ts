@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { ConversationPriority, ConversationStatus, Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
-import type { CreateConversationDto, ListConversationsQueryDto, UpdateConversationSummaryDto } from './dto'
+import type { AssignConversationDto, CreateConversationDto, ListConversationsQueryDto, UpdateConversationSummaryDto } from './dto'
 
 type PrismaTx = Prisma.TransactionClient
 
@@ -16,6 +16,7 @@ export class ConversationService {
         channelId: dto.channelId,
         customerId: dto.customerId,
         assignedUserId: dto.assignedUserId,
+        assignedTeamId: (dto as CreateConversationDto & { assignedTeamId?: string }).assignedTeamId,
         queueId: dto.queueId,
         status: dto.status ?? ConversationStatus.OPEN,
         priority: dto.priority ?? ConversationPriority.NORMAL,
@@ -56,6 +57,19 @@ export class ConversationService {
         unreadCount: dto.unreadCount,
         slaDeadline: dto.slaDeadline ? new Date(dto.slaDeadline) : undefined,
       },
+    })
+  }
+
+  async assign(tenantId: string, id: string, dto: AssignConversationDto) {
+    await this.findById(tenantId, id)
+    await this.validateAssignment(tenantId, dto)
+    return this.prisma.conversation.update({
+      where: { id, tenantId },
+      data: {
+        assignedUserId: dto.assignedUserId?.trim() || null,
+        assignedTeamId: dto.assignedTeamId?.trim() || null,
+      },
+      include: this.includeSummary(),
     })
   }
 
@@ -156,8 +170,20 @@ export class ConversationService {
       channel: true,
       customer: true,
       assignedUser: true,
+      assignedTeam: true,
       queue: true,
       _count: { select: { messages: true, notifications: true } },
     } satisfies Prisma.ConversationInclude
+  }
+
+  private async validateAssignment(tenantId: string, dto: AssignConversationDto) {
+    if (dto.assignedUserId) {
+      const user = await this.prisma.user.findFirst({ where: { id: dto.assignedUserId, tenantId, deletedAt: null }, select: { id: true } })
+      if (!user) throw new BadRequestException('Assigned user does not belong to current tenant')
+    }
+    if (dto.assignedTeamId) {
+      const team = await this.prisma.team.findFirst({ where: { id: dto.assignedTeamId, tenantId, deletedAt: null, isActive: true }, select: { id: true } })
+      if (!team) throw new BadRequestException('Assigned team does not belong to current tenant')
+    }
   }
 }

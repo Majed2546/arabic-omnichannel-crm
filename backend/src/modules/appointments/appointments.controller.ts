@@ -4,7 +4,7 @@ import { TenantAccessService } from '../../common/tenant-access.service'
 import { RequirePermissions } from '../auth/auth.decorators'
 import type { AuthenticatedUser } from '../auth/auth.types'
 import { AppointmentsService } from './appointments.service'
-import { ListAppointmentsQueryDto, SaveAppointmentDto, UpdateAppointmentStatusDto } from './dto'
+import { AssignAppointmentDto, ListAppointmentsQueryDto, SaveAppointmentDto, UpdateAppointmentStatusDto } from './dto'
 
 @RequirePermissions('appointments.view')
 @Controller('appointments')
@@ -45,6 +45,12 @@ export class AppointmentsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.appointments.updateStatus(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id, dto.status)
+  }
+
+  @Patch(':id/assign')
+  @RequirePermissions('appointments.manage')
+  assign(@Headers('x-tenant-id') tenantId: string | undefined, @Param('id') id: string, @Body() dto: AssignAppointmentDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.appointments.assign(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id, dto)
   }
 
   @Delete(':id')

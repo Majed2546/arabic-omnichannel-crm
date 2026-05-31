@@ -10450,6 +10450,136 @@ body:has(.inbox-layout) {
   color: #92400e;
 }
 
+.teams-page {
+  gap: 14px;
+}
+
+.teams-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 14px;
+  align-items: start;
+}
+
+.teams-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.team-card {
+  display: grid;
+  gap: 10px;
+}
+
+.team-card.active {
+  border-color: rgba(14, 165, 233, 0.34);
+}
+
+.team-card > button {
+  display: grid;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: right;
+  padding: 0;
+}
+
+.team-card strong,
+.team-members-panel h2 {
+  color: var(--saas-navy);
+}
+
+.team-card span,
+.team-card p,
+.team-card dt,
+.team-member-list small {
+  color: var(--saas-muted);
+}
+
+.team-card p,
+.team-card dl {
+  margin: 0;
+}
+
+.team-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.team-card dt,
+.team-card dd {
+  margin: 0;
+}
+
+.team-card dd {
+  color: var(--saas-navy);
+  font-weight: 900;
+}
+
+.team-card footer,
+.team-member-add,
+.team-member-list article {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.team-card footer {
+  justify-content: flex-end;
+}
+
+.team-members-panel,
+.team-member-list {
+  display: grid;
+  gap: 12px;
+}
+
+.team-member-add {
+  align-items: stretch;
+}
+
+.team-member-add .app-select {
+  min-width: 150px;
+  flex: 1;
+}
+
+.team-member-list article {
+  justify-content: space-between;
+  padding: 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: 10px;
+  background: var(--saas-soft);
+}
+
+.team-member-list strong,
+.team-member-list small {
+  display: block;
+}
+
+.team-modal {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.team-modal label {
+  display: grid;
+  gap: 7px;
+  color: var(--saas-navy);
+  font-weight: 800;
+}
+
+.team-modal textarea {
+  min-height: 110px;
+  resize: vertical;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  padding: 12px;
+  font: inherit;
+}
+
 .settings-page {
   gap: 14px;
 }
@@ -10611,6 +10741,7 @@ body:has(.inbox-layout) {
   .appointments-layout,
   .appointments-filters,
   .roles-layout,
+  .teams-layout,
   .users-filters,
   .tickets-filters,
   .automation-summary-grid,
@@ -10627,6 +10758,7 @@ body:has(.inbox-layout) {
 
   .appointment-card dl,
   .permissions-group-grid,
+  .teams-card-grid,
   .users-card-grid,
   .ticket-card-grid,
   .automation-rule-grid,

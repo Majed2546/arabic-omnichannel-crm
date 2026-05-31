@@ -9,6 +9,7 @@ export type Ticket = {
   customerId?: string | null
   conversationId?: string | null
   assignedUserId?: string | null
+  assignedTeamId?: string | null
   title: string
   description?: string | null
   status: TicketStatus
@@ -24,12 +25,14 @@ export type Ticket = {
   conversationPreview?: string | null
   conversationStatus?: string | null
   assignedUserName?: string | null
+  assignedTeamName?: string | null
 }
 
 export type TicketPayload = {
   customerId?: string
   conversationId?: string
   assignedUserId?: string
+  assignedTeamId?: string
   title: string
   description?: string
   status?: TicketStatus
@@ -47,13 +50,14 @@ export async function parseResponse<T>(response: Response, fallback: string): Pr
   return response.json() as Promise<T>
 }
 
-export async function fetchTickets(filters: { status?: string; priority?: string; category?: string; customerId?: string; assignedUserId?: string } = {}) {
+export async function fetchTickets(filters: { status?: string; priority?: string; category?: string; customerId?: string; assignedUserId?: string; assignedTeamId?: string } = {}) {
   const params = new URLSearchParams()
   if (filters.status) params.set('status', filters.status)
   if (filters.priority) params.set('priority', filters.priority)
   if (filters.category) params.set('category', filters.category)
   if (filters.customerId) params.set('customerId', filters.customerId)
   if (filters.assignedUserId) params.set('assignedUserId', filters.assignedUserId)
+  if (filters.assignedTeamId) params.set('assignedTeamId', filters.assignedTeamId)
   const query = params.toString()
   return parseResponse<Ticket[]>(await apiFetch(apiUrl(`/tickets${query ? `?${query}` : ''}`)), 'تعذر تحميل التذاكر')
 }

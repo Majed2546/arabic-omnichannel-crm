@@ -9,6 +9,7 @@ export type Appointment = {
   customerId: string
   conversationId?: string | null
   assignedUserId?: string | null
+  assignedTeamId?: string | null
   title: string
   description?: string | null
   startAt: string
@@ -28,12 +29,14 @@ export type Appointment = {
   customerPhone?: string | null
   customerEmail?: string | null
   assignedUserName?: string | null
+  assignedTeamName?: string | null
 }
 
 export type AppointmentPayload = {
   customerId: string
   conversationId?: string
   assignedUserId?: string
+  assignedTeamId?: string
   title: string
   description?: string
   startAt: string
@@ -50,6 +53,7 @@ export type AppointmentFilters = {
   status?: string
   customerId?: string
   assignedUserId?: string
+  assignedTeamId?: string
 }
 
 async function parseResponse<T>(response: Response, fallback: string): Promise<T> {
@@ -66,6 +70,7 @@ function buildQuery(filters: AppointmentFilters) {
   if (filters.status) params.set('status', filters.status)
   if (filters.customerId) params.set('customerId', filters.customerId)
   if (filters.assignedUserId) params.set('assignedUserId', filters.assignedUserId)
+  if (filters.assignedTeamId) params.set('assignedTeamId', filters.assignedTeamId)
   return params.toString()
 }
 

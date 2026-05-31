@@ -48,6 +48,7 @@ const navigation: Array<{
   { path: '/channels', label: 'القنوات', icon: Cable, allowedRoles: ['admin', 'support', 'analyst'], permission: 'channels.view' },
   { path: '/templates', label: 'القوالب والردود', icon: MessageSquareText, allowedRoles: ['admin', 'support', 'analyst'], permission: 'templates.view' },
   { path: '/users', label: 'المستخدمون', icon: Users, allowedRoles: ['admin'], permission: 'users.view' },
+  { path: '/teams', label: 'الفرق', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },
   { path: '/tenants', label: 'المستشارون والوكلاء', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },
   { path: '/automation', label: 'الأتمتة', icon: Bot, allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
   { path: '/reports', label: 'التقارير', icon: BarChart3, allowedRoles: ['admin', 'analyst'], permission: 'reports.view' },

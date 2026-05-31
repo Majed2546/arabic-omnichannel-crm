@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common'
 import { CurrentUser } from '../../decorators/current-user.decorator'
 import { TenantAccessService } from '../../common/tenant-access.service'
 import type { AuthenticatedUser } from '../auth/auth.types'
 import { ConversationService } from './conversation.service'
-import { CreateConversationDto, ListConversationsQueryDto } from './dto'
+import { AssignConversationDto, CreateConversationDto, ListConversationsQueryDto } from './dto'
 import { RequirePermissions } from '../auth/auth.decorators'
 
 @RequirePermissions('inbox.view')
@@ -33,5 +33,11 @@ export class ConversationsController {
   create(@Body() dto: CreateConversationDto, @Headers('x-tenant-id') tenantId: string, @CurrentUser() user: AuthenticatedUser) {
     const scopedTenantId = this.tenantAccess.requireTenantAccess({ requestedTenantId: dto.tenantId ?? tenantId, user })
     return this.conversations.create({ ...dto, tenantId: scopedTenantId })
+  }
+
+  @Patch(':id/assign')
+  @RequirePermissions('inbox.assign')
+  assign(@Headers('x-tenant-id') tenantId: string, @Param('id') id: string, @Body() dto: AssignConversationDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.conversations.assign(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), id, dto)
   }
 }

@@ -9,6 +9,7 @@ import { AppSelect } from '../../components/ui/AppSelect'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuth } from '../../auth/useAuth'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
 import { useUiStore } from '../../stores/uiStore'
 import { useTenant } from '../../tenants/useTenant'
 import { fetchCustomers, type Customer } from '../customers/customerData'
@@ -39,10 +40,24 @@ const priorityLabels: Record<TicketPriority, string> = {
   URGENT: 'عاجلة',
 }
 
+type AssignmentUser = {
+  id: string
+  name: string
+  email?: string
+  userType?: string
+}
+
+type AssignmentTeam = {
+  id: string
+  name: string
+  isActive?: boolean
+}
+
 type TicketFormState = {
   customerId: string
   conversationId: string
   assignedUserId: string
+  assignedTeamId: string
   title: string
   description: string
   status: TicketStatus
@@ -56,6 +71,7 @@ const emptyForm: TicketFormState = {
   customerId: '',
   conversationId: '',
   assignedUserId: '',
+  assignedTeamId: '',
   title: '',
   description: '',
   status: 'OPEN',
@@ -96,6 +112,7 @@ function toPayload(form: TicketFormState): TicketPayload {
     customerId: form.customerId || undefined,
     conversationId: form.conversationId.trim() || undefined,
     assignedUserId: form.assignedUserId.trim() || undefined,
+    assignedTeamId: form.assignedTeamId.trim() || undefined,
     title: form.title.trim(),
     description: form.description.trim() || undefined,
     status: form.status,
@@ -111,6 +128,7 @@ function toForm(ticket: Ticket): TicketFormState {
     customerId: ticket.customerId ?? '',
     conversationId: ticket.conversationId ?? '',
     assignedUserId: ticket.assignedUserId ?? '',
+    assignedTeamId: ticket.assignedTeamId ?? '',
     title: ticket.title,
     description: ticket.description ?? '',
     status: ticket.status,
@@ -123,6 +141,8 @@ function toForm(ticket: Ticket): TicketFormState {
 
 function TicketModal({
   customers,
+  users,
+  teams,
   form,
   editingTicket,
   onChange,
@@ -130,6 +150,8 @@ function TicketModal({
   onSubmit,
 }: {
   customers: Customer[]
+  users: AssignmentUser[]
+  teams: AssignmentTeam[]
   form: TicketFormState
   editingTicket: Ticket | null
   onChange: (form: TicketFormState) => void
@@ -201,7 +223,17 @@ function TicketModal({
           </label>
           <label>
             <span>الموظف المسند</span>
-            <AppInput value={form.assignedUserId} placeholder="اختياري" onChange={(event) => onChange({ ...form, assignedUserId: event.target.value })} />
+            <AppSelect value={form.assignedUserId} onChange={(event) => onChange({ ...form, assignedUserId: event.target.value })}>
+              <option value="">غير مسند لموظف</option>
+              {users.map((user) => <option key={user.id} value={user.id}>{user.name || user.email || user.id}</option>)}
+            </AppSelect>
+          </label>
+          <label>
+            <span>الفريق المسند</span>
+            <AppSelect value={form.assignedTeamId} onChange={(event) => onChange({ ...form, assignedTeamId: event.target.value })}>
+              <option value="">غير مسند لفريق</option>
+              {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+            </AppSelect>
           </label>
           <label>
             <span>تاريخ الاستحقاق</span>
@@ -236,10 +268,14 @@ export default function TicketsPage() {
   const canManage = can('tickets.manage')
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [assignmentUsers, setAssignmentUsers] = useState<AssignmentUser[]>([])
+  const [teams, setTeams] = useState<AssignmentTeam[]>([])
   const [status, setStatus] = useState(searchParams.get('status') ?? '')
   const [priority, setPriority] = useState('')
   const [category, setCategory] = useState('')
   const [customerId, setCustomerId] = useState(searchParams.get('customerId') ?? '')
+  const [assignedUserId, setAssignedUserId] = useState('')
+  const [assignedTeamId, setAssignedTeamId] = useState('')
   const [modalOpen, setModalOpen] = useState(searchParams.get('new') === '1')
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null)
   const [form, setForm] = useState<TicketFormState>(emptyForm)
@@ -265,7 +301,7 @@ export default function TicketsPage() {
   function refreshTickets() {
     if (!currentTenantId) return
     setLoading(true)
-    fetchTickets({ status, priority, category, customerId })
+    fetchTickets({ status, priority, category, customerId, assignedUserId, assignedTeamId })
       .then(setTickets)
       .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل التذاكر', 'warning'))
       .finally(() => setLoading(false))
@@ -274,13 +310,21 @@ export default function TicketsPage() {
   useEffect(() => {
     if (!currentTenantId) return
     refreshTickets()
-  }, [currentTenantId, status, priority, category, customerId])
+  }, [currentTenantId, status, priority, category, customerId, assignedUserId, assignedTeamId])
 
   useEffect(() => {
     if (!currentTenantId) return
     fetchCustomers({})
       .then(setCustomers)
       .catch(() => setCustomers([]))
+    apiFetch(apiUrl('/users?userType=AGENT,CONSULTANT,SUPERVISOR&status=ACTIVE'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload) => setAssignmentUsers(Array.isArray(payload) ? payload : []))
+      .catch(() => setAssignmentUsers([]))
+    apiFetch(apiUrl('/teams'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload) => setTeams(Array.isArray(payload) ? payload.filter((team: AssignmentTeam) => team.isActive !== false) : []))
+      .catch(() => setTeams([]))
   }, [currentTenantId])
 
   useEffect(() => {
@@ -375,6 +419,14 @@ export default function TicketsPage() {
           <option value="">كل العملاء</option>
           {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
         </AppSelect>
+        <AppSelect value={assignedUserId} onChange={(event) => setAssignedUserId(event.target.value)}>
+          <option value="">كل المسؤولين</option>
+          {assignmentUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.email || user.id}</option>)}
+        </AppSelect>
+        <AppSelect value={assignedTeamId} onChange={(event) => setAssignedTeamId(event.target.value)}>
+          <option value="">كل الفرق</option>
+          {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+        </AppSelect>
       </AppCard>
 
       {isLoading ? <EmptyState title="جار تحميل التذاكر" message="نرتب قائمة المتابعة الحالية." /> : null}
@@ -399,6 +451,7 @@ export default function TicketsPage() {
             <dl className="meta-list ticket-meta">
               <div><dt>التصنيف</dt><dd>{ticket.category || 'غير محدد'}</dd></div>
               <div><dt>الموظف المسند</dt><dd>{ticket.assignedUserName || ticket.assignedUserId || 'غير مسند'}</dd></div>
+              <div><dt>الفريق المسند</dt><dd>{ticket.assignedTeamName || ticket.assignedTeamId || 'غير مسند'}</dd></div>
               <div><dt>تاريخ الاستحقاق</dt><dd>{formatDate(ticket.dueAt)}</dd></div>
               <div><dt>آخر تحديث</dt><dd>{formatDate(ticket.updatedAt)}</dd></div>
             </dl>
@@ -427,6 +480,8 @@ export default function TicketsPage() {
       {modalOpen ? (
         <TicketModal
           customers={customers}
+          users={assignmentUsers}
+          teams={teams}
           form={form}
           editingTicket={editingTicket}
           onChange={setForm}

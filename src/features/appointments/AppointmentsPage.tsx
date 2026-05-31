@@ -9,6 +9,7 @@ import { AppSelect } from '../../components/ui/AppSelect'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuth } from '../../auth/useAuth'
+import { apiFetch, apiUrl } from '../../lib/apiClient'
 import { useTenant } from '../../tenants/useTenant'
 import { useUiStore } from '../../stores/uiStore'
 import { fetchCustomers, type Customer } from '../customers/customerData'
@@ -39,10 +40,24 @@ const meetingTypeLabels: Record<AppointmentMeetingType, string> = {
   ONLINE: 'اجتماع أونلاين',
 }
 
+type AssignmentUser = {
+  id: string
+  name: string
+  email?: string
+  userType?: string
+}
+
+type AssignmentTeam = {
+  id: string
+  name: string
+  isActive?: boolean
+}
+
 type AppointmentFormState = {
   customerId: string
   conversationId: string
   assignedUserId: string
+  assignedTeamId: string
   title: string
   description: string
   startAt: string
@@ -74,6 +89,7 @@ function defaultForm(searchParams: URLSearchParams): AppointmentFormState {
     customerId: searchParams.get('customerId') ?? '',
     conversationId: searchParams.get('conversationId') ?? '',
     assignedUserId: '',
+    assignedTeamId: '',
     title: searchParams.get('customerName') ? `موعد مع ${searchParams.get('customerName')}` : 'موعد عميل',
     description: '',
     startAt: dateTimeLocalValue(start),
@@ -91,6 +107,7 @@ function toForm(appointment: Appointment): AppointmentFormState {
     customerId: appointment.customerId,
     conversationId: appointment.conversationId ?? '',
     assignedUserId: appointment.assignedUserId ?? '',
+    assignedTeamId: appointment.assignedTeamId ?? '',
     title: appointment.title,
     description: appointment.description ?? '',
     startAt: dateTimeLocalValue(new Date(appointment.startAt)),
@@ -108,6 +125,7 @@ function toPayload(form: AppointmentFormState): AppointmentPayload {
     customerId: form.customerId,
     conversationId: form.conversationId || undefined,
     assignedUserId: form.assignedUserId || undefined,
+    assignedTeamId: form.assignedTeamId || undefined,
     title: form.title.trim(),
     description: form.description.trim() || undefined,
     startAt: new Date(form.startAt).toISOString(),
@@ -148,16 +166,19 @@ export default function AppointmentsPage() {
   const canManage = can('appointments.manage')
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [assignmentUsers, setAssignmentUsers] = useState<AssignmentUser[]>([])
+  const [teams, setTeams] = useState<AssignmentTeam[]>([])
   const [date, setDate] = useState(searchParams.get('date') ?? dateInputValue())
   const [status, setStatus] = useState(searchParams.get('status') ?? '')
   const [customerId, setCustomerId] = useState(searchParams.get('customerId') ?? '')
   const [assignedUserId, setAssignedUserId] = useState('')
+  const [assignedTeamId, setAssignedTeamId] = useState('')
   const [modalOpen, setModalOpen] = useState(searchParams.get('new') === '1')
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
   const [form, setForm] = useState<AppointmentFormState>(() => defaultForm(searchParams))
 
   function refreshAppointments() {
-    fetchAppointments({ date, status, customerId, assignedUserId })
+    fetchAppointments({ date, status, customerId, assignedUserId, assignedTeamId })
       .then(setAppointments)
       .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل المواعيد', 'warning'))
   }
@@ -165,13 +186,21 @@ export default function AppointmentsPage() {
   useEffect(() => {
     if (!currentTenantId) return
     refreshAppointments()
-  }, [currentTenantId, date, status, customerId, assignedUserId])
+  }, [currentTenantId, date, status, customerId, assignedUserId, assignedTeamId])
 
   useEffect(() => {
     if (!currentTenantId) return
     fetchCustomers()
       .then(setCustomers)
       .catch(() => setCustomers([]))
+    apiFetch(apiUrl('/users?userType=AGENT,CONSULTANT,SUPERVISOR&status=ACTIVE'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload) => setAssignmentUsers(Array.isArray(payload) ? payload : []))
+      .catch(() => setAssignmentUsers([]))
+    apiFetch(apiUrl('/teams'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload) => setTeams(Array.isArray(payload) ? payload.filter((team: AssignmentTeam) => team.isActive !== false) : []))
+      .catch(() => setTeams([]))
   }, [currentTenantId])
 
   useEffect(() => {
@@ -264,7 +293,14 @@ export default function AppointmentsPage() {
           <option value="">كل العملاء</option>
           {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
         </AppSelect>
-        <AppInput value={assignedUserId} placeholder="معرف المستشار/الموظف" onChange={(event) => setAssignedUserId(event.target.value)} />
+        <AppSelect value={assignedUserId} onChange={(event) => setAssignedUserId(event.target.value)}>
+          <option value="">كل المسؤولين</option>
+          {assignmentUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.email || user.id}</option>)}
+        </AppSelect>
+        <AppSelect value={assignedTeamId} onChange={(event) => setAssignedTeamId(event.target.value)}>
+          <option value="">كل الفرق</option>
+          {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+        </AppSelect>
       </AppCard>
 
       <div className="appointments-layout">
@@ -289,6 +325,7 @@ export default function AppointmentsPage() {
                   <div><dt>النوع</dt><dd>{meetingTypeLabels[appointment.meetingType]}</dd></div>
                   <div><dt>النهاية</dt><dd>{formatDateTime(appointment.endAt)}</dd></div>
                   <div><dt>المستشار</dt><dd>{appointment.assignedUserName || appointment.assignedUserId || 'غير محدد'}</dd></div>
+                  <div><dt>الفريق</dt><dd>{appointment.assignedTeamName || appointment.assignedTeamId || 'غير مسند'}</dd></div>
                   <div><dt>الموقع/الرابط</dt><dd>{appointment.meetingLink || appointment.location || 'غير محدد'}</dd></div>
                   <div><dt>مزود الاجتماع</dt><dd>{appointment.visualMeetingLink || appointment.meetingLink ? providerLabel(appointment.meetingProvider) : 'غير محدد'}</dd></div>
                   <div><dt>حالة الاجتماع</dt><dd>{visualMeetingStatusLabel(appointment.meetingStatus)}</dd></div>
@@ -347,7 +384,8 @@ export default function AppointmentsPage() {
               <label><span>العميل</span><AppSelect required value={form.customerId} onChange={(event) => setForm({ ...form, customerId: event.target.value })}><option value="">اختر العميل</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</AppSelect></label>
               <label><span>معرف المحادثة</span><AppInput value={form.conversationId} onChange={(event) => setForm({ ...form, conversationId: event.target.value })} /></label>
               <label><span>العنوان</span><AppInput autoFocus required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
-              <label><span>المستشار/الموظف</span><AppInput value={form.assignedUserId} onChange={(event) => setForm({ ...form, assignedUserId: event.target.value })} /></label>
+              <label><span>المستشار/الموظف</span><AppSelect value={form.assignedUserId} onChange={(event) => setForm({ ...form, assignedUserId: event.target.value })}><option value="">غير مسند لموظف</option>{assignmentUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.email || user.id}</option>)}</AppSelect></label>
+              <label><span>الفريق</span><AppSelect value={form.assignedTeamId} onChange={(event) => setForm({ ...form, assignedTeamId: event.target.value })}><option value="">غير مسند لفريق</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</AppSelect></label>
               <label><span>البداية</span><AppInput type="datetime-local" required value={form.startAt} onChange={(event) => setForm({ ...form, startAt: event.target.value })} /></label>
               <label><span>النهاية</span><AppInput type="datetime-local" required value={form.endAt} onChange={(event) => setForm({ ...form, endAt: event.target.value })} /></label>
               <label><span>الحالة</span><AppSelect value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as AppointmentStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</AppSelect></label>
