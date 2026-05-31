@@ -14,13 +14,13 @@ export class BillingController {
   ) {}
 
   @Get('plans')
-  @RequirePermissions('reports.view')
+  @RequirePermissions('billing.view')
   plans() {
     return this.billing.listPlans()
   }
 
   @Get('current-subscription')
-  @RequirePermissions('reports.view')
+  @RequirePermissions('billing.view')
   currentSubscription(
     @Headers('x-tenant-id') tenantId: string | undefined,
     @Headers('x-local-tenant-id') localTenantId: string | undefined,
@@ -30,7 +30,7 @@ export class BillingController {
   }
 
   @Get('usage')
-  @RequirePermissions('reports.view')
+  @RequirePermissions('billing.view')
   usage(
     @Headers('x-tenant-id') tenantId: string | undefined,
     @Headers('x-local-tenant-id') localTenantId: string | undefined,
@@ -40,14 +40,14 @@ export class BillingController {
   }
 
   @Patch('tenants/:tenantId/plan')
-  @RequirePermissions('settings.manage')
+  @RequirePermissions('billing.manage')
   @RequirePlatformAdmin()
   updateTenantPlan(@Param('tenantId') tenantId: string, @Body() dto: UpdateTenantPlanDto) {
     return this.billing.updateTenantPlan(tenantId, dto.plan, dto.subscriptionEnd)
   }
 
   @Patch('tenants/:tenantId/status')
-  @RequirePermissions('settings.manage')
+  @RequirePermissions('billing.manage')
   @RequirePlatformAdmin()
   updateTenantStatus(@Param('tenantId') tenantId: string, @Body() dto: UpdateTenantBillingStatusDto) {
     return this.billing.updateTenantStatus(tenantId, dto.status)

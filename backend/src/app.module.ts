@@ -31,6 +31,7 @@ import { ReportsModule } from './modules/reports/reports.module'
 import { BillingModule } from './modules/billing/billing.module'
 import { MetaModule } from './modules/meta/meta.module'
 import { SettingsModule } from './modules/settings/settings.module'
+import { RolesModule } from './modules/roles/roles.module'
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { SettingsModule } from './modules/settings/settings.module'
     BillingModule,
     MetaModule,
     SettingsModule,
+    RolesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

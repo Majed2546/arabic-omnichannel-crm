@@ -10151,6 +10151,177 @@ body:has(.inbox-layout) {
   overflow-wrap: anywhere;
 }
 
+.roles-page {
+  gap: 14px;
+}
+
+.roles-warning {
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  color: #92400e;
+  font-weight: 800;
+}
+
+.roles-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.roles-list-panel,
+.role-details-panel {
+  min-width: 0;
+}
+
+.roles-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.role-card {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--saas-text);
+  text-align: right;
+}
+
+.role-card.active,
+.role-card:hover {
+  border-color: rgba(14, 165, 233, 0.34);
+  background: rgba(14, 165, 233, 0.05);
+}
+
+.role-card strong,
+.role-card small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.role-card strong {
+  color: var(--saas-navy);
+}
+
+.role-card small,
+.role-card dt,
+.role-details-header p,
+.role-users-placeholder .empty-state p {
+  color: var(--saas-muted);
+}
+
+.role-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.role-card dt,
+.role-card dd {
+  margin: 0;
+}
+
+.role-card dd {
+  color: var(--saas-navy);
+  font-weight: 900;
+}
+
+.role-details-header,
+.role-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.role-details-header h2,
+.role-section-header h3,
+.permission-group h4 {
+  margin: 0;
+  color: var(--saas-navy);
+}
+
+.role-details-actions,
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.permissions-matrix-panel,
+.role-users-placeholder {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.permissions-group-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.permission-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: var(--saas-soft);
+}
+
+.permission-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--saas-text);
+  font-weight: 800;
+}
+
+.permission-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--saas-green);
+}
+
+.permission-toggle input:disabled + span {
+  color: var(--saas-muted);
+}
+
+.role-modal {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.role-modal label {
+  display: grid;
+  gap: 7px;
+  color: var(--saas-navy);
+  font-weight: 800;
+}
+
+.role-modal textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--saas-text);
+  background: #ffffff;
+  font: inherit;
+}
+
 .settings-page {
   gap: 14px;
 }
@@ -10311,6 +10482,7 @@ body:has(.inbox-layout) {
 
   .appointments-layout,
   .appointments-filters,
+  .roles-layout,
   .tickets-filters,
   .automation-summary-grid,
   .automation-template-grid,
@@ -10325,6 +10497,7 @@ body:has(.inbox-layout) {
   }
 
   .appointment-card dl,
+  .permissions-group-grid,
   .ticket-card-grid,
   .automation-rule-grid,
   .reports-section-grid {
