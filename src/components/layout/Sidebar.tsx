@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   BarChart3,
+  Bell,
   Bot,
   Building2,
   Cable,
@@ -45,6 +46,7 @@ const navigation: Array<{
   { path: '/appointments', label: 'المواعيد والتقويم', icon: CalendarDays, allowedRoles: ['admin', 'support', 'analyst'], permission: 'appointments.view' },
   { path: '/meetings', label: 'الاجتماعات المرئية', icon: Video, allowedRoles: ['admin', 'support', 'analyst'], permission: 'meetings.view' },
   { path: '/tickets', label: 'التذاكر', icon: Ticket, allowedRoles: ['admin', 'support', 'analyst'], permission: 'tickets.view' },
+  { path: '/notifications', label: 'الإشعارات', icon: Bell, allowedRoles: ['admin', 'support', 'analyst'], permission: 'notifications.view' },
   { path: '/channels', label: 'القنوات', icon: Cable, allowedRoles: ['admin', 'support', 'analyst'], permission: 'channels.view' },
   { path: '/templates', label: 'القوالب والردود', icon: MessageSquareText, allowedRoles: ['admin', 'support', 'analyst'], permission: 'templates.view' },
   { path: '/users', label: 'المستخدمون', icon: Users, allowedRoles: ['admin'], permission: 'users.view' },

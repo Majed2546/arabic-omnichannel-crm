@@ -1,13 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { ConversationPriority, ConversationStatus, Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
+import { NotificationsService } from '../notifications/notifications.service'
 import type { AssignConversationDto, CreateConversationDto, ListConversationsQueryDto, UpdateConversationSummaryDto } from './dto'
 
 type PrismaTx = Prisma.TransactionClient
 
 @Injectable()
 export class ConversationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   create(dto: CreateConversationDto) {
     return this.prisma.conversation.create({
@@ -63,7 +67,7 @@ export class ConversationService {
   async assign(tenantId: string, id: string, dto: AssignConversationDto) {
     await this.findById(tenantId, id)
     await this.validateAssignment(tenantId, dto)
-    return this.prisma.conversation.update({
+    const updated = await this.prisma.conversation.update({
       where: { id, tenantId },
       data: {
         assignedUserId: dto.assignedUserId?.trim() || null,
@@ -71,6 +75,25 @@ export class ConversationService {
       },
       include: this.includeSummary(),
     })
+
+    await this.notifications.create({
+      tenantId,
+      userId: updated.assignedUserId,
+      teamId: updated.assignedTeamId,
+      type: 'CONVERSATION_ASSIGNED',
+      title: 'تم إسناد محادثة',
+      message: 'تم إسناد محادثة عميل إلى مسؤول أو فريق.',
+      targetType: 'CONVERSATION',
+      targetId: updated.id,
+      conversationId: updated.id,
+      priority: 'MEDIUM',
+      metadata: {
+        assignedUserId: updated.assignedUserId,
+        assignedTeamId: updated.assignedTeamId,
+      },
+    })
+
+    return updated
   }
 
   async findOrCreateForCustomer(input: {

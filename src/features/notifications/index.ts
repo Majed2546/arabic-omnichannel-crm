@@ -1,6 +1,7 @@
 export { ActivityEvent, ActivityEventCard } from './ActivityEvent'
 export { NotificationBadge } from './NotificationBadge'
 export { NotificationCenter } from './NotificationCenter'
+export { default as NotificationsPage } from './NotificationsPage'
 export { NotificationItem } from './NotificationItem'
 export { useNotificationRealtime } from './useNotificationRealtime'
 export * from './notificationStore'

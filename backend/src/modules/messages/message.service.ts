@@ -7,6 +7,7 @@ import { MESSAGE_QUEUE } from '../../events/queue.constants'
 import { createQueueJobId } from '../../events/queue-job-id'
 import { RealtimeService } from '../realtime/realtime.service'
 import { ConversationService } from '../conversations/conversation.service'
+import { NotificationsService } from '../notifications/notifications.service'
 import type { CreateMessageDto, ListMessagesQueryDto, UpdateMessageStatusDto } from './dto'
 
 function asJson(value: Record<string, unknown> | undefined): Prisma.InputJsonValue | undefined {
@@ -19,6 +20,7 @@ export class MessageService {
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
     @InjectQueue(MESSAGE_QUEUE) private readonly messageQueue: Queue,
   ) {}
 
@@ -155,6 +157,21 @@ export class MessageService {
         title: 'رسالة واتساب جديدة',
         body: result.message.content,
       }, 'webhook')
+      await this.notifications.create({
+        tenantId: input.tenantId,
+        type: 'NEW_MESSAGE',
+        title: 'رسالة جديدة',
+        message: result.message.content,
+        targetType: 'CONVERSATION',
+        targetId: result.conversation.id,
+        conversationId: result.conversation.id,
+        priority: 'MEDIUM',
+        metadata: {
+          messageId: result.message.id,
+          externalMessageId: input.externalMessageId,
+          source: 'whatsapp',
+        },
+      })
     }
 
     return result
@@ -227,6 +244,24 @@ export class MessageService {
       },
       'queue',
     )
+
+    if (input.status === MessageStatus.FAILED) {
+      await this.notifications.create({
+        tenantId: input.tenantId,
+        type: 'MESSAGE_SEND_FAILED',
+        title: 'فشل إرسال رسالة',
+        message: 'تعذر إرسال رسالة واتساب. راجع المحادثة وحاول مرة أخرى.',
+        targetType: 'CONVERSATION',
+        targetId: message.conversationId,
+        conversationId: message.conversationId,
+        priority: 'HIGH',
+        metadata: {
+          messageId: message.id,
+          externalMessageId: message.externalMessageId,
+          deliveryLog: input.deliveryLog,
+        },
+      })
+    }
 
     return message
   }

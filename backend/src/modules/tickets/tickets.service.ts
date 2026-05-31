@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
+import { NotificationsService } from '../notifications/notifications.service'
 import type { AssignTicketDto, ListTicketsQueryDto, SaveTicketDto } from './dto'
 
 function cuid(prefix: string) {
@@ -45,7 +46,10 @@ function ticketSelectSql() {
 
 @Injectable()
 export class TicketsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   list(tenantId: string, query: ListTicketsQueryDto) {
     const conditions: Prisma.Sql[] = [Prisma.sql`t.tenant_id = ${tenantId}`, Prisma.sql`t.deleted_at IS NULL`]
@@ -113,7 +117,26 @@ export class TicketsService {
       RETURNING id
     `) as Array<{ id: string }>
 
-    return this.findById(tenantId, rows[0].id)
+    const ticket = await this.findById(tenantId, rows[0].id) as {
+      id: string
+      title: string
+      priority: string
+      conversationId?: string | null
+      assignedUserId?: string | null
+      assignedTeamId?: string | null
+    }
+    await this.notifications.create({
+      tenantId,
+      type: 'TICKET_CREATED',
+      title: 'تذكرة جديدة',
+      message: ticket.title,
+      targetType: 'TICKET',
+      targetId: ticket.id,
+      conversationId: ticket.conversationId,
+      priority: ticket.priority === 'URGENT' ? 'URGENT' : ticket.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+      metadata: { ticketId: ticket.id, assignedUserId: ticket.assignedUserId, assignedTeamId: ticket.assignedTeamId },
+    })
+    return ticket
   }
 
   async update(tenantId: string, id: string, dto: SaveTicketDto) {
@@ -140,7 +163,28 @@ export class TicketsService {
       WHERE id = ${id} AND tenant_id = ${tenantId} AND deleted_at IS NULL
     `)
 
-    return this.findById(tenantId, id)
+    const ticket = await this.findById(tenantId, id) as {
+      id: string
+      title: string
+      priority: string
+      conversationId?: string | null
+      assignedUserId?: string | null
+      assignedTeamId?: string | null
+    }
+    await this.notifications.create({
+      tenantId,
+      userId: ticket.assignedUserId,
+      teamId: ticket.assignedTeamId,
+      type: 'TICKET_ASSIGNED',
+      title: 'تم إسناد تذكرة',
+      message: ticket.title,
+      targetType: 'TICKET',
+      targetId: ticket.id,
+      conversationId: ticket.conversationId,
+      priority: ticket.priority === 'URGENT' ? 'URGENT' : ticket.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+      metadata: { ticketId: ticket.id, assignedUserId: ticket.assignedUserId, assignedTeamId: ticket.assignedTeamId },
+    })
+    return ticket
   }
 
   async updateStatus(tenantId: string, id: string, status: string) {

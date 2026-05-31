@@ -134,8 +134,14 @@ enum MessageStatus {
 enum NotificationType {
   NEW_MESSAGE
   CONVERSATION_ASSIGNED
+  TICKET_CREATED
+  TICKET_ASSIGNED
+  APPOINTMENT_UPCOMING
   SLA_WARNING
   SLA_BREACHED
+  MESSAGE_SEND_FAILED
+  SUBSCRIPTION_WARNING
+  AUTOMATION_EXECUTED
   CUSTOMER_REPLIED
   QUEUE_OVERLOADED
   AUTOMATION_TRIGGERED
@@ -145,9 +151,19 @@ enum NotificationType {
 }
 
 enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
   INFO
   WARNING
   CRITICAL
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
 }
 
 enum WorkflowStatus {
@@ -695,6 +711,7 @@ model Team {
   conversations Conversation[] @relation("ConversationAssignedTeam")
   tickets      Ticket[]       @relation("TicketAssignedTeam")
   appointments Appointment[]  @relation("AppointmentAssignedTeam")
+  notifications Notification[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -801,11 +818,16 @@ model Notification {
   id             String               @id @default(cuid())
   tenantId       String               @map("tenant_id")
   userId         String?              @map("user_id")
+  teamId         String?              @map("team_id")
   conversationId String?              @map("conversation_id")
   type           NotificationType
-  priority       NotificationPriority @default(INFO)
+  priority       NotificationPriority @default(MEDIUM)
   title          String
   body           String
+  message        String               @default("")
+  targetType     String?              @map("target_type")
+  targetId       String?              @map("target_id")
+  status         NotificationStatus   @default(UNREAD)
   readAt         DateTime?            @map("read_at")
   metadata       Json?
   createdAt      DateTime             @default(now()) @map("created_at")
@@ -815,12 +837,16 @@ model Notification {
   deletedAt      DateTime?            @map("deleted_at")
   tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user           User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team           Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
   conversation   Conversation?        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, userId, readAt])
+  @@index([tenantId, teamId])
+  @@index([tenantId, status])
   @@index([tenantId, type])
   @@index([tenantId, priority])
+  @@index([tenantId, targetType, targetId])
   @@index([conversationId])
   @@index([createdAt])
   @@index([deletedAt])

@@ -24,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/reports': 'التقارير',
   '/billing': 'الاشتراكات والباقات',
   '/teams': 'الفرق',
+  '/notifications': 'الإشعارات',
   '/integrations/meta': 'إعدادات Meta',
   '/inbox': 'صندوق الوارد',
   '/activity': 'سجل النشاط',

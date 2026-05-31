@@ -48,6 +48,8 @@ const permissionLabels: Record<PermissionKey, { label: string; group: string }> 
   'roles.manage': { label: 'إدارة الأدوار', group: 'الصلاحيات' },
   'settings.view': { label: 'عرض الإعدادات', group: 'الإعدادات' },
   'settings.manage': { label: 'إدارة الإعدادات', group: 'الإعدادات' },
+  'notifications.view': { label: 'عرض الإشعارات', group: 'الإشعارات' },
+  'notifications.manage': { label: 'إدارة الإشعارات', group: 'الإشعارات' },
 }
 
 export const permissionDefinitions: PermissionDefinition[] = CRM_PERMISSIONS.map((key) => ({

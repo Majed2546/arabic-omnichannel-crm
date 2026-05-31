@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
+import { NotificationsService } from '../notifications/notifications.service'
 
 type AutomationRuleRecord = {
   id: string
@@ -42,7 +43,10 @@ type AutomationRuleRow = {
 
 @Injectable()
 export class AutomationExecutorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   normalizeActionItems(actions: unknown): Array<Record<string, unknown>> {
     if (Array.isArray(actions)) return actions.filter((action): action is Record<string, unknown> => typeof action === 'object' && action !== null)
@@ -250,7 +254,22 @@ export class AutomationExecutorService {
       RETURNING id, status, message
     `) as Array<{ id: string; status: string; message: string }>
 
-    return rows[0]
+    const log = rows[0]
+    if (status === 'SUCCESS') {
+      await this.notifications.create({
+        tenantId: input.tenantId,
+        type: 'AUTOMATION_EXECUTED',
+        title: 'تم تنفيذ أتمتة',
+        message,
+        targetType: input.targetType.toUpperCase(),
+        targetId: input.targetId,
+        conversationId: input.context.conversationId ?? undefined,
+        priority: 'LOW',
+        metadata: { ruleId: rule.id, automationLogId: log.id, triggerType: input.triggerType },
+      })
+    }
+
+    return log
   }
 
   private normalizeConditions(conditions: unknown) {

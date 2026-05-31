@@ -10,6 +10,7 @@ import {
   IdentityIntegrationsPage,
   MeetingsPage,
   MetaSettingsPage,
+  NotificationsPage,
   PlatformCompaniesPage,
   PlatformDashboardPage,
   PlatformOnboardingRequestsPage,
@@ -57,6 +58,7 @@ function App() {
         <Route path="appointments" element={<RequireTenant><RequireAuth requiredPermissions={['appointments.view']}><AppointmentsPage /></RequireAuth></RequireTenant>} />
         <Route path="meetings" element={<RequireTenant><RequireAuth requiredPermissions={['meetings.view']}><MeetingsPage /></RequireAuth></RequireTenant>} />
         <Route path="tickets" element={<RequireTenant><RequireAuth requiredPermissions={['tickets.view']}><TicketsPage /></RequireAuth></RequireTenant>} />
+        <Route path="notifications" element={<RequireTenant><RequireAuth requiredPermissions={['notifications.view']}><NotificationsPage /></RequireAuth></RequireTenant>} />
         <Route path="templates" element={<RequireTenant><RequireAuth requiredPermissions={['templates.view']}><TemplatesPage /></RequireAuth></RequireTenant>} />
         <Route path="reports" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['reports.view']}><ReportsPage /></RequireAuth></RequireTenant>} />
         <Route path="billing" element={<RequireTenant><RequireAuth allowedRoles={['admin', 'analyst']} requiredPermissions={['billing.view']}><BillingPage /></RequireAuth></RequireTenant>} />

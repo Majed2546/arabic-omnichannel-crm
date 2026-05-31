@@ -1,29 +1,71 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { ActivityEvent } from './ActivityEvent'
+import { useTenant } from '../../tenants/useTenant'
+import { useUiStore } from '../../stores/uiStore'
 import { NotificationBadge } from './NotificationBadge'
-import { NotificationItem } from './NotificationItem'
-import { useNotificationStore } from './notificationStore'
+import {
+  fetchNotifications,
+  fetchUnreadNotificationsCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type ApiNotification,
+} from './notificationData'
+
+function targetPath(notification: ApiNotification) {
+  if (notification.targetType === 'CONVERSATION' && notification.targetId) return `/inbox?conversationId=${notification.targetId}`
+  if (notification.conversationId) return `/inbox?conversationId=${notification.conversationId}`
+  if (notification.targetType === 'TICKET' && notification.targetId) return `/tickets?ticketId=${notification.targetId}`
+  if (notification.targetType === 'APPOINTMENT' && notification.targetId) return `/appointments?appointmentId=${notification.targetId}`
+  return ''
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleString('ar-SA', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+}
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false)
-  const notifications = useNotificationStore((state) => state.notifications)
-  const activities = useNotificationStore((state) => state.activities)
-  const markAsRead = useNotificationStore((state) => state.markAsRead)
-  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead)
-  const clearNotification = useNotificationStore((state) => state.clearNotification)
-  const clearAll = useNotificationStore((state) => state.clearAll)
+  const [notifications, setNotifications] = useState<ApiNotification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const navigate = useNavigate()
+  const { currentTenantId } = useTenant()
+  const showToast = useUiStore((state) => state.showToast)
 
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.read).length,
-    [notifications],
-  )
+  const latest = useMemo(() => notifications.slice(0, 6), [notifications])
 
-  function openConversation(conversationId: string) {
-    markAllAsRead()
+  function refresh() {
+    if (!currentTenantId) return
+    fetchUnreadNotificationsCount()
+      .then((result) => setUnreadCount(result.count))
+      .catch(() => setUnreadCount(0))
+    fetchNotifications({ limit: 6 })
+      .then(setNotifications)
+      .catch(() => setNotifications([]))
+  }
+
+  useEffect(() => {
+    refresh()
+    const interval = window.setInterval(refresh, 30_000)
+    return () => window.clearInterval(interval)
+  }, [currentTenantId])
+
+  async function openNotification(notification: ApiNotification) {
+    if (notification.status === 'UNREAD') await markNotificationRead(notification.id)
     setOpen(false)
-    navigate(`/inbox?conversation=${conversationId}`)
+    const path = targetPath(notification)
+    if (path) navigate(path)
+    else navigate('/notifications')
+  }
+
+  async function readAll() {
+    try {
+      await markAllNotificationsRead()
+      refresh()
+      showToast('تم تعليم كل الإشعارات كمقروءة', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر تحديث الإشعارات', 'warning')
+    }
   }
 
   return (
@@ -32,51 +74,39 @@ export function NotificationCenter() {
         type="button"
         className="topbar-control notification-bell"
         onClick={() => setOpen((current) => !current)}
-        aria-label="مركز التنبيهات"
+        aria-label="مركز الإشعارات"
         aria-expanded={open}
       >
-        <span aria-hidden="true">جرس</span>
+        <Bell size={18} />
         <NotificationBadge count={unreadCount} />
       </button>
 
       {open ? (
-        <section className="notification-panel" aria-label="مركز التنبيهات">
+        <section className="notification-panel" aria-label="مركز الإشعارات">
           <div className="notification-panel-header">
             <div>
-              <strong>مركز التنبيهات</strong>
-              <small>{unreadCount} غير مقروء</small>
+              <strong>الإشعارات</strong>
+              <small>{unreadCount.toLocaleString('ar-SA')} غير مقروء</small>
             </div>
             <div>
-              <button type="button" onClick={markAllAsRead}>قراءة الكل</button>
-              <button type="button" onClick={clearAll}>مسح</button>
-              <button type="button" onClick={() => { setOpen(false); navigate('/activity') }}>السجل</button>
+              <button type="button" onClick={readAll}>قراءة الكل</button>
+              <button type="button" onClick={() => { setOpen(false); navigate('/notifications') }}>عرض الكل</button>
             </div>
           </div>
 
-          <div className="notification-panel-grid">
-            <div className="notification-list">
-              {notifications.length ? (
-                notifications.map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    onRead={markAsRead}
-                    onClear={clearNotification}
-                    onOpenConversation={openConversation}
-                  />
-                ))
-              ) : (
-                <p className="notification-empty">لا توجد تنبيهات حالياً.</p>
-              )}
-            </div>
-
-            <div className="activity-feed">
-              <div className="activity-feed-title">
-                <strong>سجل النشاط</strong>
-                <small>تحديثات مباشرة</small>
-              </div>
-              {activities.map((event) => <ActivityEvent key={event.id} event={event} />)}
-            </div>
+          <div className="notification-list api-notification-list">
+            {latest.length ? latest.map((notification) => (
+              <button
+                key={notification.id}
+                type="button"
+                className={`api-notification-item ${notification.status === 'UNREAD' ? 'unread' : ''}`}
+                onClick={() => openNotification(notification)}
+              >
+                <strong>{notification.title}</strong>
+                <span>{notification.message}</span>
+                <small>{formatTime(notification.createdAt)}</small>
+              </button>
+            )) : <p className="notification-empty">لا توجد إشعارات</p>}
           </div>
         </section>
       ) : null}
