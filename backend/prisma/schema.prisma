@@ -49,6 +49,14 @@ enum UserStatus {
   DELETED
 }
 
+enum UserType {
+  COMPANY_ADMIN
+  SUPERVISOR
+  AGENT
+  CONSULTANT
+  VIEWER
+}
+
 enum PermissionCategory {
   DASHBOARD
   TENANTS
@@ -317,10 +325,16 @@ model User {
   tenantId     String         @map("tenant_id")
   name         String
   email        String
+  phone        String?
   passwordHash String         @map("password_hash")
   status       UserStatus     @default(ACTIVE)
   platformRole PlatformRole   @default(COMPANY_USER) @map("platform_role")
   avatar       String?
+  avatarUrl    String?        @map("avatar_url")
+  jobTitle     String?        @map("job_title")
+  userType     UserType       @default(AGENT) @map("user_type")
+  timezone     String?
+  lastLoginAt  DateTime?      @map("last_login_at")
   roleId       String?        @map("role_id")
   createdAt    DateTime       @default(now()) @map("created_at")
   updatedAt    DateTime       @updatedAt @map("updated_at")
@@ -339,6 +353,7 @@ model User {
   @@index([roleId])
   @@index([status])
   @@index([platformRole])
+  @@index([userType])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("users")

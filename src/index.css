@@ -10322,6 +10322,118 @@ body:has(.inbox-layout) {
   font: inherit;
 }
 
+.users-page {
+  gap: 14px;
+}
+
+.users-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(170px, 220px) minmax(170px, 220px) minmax(150px, 190px);
+  gap: 10px;
+  align-items: center;
+}
+
+.users-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.user-management-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.user-management-card header {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.user-management-card header > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--saas-blue);
+  font-weight: 900;
+  overflow: hidden;
+}
+
+.user-management-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-management-card h2,
+.user-management-card p,
+.user-management-card dl {
+  margin: 0;
+}
+
+.user-management-card h2 {
+  color: var(--saas-navy);
+  font-size: 1.05rem;
+}
+
+.user-management-card p,
+.user-management-card small,
+.user-management-card dt {
+  color: var(--saas-muted);
+}
+
+.user-management-card h2,
+.user-management-card p,
+.user-management-card small,
+.user-management-card dd {
+  overflow-wrap: anywhere;
+}
+
+.user-management-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.user-management-card dt,
+.user-management-card dd {
+  margin: 0;
+}
+
+.user-management-card dd {
+  color: var(--saas-navy);
+  font-weight: 900;
+}
+
+.user-management-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.user-modal {
+  width: min(820px, calc(100vw - 32px));
+}
+
+.user-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.user-form-grid label {
+  display: grid;
+  gap: 7px;
+  color: var(--saas-navy);
+  font-weight: 800;
+}
+
 .settings-page {
   gap: 14px;
 }
@@ -10483,6 +10595,7 @@ body:has(.inbox-layout) {
   .appointments-layout,
   .appointments-filters,
   .roles-layout,
+  .users-filters,
   .tickets-filters,
   .automation-summary-grid,
   .automation-template-grid,
@@ -10498,6 +10611,7 @@ body:has(.inbox-layout) {
 
   .appointment-card dl,
   .permissions-group-grid,
+  .users-card-grid,
   .ticket-card-grid,
   .automation-rule-grid,
   .reports-section-grid {
@@ -10532,5 +10646,11 @@ body:has(.inbox-layout) {
   .customer-card-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .user-form-grid,
+  .user-management-card dl,
+  .user-management-card header {
+    grid-template-columns: 1fr;
   }
 }

@@ -17,7 +17,6 @@ import {
   ReportsPage,
   RolesPage,
   SettingsPage,
-  TenantsPage,
   TemplatesPage,
   TicketsPage,
   UnifiedInboxPage,
@@ -43,8 +42,8 @@ function App() {
       >
         <Route index element={<RequireTenant><DashboardPage /></RequireTenant>} />
         <Route path="dashboard" element={<RequireTenant><DashboardPage /></RequireTenant>} />
-        <Route path="tenants" element={<RequireTenant><TenantsPage /></RequireTenant>} />
-        <Route path="users" element={<RequireTenant><UsersPage /></RequireTenant>} />
+        <Route path="tenants" element={<RequireTenant><RequireAuth requiredPermissions={['users.view']}><UsersPage /></RequireAuth></RequireTenant>} />
+        <Route path="users" element={<RequireTenant><RequireAuth requiredPermissions={['users.view']}><UsersPage /></RequireAuth></RequireTenant>} />
         <Route path="roles" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['roles.view']}><RolesPage /></RequireAuth></RequireTenant>} />
         <Route path="identity" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']}><IdentityIntegrationsPage /></RequireAuth></RequireTenant>} />
         <Route path="integrations/meta" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['settings.manage']} requirePlatformAdmin><MetaSettingsPage /></RequireAuth></RequireTenant>} />
