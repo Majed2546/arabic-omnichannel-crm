@@ -24,8 +24,10 @@ function processedInboundIds(data: Record<string, unknown>) {
 }
 
 function withProcessedInbound(data: Record<string, unknown>, inboundMessageId: string) {
+  const nextData = { ...data }
+  delete nextData.lastSendFailure
   return {
-    ...data,
+    ...nextData,
     lastExternalMessageId: inboundMessageId,
     processedInboundMessageIds: Array.from(new Set([...processedInboundIds(data), inboundMessageId])).slice(-30),
   }
@@ -167,7 +169,13 @@ export class BotService {
         orderBy: { updatedAt: 'desc' },
       }),
     ])
-    return { isEnabled: settings.isEnabled, state }
+    const data = readData(state?.collectedData ?? null)
+    return {
+      isEnabled: settings.isEnabled,
+      state,
+      waitingForCustomer: state?.status === BotStateStatus.ACTIVE && !data.lastSendFailure,
+      lastSendFailed: state?.status === BotStateStatus.ACTIVE && Boolean(data.lastSendFailure),
+    }
   }
 
   async handleInbound(input: InboundBotMessage) {

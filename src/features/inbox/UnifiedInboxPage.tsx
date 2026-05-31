@@ -72,6 +72,19 @@ const filterLabels: Record<InboxFilter, string> = {
   unclassified: 'غير مصنف',
 }
 
+function getBotConversationStatus(botState: ConversationBotState | null) {
+  if (!botState?.state) return 'غير نشطة'
+  if (botState.state.status === 'ACTIVE') {
+    if (botState.lastSendFailed) return 'نشطة - تعذر إرسال آخر رد'
+    if (botState.waitingForCustomer) return 'نشطة - بانتظار رد العميل'
+    return 'نشطة'
+  }
+  if (botState.state.status === 'COMPLETED') return 'مكتملة'
+  if (botState.state.status === 'CANCELLED') return 'ملغاة'
+  if (botState.state.status === 'HANDED_OFF') return 'محولة لموظف'
+  return 'غير نشطة'
+}
+
 function priorityTone(priority: ConversationPriority) {
   if (priority === 'VIP') return 'vip'
   if (priority === 'urgent') return 'danger'
@@ -161,6 +174,7 @@ export default function UnifiedInboxPage() {
   const threadEndRef = useRef<HTMLDivElement | null>(null)
   const threadWasNearBottomRef = useRef(true)
   const missingRequestedConversationRef = useRef<string | null>(null)
+  const selectedIdRef = useRef<string | null>(selectedId)
   const showToast = useUiStore((state) => state.showToast)
   const { can } = useAuth()
   const { currentTenantId } = useTenant()
@@ -177,6 +191,10 @@ export default function UnifiedInboxPage() {
     () => conversations.find((conversation) => conversation.id === selectedId),
     [conversations, selectedId],
   )
+  const selectedMessageSignature = selectedConversation
+    ? `${selectedConversation.id}:${selectedConversation.messages.length}:${selectedConversation.messages.at(-1)?.id ?? ''}:${selectedConversation.messages.at(-1)?.deliveryStatus ?? ''}`
+    : ''
+  const botConversationStatus = getBotConversationStatus(botState)
 
   const filteredConversations = useMemo(
     () => conversations.filter((conversation) =>
@@ -201,6 +219,14 @@ export default function UnifiedInboxPage() {
     const interval = window.setInterval(() => setNow(Date.now()), 30_000)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
+
+  useEffect(() => {
+    setBotState(null)
+  }, [selectedConversation?.id, currentTenantId])
 
   useEffect(() => {
     let disposed = false
@@ -303,6 +329,13 @@ export default function UnifiedInboxPage() {
         const conversation = useInboxStore.getState().conversations.find((item) => item.id === event.conversationId)
         showToast(`رسالة جديدة من ${conversation?.customerName ?? 'عميل جديد'}`, 'info')
         console.info('unread sound placeholder: incoming-message')
+        if (canViewBot && event.conversationId === selectedIdRef.current) {
+          fetchConversationBotState(event.conversationId).then((nextState) => {
+            if (selectedIdRef.current === event.conversationId) setBotState(nextState)
+          }).catch(() => {
+            if (selectedIdRef.current === event.conversationId) setBotState(null)
+          })
+        }
       }
 
       if (event.type === 'conversation.created') {
@@ -314,7 +347,7 @@ export default function UnifiedInboxPage() {
     return () => {
       unsubscribe()
     }
-  }, [applyRealtimeEvent, showToast])
+  }, [applyRealtimeEvent, showToast, canViewBot])
 
   useEffect(() => {
     function handleGlobalKeyDown(event: globalThis.KeyboardEvent) {
@@ -363,10 +396,19 @@ export default function UnifiedInboxPage() {
       setBotState(null)
       return
     }
+    let disposed = false
+    const conversationId = selectedConversation.id
     fetchConversationBotState(selectedConversation.id)
-      .then(setBotState)
-      .catch(() => setBotState(null))
-  }, [selectedConversation?.id, canViewBot])
+      .then((nextState) => {
+        if (!disposed && selectedIdRef.current === conversationId) setBotState(nextState)
+      })
+      .catch(() => {
+        if (!disposed && selectedIdRef.current === conversationId) setBotState(null)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [selectedConversation?.id, selectedMessageSignature, canViewBot, currentTenantId])
 
   function handleSelectConversation(conversationId: string) {
     selectConversation(conversationId)
@@ -471,22 +513,37 @@ export default function UnifiedInboxPage() {
 
   async function handleBotReset() {
     if (!selectedConversation) return
-    await resetConversationBot(selectedConversation.id)
-    fetchConversationBotState(selectedConversation.id).then(setBotState).catch(() => setBotState(null))
+    const conversationId = selectedConversation.id
+    await resetConversationBot(conversationId)
+    fetchConversationBotState(conversationId).then((nextState) => {
+      if (selectedIdRef.current === conversationId) setBotState(nextState)
+    }).catch(() => {
+      if (selectedIdRef.current === conversationId) setBotState(null)
+    })
     showToast('تمت إعادة تشغيل الوكيل لهذه المحادثة', 'success')
   }
 
   async function handleBotStop() {
     if (!selectedConversation) return
-    await stopConversationBot(selectedConversation.id)
-    fetchConversationBotState(selectedConversation.id).then(setBotState).catch(() => setBotState(null))
+    const conversationId = selectedConversation.id
+    await stopConversationBot(conversationId)
+    fetchConversationBotState(conversationId).then((nextState) => {
+      if (selectedIdRef.current === conversationId) setBotState(nextState)
+    }).catch(() => {
+      if (selectedIdRef.current === conversationId) setBotState(null)
+    })
     showToast('تم إيقاف الوكيل لهذه المحادثة', 'success')
   }
 
   async function handleBotHandoff() {
     if (!selectedConversation) return
-    await handoffConversationBot(selectedConversation.id)
-    fetchConversationBotState(selectedConversation.id).then(setBotState).catch(() => setBotState(null))
+    const conversationId = selectedConversation.id
+    await handoffConversationBot(conversationId)
+    fetchConversationBotState(conversationId).then((nextState) => {
+      if (selectedIdRef.current === conversationId) setBotState(nextState)
+    }).catch(() => {
+      if (selectedIdRef.current === conversationId) setBotState(null)
+    })
     showToast('تم تحويل المحادثة لموظف', 'success')
   }
 
@@ -826,7 +883,7 @@ export default function UnifiedInboxPage() {
                 <div className="bot-conversation-card">
                   <strong>وكيل واتساب</strong>
                   <span>حالة الوكيل: {botState?.isEnabled ? 'مفعل' : 'غير مفعل'}</span>
-                  <span>حالة المحادثة الآلية: {botState?.state?.status === 'ACTIVE' ? 'نشطة' : botState?.state?.status === 'COMPLETED' ? 'مكتملة' : botState?.state?.status === 'HANDED_OFF' ? 'محولة لموظف' : 'غير نشطة'}</span>
+                  <span>حالة المحادثة الآلية: {botConversationStatus}</span>
                   {canManageBot ? (
                     <div>
                       <AppButton variant="ghost" onClick={handleBotStop}>إيقاف الوكيل لهذه المحادثة</AppButton>

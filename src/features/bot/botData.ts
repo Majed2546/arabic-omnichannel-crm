@@ -19,6 +19,8 @@ export type BotFlowType = 'MAIN_MENU' | 'BOOK_APPOINTMENT' | 'CREATE_TICKET' | '
 
 export type ConversationBotState = {
   isEnabled: boolean
+  waitingForCustomer?: boolean
+  lastSendFailed?: boolean
   state?: {
     id: string
     flowType: BotFlowType
