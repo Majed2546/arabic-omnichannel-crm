@@ -23,17 +23,21 @@ function toLegacyEvent(event: RealtimeEnvelope): RealtimeEvent | null {
 
   if (event.type === 'message.created') {
     const payload = event.payload as MessageCreatedPayload
+    const body = payload.body ?? payload.content ?? ''
+    const isCustomer = payload.senderType === 'CUSTOMER' || !payload.senderType
+    const isSystem = payload.senderType === 'SYSTEM'
+    const isBot = isSystem && payload.messageType === 'TEXT'
     return {
       type: 'message.created',
       conversationId: payload.conversationId,
-      unreadIncrement: 1,
-      lastMessage: payload.body,
+      unreadIncrement: isCustomer ? 1 : 0,
+      lastMessage: body,
       updatedAt,
       message: {
-        id: event.id,
-        direction: 'incoming',
-        body: payload.body,
-        author: payload.author,
+        id: payload.id ?? event.id,
+        direction: isCustomer ? 'incoming' : 'outgoing',
+        body,
+        author: payload.author ?? (isCustomer ? 'عميل' : isBot ? 'الوكيل' : isSystem ? 'النظام' : 'الفريق'),
         sentAt: updatedAt,
       },
     }

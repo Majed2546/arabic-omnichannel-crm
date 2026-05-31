@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq'
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { MessageSenderType, MessageStatus, MessageType, Prisma } from '@prisma/client'
 import type { Queue } from 'bullmq'
 import { PrismaService } from '../../database/prisma.service'
@@ -17,6 +17,8 @@ function asJson(value: Record<string, unknown> | undefined): Prisma.InputJsonVal
 
 @Injectable()
 export class MessageService {
+  private readonly logger = new Logger(MessageService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationService,
@@ -275,16 +277,34 @@ export class MessageService {
     return message
   }
 
-  fetchConversationMessages(tenantId: string, conversationId: string, query: ListMessagesQueryDto) {
+  async fetchConversationMessages(tenantId: string, conversationId: string, query: ListMessagesQueryDto) {
     const page = query.page ?? 1
-    const pageSize = Math.min(query.pageSize ?? query.limit ?? 50, 100)
+    const pageSize = Math.min(query.pageSize ?? query.limit ?? 200, 500)
 
-    return this.prisma.message.findMany({
-      where: { tenantId, conversationId, deletedAt: null },
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId, deletedAt: null },
+      select: { id: true, tenantId: true },
+    })
+    if (!conversation) throw new NotFoundException('Conversation not found')
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        conversationId,
+        deletedAt: null,
+        conversation: { tenantId, deletedAt: null },
+      },
       orderBy: { createdAt: 'asc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     })
+
+    const senderCounts = messages.reduce<Record<string, number>>((counts, message) => {
+      counts[message.senderType] = (counts[message.senderType] ?? 0) + 1
+      return counts
+    }, {})
+    this.logger.debug(`messages.list tenant=${tenantId} conversation=${conversationId} returned=${messages.length} senderCounts=${JSON.stringify(senderCounts)}`)
+
+    return messages
   }
 
   async fetchUnreadCounts(tenantId: string) {

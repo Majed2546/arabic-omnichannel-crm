@@ -50,7 +50,9 @@ function reduceRealtimeEvent(
                 : conversation.unreadCount + event.unreadIncrement,
             lastMessage: event.lastMessage,
             updatedAt: event.updatedAt,
-            messages: [...conversation.messages, event.message],
+            messages: conversation.messages.some((message) => message.id === event.message.id)
+              ? conversation.messages
+              : [...conversation.messages, event.message],
           }
         : conversation,
     )

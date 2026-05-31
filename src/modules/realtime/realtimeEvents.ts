@@ -26,9 +26,14 @@ export type RealtimeEnvelope<TPayload = Record<string, unknown>> = {
 }
 
 export type MessageCreatedPayload = {
+  id?: string
   conversationId: string
-  body: string
-  author: string
+  body?: string
+  content?: string
+  author?: string
+  senderType?: 'CUSTOMER' | 'AGENT' | 'SYSTEM' | string
+  messageType?: string
+  status?: string
 }
 
 export type MessageUpdatedPayload = {

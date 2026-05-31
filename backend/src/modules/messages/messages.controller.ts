@@ -15,31 +15,32 @@ export class MessagesController {
   ) {}
 
   @Get('unread-counts')
-  unreadCounts(@Headers('x-tenant-id') tenantId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.messages.fetchUnreadCounts(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }))
+  unreadCounts(@Headers('x-tenant-id') tenantId: string | undefined, @Headers('x-local-tenant-id') localTenantId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
+    return this.messages.fetchUnreadCounts(this.tenantAccess.requireTenantAccess({ requestedTenantId: localTenantId || tenantId, user }))
   }
 
   @Get(':conversationId')
   list(
-    @Headers('x-tenant-id') tenantId: string,
+    @Headers('x-tenant-id') tenantId: string | undefined,
+    @Headers('x-local-tenant-id') localTenantId: string | undefined,
     @Param('conversationId') conversationId: string,
     @Query() query: ListMessagesQueryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.messages.fetchConversationMessages(this.tenantAccess.requireTenantAccess({ requestedTenantId: tenantId, user }), conversationId, query)
+    return this.messages.fetchConversationMessages(this.tenantAccess.requireTenantAccess({ requestedTenantId: localTenantId || tenantId, user }), conversationId, query)
   }
 
   @Post()
   @RequirePermissions('inbox.reply')
-  create(@Body() dto: CreateMessageDto, @Headers('x-tenant-id') tenantId: string, @CurrentUser() user: AuthenticatedUser) {
-    const scopedTenantId = this.tenantAccess.requireTenantAccess({ requestedTenantId: dto.tenantId ?? tenantId, user })
+  create(@Body() dto: CreateMessageDto, @Headers('x-tenant-id') tenantId: string | undefined, @Headers('x-local-tenant-id') localTenantId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
+    const scopedTenantId = this.tenantAccess.requireTenantAccess({ requestedTenantId: dto.tenantId ?? localTenantId ?? tenantId, user })
     return this.messages.create({ ...dto, tenantId: scopedTenantId })
   }
 
   @Patch(':id/status')
   @RequirePermissions('inbox.reply')
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateMessageStatusDto, @Headers('x-tenant-id') tenantId: string, @CurrentUser() user: AuthenticatedUser) {
-    const scopedTenantId = this.tenantAccess.requireTenantAccess({ requestedTenantId: dto.tenantId ?? tenantId, user })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateMessageStatusDto, @Headers('x-tenant-id') tenantId: string | undefined, @Headers('x-local-tenant-id') localTenantId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
+    const scopedTenantId = this.tenantAccess.requireTenantAccess({ requestedTenantId: dto.tenantId ?? localTenantId ?? tenantId, user })
     return this.messages.updateStatus(id, { ...dto, tenantId: scopedTenantId })
   }
 }

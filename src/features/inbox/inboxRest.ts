@@ -111,10 +111,13 @@ function resolveAssignment(conversation: RestConversation): AssignmentState {
 
 function mapMessage(message: RestMessage, customerName: string): ConversationMessage {
   const isCustomer = message.senderType === 'CUSTOMER'
+  const isSystem = message.senderType === 'SYSTEM'
   const isInternalNote = message.messageType === 'INTERNAL_NOTE'
   const whatsappMetadata = message.metadata?.whatsapp
   const whatsapp = whatsappMetadata && typeof whatsappMetadata === 'object' ? whatsappMetadata as Record<string, unknown> : null
-  const isBotMessage = whatsapp?.bot === true
+  const deliveryMetadata = message.metadata?.delivery
+  const delivery = deliveryMetadata && typeof deliveryMetadata === 'object' ? deliveryMetadata as Record<string, unknown> : null
+  const isBotMessage = whatsapp?.bot === true || (isSystem && message.messageType === 'TEXT' && delivery?.provider === 'meta')
   const botFailed = !isCustomer && isBotMessage && message.status === 'FAILED'
 
   return {
@@ -122,7 +125,7 @@ function mapMessage(message: RestMessage, customerName: string): ConversationMes
     direction: isCustomer ? 'incoming' : 'outgoing',
     kind: isInternalNote ? 'internal_note' : 'message',
     body: message.content ?? '',
-    author: isCustomer ? customerName : isBotMessage ? 'وكيل واتساب' : 'الفريق',
+    author: isCustomer ? customerName : isBotMessage ? 'الوكيل' : isSystem ? 'النظام' : 'الفريق',
     sentAt: formatDate(message.createdAt),
     deliveryStatus: deliveryMap[message.status ?? ''] ?? undefined,
     botFailed,
@@ -179,7 +182,7 @@ export async function fetchInboxConversations(): Promise<Conversation[]> {
   const conversations = await fetchJson<RestConversation[]>('/conversations?limit=50')
   const conversationsWithMessages = await Promise.all(
     conversations.map(async (conversation) => {
-      const messages = await fetchJson<RestMessage[]>(`/messages/${conversation.id}?limit=50`)
+      const messages = await fetchJson<RestMessage[]>(`/messages/${conversation.id}?limit=500`)
       return mapConversation(conversation, messages)
     }),
   )
