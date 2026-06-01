@@ -136,7 +136,7 @@ export default function UsersPage() {
   const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [form, setForm] = useState<UserForm | null>(null)
-  const isAgentsView = location.pathname === '/tenants'
+  const isAgentsView = location.pathname === '/agents' || location.pathname === '/tenants'
   const operationalUserTypes: UserType[] = ['AGENT', 'CONSULTANT']
 
   const filteredRoles = useMemo(() => roles.filter((role) => role.scope === 'TENANT'), [roles])

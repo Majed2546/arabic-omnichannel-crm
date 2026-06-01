@@ -15,6 +15,7 @@ import { RealtimeHealthIndicator } from './RealtimeHealthIndicator'
 const pageTitles: Record<string, string> = {
   '/': 'الملخص التنفيذي',
   '/dashboard': 'الملخص التنفيذي',
+  '/agents': 'المستشارون والوكلاء',
   '/tenants': 'المستشارون والوكلاء',
   '/users': 'المستخدمون',
   '/roles': 'الأدوار والصلاحيات',

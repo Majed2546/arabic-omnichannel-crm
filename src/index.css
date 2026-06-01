@@ -9147,6 +9147,26 @@ body:has(.inbox-layout) {
   }
 }
 
+/* Release 26 MVP stabilization */
+.notification-panel.notification-panel-portal {
+  z-index: 9999;
+}
+
+.modal-backdrop,
+.signup-modal-backdrop,
+.platform-modal-backdrop {
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-label,
+.topbar-title,
+.topbar-control,
+.summary-list li,
+.activity-item {
+  min-width: 0;
+}
+
 .customers-page {
   min-height: calc(100dvh - 136px);
   display: grid;

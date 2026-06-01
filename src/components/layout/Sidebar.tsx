@@ -53,7 +53,7 @@ const navigation: Array<{
   { path: '/bot', label: 'وكيل واتساب الذكي', icon: Bot, allowedRoles: ['admin', 'support'], permission: 'bot.view' },
   { path: '/users', label: 'المستخدمون', icon: Users, allowedRoles: ['admin'], permission: 'users.view' },
   { path: '/teams', label: 'الفرق', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },
-  { path: '/tenants', label: 'المستشارون والوكلاء', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },
+  { path: '/agents', label: 'المستشارون والوكلاء', icon: Headset, allowedRoles: ['admin', 'support', 'analyst'], permission: 'users.view' },
   { path: '/automation', label: 'الأتمتة', icon: Bot, allowedRoles: ['admin', 'analyst'], permission: 'automation.view' },
   { path: '/reports', label: 'التقارير', icon: BarChart3, allowedRoles: ['admin', 'analyst'], permission: 'reports.view' },
   { path: '/sla', label: 'SLA والتصعيد', icon: Clock3, allowedRoles: ['admin', 'support', 'analyst'], permission: 'reports.view' },

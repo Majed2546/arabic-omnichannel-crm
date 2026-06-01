@@ -46,7 +46,8 @@ function App() {
       >
         <Route index element={<RequireTenant><DashboardPage /></RequireTenant>} />
         <Route path="dashboard" element={<RequireTenant><DashboardPage /></RequireTenant>} />
-        <Route path="tenants" element={<RequireTenant><RequireAuth requiredPermissions={['users.view']}><UsersPage /></RequireAuth></RequireTenant>} />
+        <Route path="agents" element={<RequireTenant><RequireAuth requiredPermissions={['users.view']}><UsersPage /></RequireAuth></RequireTenant>} />
+        <Route path="tenants" element={<Navigate to="/agents" replace />} />
         <Route path="users" element={<RequireTenant><RequireAuth requiredPermissions={['users.view']}><UsersPage /></RequireAuth></RequireTenant>} />
         <Route path="teams" element={<RequireTenant><RequireAuth requiredPermissions={['users.view']}><TeamsPage /></RequireAuth></RequireTenant>} />
         <Route path="roles" element={<RequireTenant><RequireAuth allowedRoles={['admin']} requiredPermissions={['roles.view']}><RolesPage /></RequireAuth></RequireTenant>} />
