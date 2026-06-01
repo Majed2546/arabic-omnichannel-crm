@@ -19,8 +19,11 @@ type DashboardConversation = {
 
 type DashboardNotification = {
   id: string
+  title?: string
   priority?: string
   readAt?: string | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 type DashboardChannel = {
@@ -33,7 +36,9 @@ type DashboardTicket = {
   id: string
   title?: string
   status?: string
+  priority?: string
   slaStatus?: string | null
+  tags?: string[]
   createdAt?: string
   updatedAt?: string
 }
@@ -41,15 +46,20 @@ type DashboardTicket = {
 type DashboardAppointment = {
   id: string
   title?: string
+  customerName?: string | null
   status?: string
+  meetingType?: string
   startAt?: string
   createdAt?: string
   updatedAt?: string
+  description?: string | null
 }
 
-type DashboardMeeting = {
+type DashboardAutomationRule = {
   id: string
-  status?: string
+  name?: string
+  isActive?: boolean
+  updatedAt?: string
 }
 
 type DashboardAutomationLog = {
@@ -63,10 +73,55 @@ type DashboardCustomer = {
   id: string
 }
 
+type DashboardUser = {
+  id: string
+}
+
+type DashboardBotSettings = {
+  isEnabled?: boolean
+  appointmentEnabled?: boolean
+  ticketEnabled?: boolean
+}
+
+type DashboardUsageCounts = {
+  usersCount?: number
+  channelsCount?: number
+  monthlyConversationsCount?: number
+  monthlyMessagesCount?: number
+}
+
+type DashboardBillingTenant = DashboardUsageCounts & {
+  tenantId?: string
+  plan?: string
+  maxUsers?: number
+  maxChannels?: number
+  monthlyConversationLimit?: number
+  monthlyMessageLimit?: number
+  usage?: DashboardUsageCounts
+}
+
+type DashboardBillingUsage = {
+  platform?: boolean
+  tenant?: DashboardBillingTenant | null
+  tenants?: DashboardBillingTenant[]
+}
+
+type SummaryItem = {
+  label: string
+  value: string | number
+  hint?: string
+}
+
 async function fetchItems<T>(path: string): Promise<T[]> {
   const response = await apiFetch(apiUrl(path))
   if (!response.ok) return []
   return unwrapItems<T>(await response.json())
+}
+
+async function fetchOne<T>(path: string): Promise<T | null> {
+  const response = await apiFetch(apiUrl(path))
+  if (!response.ok) return null
+  return response.json() as Promise<T>
 }
 
 function formatDate(value?: string | null) {
@@ -74,14 +129,61 @@ function formatDate(value?: string | null) {
   return new Date(value).toLocaleString('ar-SA')
 }
 
-function getStatusCount<T extends { status?: string }>(items: T[], status: string) {
-  return items.filter((item) => item.status === status).length
-}
-
 function latestByDate<T>(items: T[], getDate: (item: T) => string | null | undefined) {
   return [...items]
     .filter((item) => getDate(item))
     .sort((first, second) => new Date(getDate(second) ?? 0).getTime() - new Date(getDate(first) ?? 0).getTime())[0]
+}
+
+function countByStatus<T extends { status?: string }>(items: T[], statuses: string[]) {
+  return items.filter((item) => statuses.includes(item.status ?? '')).length
+}
+
+function percent(used: number, limit?: number) {
+  if (!limit || limit <= 0) return 0
+  return Math.min(100, Math.round((used / limit) * 100))
+}
+
+function meetingTypeLabel(type?: string) {
+  const labels: Record<string, string> = {
+    IN_PERSON: 'حضوري',
+    PHONE: 'اتصال',
+    ONLINE: 'أونلاين',
+  }
+  return labels[type ?? ''] ?? 'غير محدد'
+}
+
+function appointmentStatusLabel(status?: string) {
+  const labels: Record<string, string> = {
+    SCHEDULED: 'مجدول',
+    CONFIRMED: 'مؤكد',
+    CANCELLED: 'ملغي',
+    COMPLETED: 'مكتمل',
+    NO_SHOW: 'لم يحضر',
+  }
+  return labels[status ?? ''] ?? 'غير محدد'
+}
+
+function planLabel(plan?: string) {
+  const labels: Record<string, string> = {
+    STARTER: 'Starter',
+    PROFESSIONAL: 'Professional',
+    ENTERPRISE: 'Enterprise',
+  }
+  return labels[plan ?? ''] ?? 'غير محددة'
+}
+
+function SummaryList({ items }: { items: SummaryItem[] }) {
+  return (
+    <ul className="summary-list">
+      {items.map((item) => (
+        <li key={item.label}>
+          <span>{item.value}</span>
+          <small>{item.label}{item.hint ? ` · ${item.hint}` : ''}</small>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export default function DashboardPage() {
@@ -91,9 +193,12 @@ export default function DashboardPage() {
   const [channels, setChannels] = useState<DashboardChannel[]>([])
   const [tickets, setTickets] = useState<DashboardTicket[]>([])
   const [appointments, setAppointments] = useState<DashboardAppointment[]>([])
-  const [meetings, setMeetings] = useState<DashboardMeeting[]>([])
+  const [automationRules, setAutomationRules] = useState<DashboardAutomationRule[]>([])
   const [automationLogs, setAutomationLogs] = useState<DashboardAutomationLog[]>([])
   const [customers, setCustomers] = useState<DashboardCustomer[]>([])
+  const [users, setUsers] = useState<DashboardUser[]>([])
+  const [botSettings, setBotSettings] = useState<DashboardBotSettings | null>(null)
+  const [billingUsage, setBillingUsage] = useState<DashboardBillingUsage | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -102,9 +207,12 @@ export default function DashboardPage() {
     setChannels([])
     setTickets([])
     setAppointments([])
-    setMeetings([])
+    setAutomationRules([])
     setAutomationLogs([])
     setCustomers([])
+    setUsers([])
+    setBotSettings(null)
+    setBillingUsage(null)
 
     async function loadDashboard() {
       if (!currentTenantId) return
@@ -114,18 +222,24 @@ export default function DashboardPage() {
         nextChannels,
         nextTickets,
         nextAppointments,
-        nextMeetings,
+        nextAutomationRules,
         nextAutomationLogs,
         nextCustomers,
+        nextUsers,
+        nextBotSettings,
+        nextBillingUsage,
       ] = await Promise.all([
         fetchItems<DashboardConversation>('/conversations?limit=100'),
         fetchItems<DashboardNotification>('/notifications'),
         fetchItems<DashboardChannel>('/channels'),
         fetchItems<DashboardTicket>('/tickets'),
         fetchItems<DashboardAppointment>('/appointments'),
-        fetchItems<DashboardMeeting>('/meetings'),
+        fetchItems<DashboardAutomationRule>('/automation/rules'),
         fetchItems<DashboardAutomationLog>('/automation/logs'),
         fetchItems<DashboardCustomer>('/customers?limit=100'),
+        fetchItems<DashboardUser>('/users'),
+        fetchOne<DashboardBotSettings>('/bot/settings'),
+        fetchOne<DashboardBillingUsage>('/billing/usage'),
       ])
 
       if (disposed) return
@@ -134,9 +248,12 @@ export default function DashboardPage() {
       setChannels(nextChannels)
       setTickets(nextTickets)
       setAppointments(nextAppointments)
-      setMeetings(nextMeetings)
+      setAutomationRules(nextAutomationRules)
       setAutomationLogs(nextAutomationLogs)
       setCustomers(nextCustomers)
+      setUsers(nextUsers)
+      setBotSettings(nextBotSettings)
+      setBillingUsage(nextBillingUsage)
     }
 
     loadDashboard()
@@ -149,20 +266,20 @@ export default function DashboardPage() {
   }, [currentTenantId])
 
   const metrics = useMemo(() => {
+    const now = Date.now()
     const activeConversations = conversations.filter((conversation) =>
       !['CLOSED', 'RESOLVED'].includes(conversation.status ?? ''),
     )
     const unreadMessages = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0)
-    const unreadNotifications = notifications.filter((notification) => !notification.readAt).length
+    const pendingReply = countByStatus(conversations, ['OPEN', 'NEW', 'PENDING_AGENT', 'SLA_WARNING', 'SLA_BREACHED'])
+    const inProgressConversations = countByStatus(conversations, ['IN_PROGRESS', 'ASSIGNED'])
     const connectedChannels = channels.filter((channel) =>
       ['ACTIVE', 'CONNECTED'].includes(channel.status ?? ''),
     ).length
     const openTickets = tickets.filter((ticket) => !['RESOLVED', 'CLOSED'].includes(ticket.status ?? '')).length
-    const now = Date.now()
-    const upcomingAppointments = appointments.filter((appointment) =>
-      !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(appointment.status ?? '') &&
-      new Date(appointment.startAt ?? appointment.createdAt ?? now).getTime() >= now,
-    ).length
+    const resolvedTickets = countByStatus(tickets, ['RESOLVED', 'CLOSED'])
+    const inProgressTickets = countByStatus(tickets, ['IN_PROGRESS'])
+    const highPriorityTickets = tickets.filter((ticket) => ['HIGH', 'URGENT'].includes(ticket.priority ?? '')).length
     const slaWarning = tickets.filter((ticket) => ticket.slaStatus === 'WARNING').length +
       conversations.filter((conversation) => conversation.status === 'SLA_WARNING').length
     const slaBreached = tickets.filter((ticket) => ticket.slaStatus === 'BREACHED').length +
@@ -170,12 +287,40 @@ export default function DashboardPage() {
     const slaAlerts = slaWarning + slaBreached
     const slaOnTrack = tickets.filter((ticket) => ['ON_TRACK', 'PAUSED'].includes(ticket.slaStatus ?? '')).length
     const slaMet = tickets.filter((ticket) => ticket.slaStatus === 'MET').length
-    const latestMessage = latestByDate(conversations, (conversation) =>
+    const upcomingAppointments = appointments
+      .filter((appointment) =>
+        !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(appointment.status ?? '') &&
+        new Date(appointment.startAt ?? appointment.createdAt ?? now).getTime() >= now,
+      )
+      .sort((first, second) => new Date(first.startAt ?? first.createdAt ?? now).getTime() - new Date(second.startAt ?? second.createdAt ?? now).getTime())
+    const latestConversation = latestByDate(conversations, (conversation) =>
       conversation.lastMessageAt ?? conversation.updatedAt ?? conversation.createdAt,
     )
     const latestTicket = latestByDate(tickets, (ticket) => ticket.updatedAt ?? ticket.createdAt)
     const latestAppointment = latestByDate(appointments, (appointment) => appointment.startAt ?? appointment.updatedAt)
-    const latestAutomation = latestByDate(automationLogs, (log) => log.createdAt)
+    const latestNotification = latestByDate(notifications, (notification) => notification.updatedAt ?? notification.createdAt)
+    const latestAutomationLog = latestByDate(automationLogs, (log) => log.createdAt)
+    const latestAutomationRule = latestByDate(automationRules, (rule) => rule.updatedAt)
+    const activeAutomationRules = automationRules.filter((rule) => rule.isActive).length
+    const botCreatedTickets = tickets.filter((ticket) =>
+      ticket.tags?.some((tag) => ['وكيل آلي', 'whatsapp-bot', 'bot'].includes(tag)),
+    ).length
+    const botCreatedAppointments = appointments.filter((appointment) =>
+      appointment.description?.includes('وكيل واتساب') || appointment.title?.includes('وكيل واتساب'),
+    ).length
+    const usageTenant = billingUsage?.tenant ?? billingUsage?.tenants?.find((tenant) => tenant.tenantId === currentTenantId) ?? billingUsage?.tenants?.[0]
+    const usage = usageTenant?.usage ?? usageTenant
+    const monthlyConversations = Number(usage?.monthlyConversationsCount ?? conversations.length)
+    const monthlyMessages = Number(usage?.monthlyMessagesCount ?? unreadMessages)
+    const monthlyConversationLimit = Number(usageTenant?.monthlyConversationLimit ?? 0)
+    const monthlyMessageLimit = Number(usageTenant?.monthlyMessageLimit ?? 0)
+    const usagePercent = Math.max(percent(monthlyConversations, monthlyConversationLimit), percent(monthlyMessages, monthlyMessageLimit))
+    const recommendations = [
+      unreadMessages > 10 ? 'راجع الرسائل غير المقروءة لتقليل وقت الاستجابة.' : null,
+      openTickets > 10 ? 'وزّع التذاكر على الفريق.' : null,
+      slaBreached > 0 ? 'راجع عناصر SLA المتأخرة.' : null,
+      activeAutomationRules === 0 ? 'فعّل الأتمتة للمهام المتكررة.' : null,
+    ].filter((item): item is string => Boolean(item))
 
     return {
       activeConversations: activeConversations.length,
@@ -188,20 +333,16 @@ export default function DashboardPage() {
       inboxSummary: [
         { label: 'إجمالي المحادثات', value: conversations.length },
         { label: 'غير مقروء', value: unreadMessages },
-        { label: 'تنبيهات', value: unreadNotifications + slaAlerts },
-        { label: 'القنوات', value: connectedChannels },
+        { label: 'بانتظار الرد', value: pendingReply },
+        { label: 'قيد المعالجة', value: inProgressConversations },
+        { label: 'آخر رسالة واردة', value: latestConversation ? formatDate(latestConversation.lastMessageAt ?? latestConversation.updatedAt ?? latestConversation.createdAt) : 'لا توجد رسائل' },
       ],
-      ticketStatuses: [
-        { label: 'مفتوحة', value: getStatusCount(tickets, 'OPEN') },
-        { label: 'قيد المعالجة', value: getStatusCount(tickets, 'IN_PROGRESS') },
-        { label: 'بانتظار العميل', value: getStatusCount(tickets, 'WAITING_CUSTOMER') },
-        { label: 'محلولة', value: getStatusCount(tickets, 'RESOLVED') },
-        { label: 'مغلقة', value: getStatusCount(tickets, 'CLOSED') },
-      ],
-      operatingSummary: [
-        { label: 'المواعيد القادمة', value: upcomingAppointments },
-        { label: 'الاجتماعات المرئية', value: meetings.filter((meeting) => !['CANCELLED', 'COMPLETED'].includes(meeting.status ?? '')).length },
-        { label: 'الأتمتة المنفذة', value: automationLogs.filter((log) => log.status === 'SUCCESS').length },
+      ticketPerformance: [
+        { label: 'مفتوحة', value: openTickets },
+        { label: 'قيد المعالجة', value: inProgressTickets },
+        { label: 'تم الحل', value: resolvedTickets },
+        { label: 'عالية الأولوية', value: highPriorityTickets },
+        { label: 'متأخرة حسب SLA', value: slaBreached },
       ],
       slaSummary: [
         { label: 'ضمن الوقت', value: slaOnTrack },
@@ -209,12 +350,26 @@ export default function DashboardPage() {
         { label: 'متأخر', value: slaBreached },
         { label: 'تم الالتزام', value: slaMet },
       ],
+      automationSummary: [
+        { label: 'قواعد الأتمتة المفعلة', value: activeAutomationRules },
+        { label: 'آخر تنفيذ أتمتة', value: latestAutomationLog ? formatDate(latestAutomationLog.createdAt) : 'لا يوجد تنفيذ' },
+        { label: 'حالة وكيل واتساب الذكي', value: botSettings?.isEnabled ? 'مفعل' : 'غير مفعل' },
+        { label: 'تذاكر/مواعيد أنشأها الوكيل', value: botCreatedTickets + botCreatedAppointments },
+      ],
+      subscriptionUsage: [
+        { label: 'الباقة الحالية', value: planLabel(usageTenant?.plan) },
+        { label: 'المستخدمون', value: Number(usage?.usersCount ?? users.length), hint: usageTenant?.maxUsers ? `من ${usageTenant.maxUsers}` : undefined },
+        { label: 'القنوات', value: Number(usage?.channelsCount ?? channels.length), hint: usageTenant?.maxChannels ? `من ${usageTenant.maxChannels}` : undefined },
+        { label: 'محادثات الشهر', value: monthlyConversations, hint: monthlyConversationLimit ? `من ${monthlyConversationLimit}` : undefined },
+        { label: 'رسائل الشهر', value: monthlyMessages, hint: monthlyMessageLimit ? `من ${monthlyMessageLimit}` : undefined },
+        { label: 'نسبة الاستخدام', value: `${usagePercent}%` },
+      ],
       recentActivity: [
         {
-          id: 'latest-message',
-          label: 'آخر رسالة',
-          text: latestMessage ? `محادثة ${latestMessage.status ?? 'نشطة'}` : 'لا توجد رسائل حديثة',
-          time: formatDate(latestMessage?.lastMessageAt ?? latestMessage?.updatedAt ?? latestMessage?.createdAt),
+          id: 'latest-conversation',
+          label: 'آخر محادثة',
+          text: latestConversation ? `محادثة ${latestConversation.status ?? 'نشطة'}` : 'لا توجد محادثات حديثة',
+          time: formatDate(latestConversation?.lastMessageAt ?? latestConversation?.updatedAt ?? latestConversation?.createdAt),
         },
         {
           id: 'latest-ticket',
@@ -229,21 +384,21 @@ export default function DashboardPage() {
           time: formatDate(latestAppointment?.startAt ?? latestAppointment?.updatedAt),
         },
         {
-          id: 'latest-automation',
-          label: 'آخر أتمتة',
-          text: latestAutomation?.ruleName ?? 'لا توجد أتمتة حديثة',
-          time: formatDate(latestAutomation?.createdAt),
+          id: 'latest-notification',
+          label: 'آخر إشعار',
+          text: latestNotification?.title ?? 'لا توجد إشعارات حديثة',
+          time: formatDate(latestNotification?.updatedAt ?? latestNotification?.createdAt),
+        },
+        {
+          id: 'latest-automation-rule',
+          label: 'آخر قاعدة أتمتة',
+          text: latestAutomationRule?.name ?? 'لا توجد قواعد أتمتة',
+          time: formatDate(latestAutomationRule?.updatedAt),
         },
       ],
-      channelsByType: Array.from(
-        channels.reduce((counts, channel) => {
-          const type = channel.type || 'غير محدد'
-          counts.set(type, (counts.get(type) ?? 0) + 1)
-          return counts
-        }, new Map<string, number>()),
-      ).map(([name, count]) => ({ name, count })),
+      recommendations: recommendations.length ? recommendations : ['المؤشرات مستقرة حالياً. راقب المؤشرات الرئيسية بشكل دوري.'],
     }
-  }, [appointments, automationLogs, channels, conversations, customers, meetings, notifications, tickets])
+  }, [appointments, automationLogs, automationRules, billingUsage, botSettings, channels, conversations, currentTenantId, customers, notifications, tickets, users])
 
   return (
     <div className="page-layout">
@@ -258,11 +413,11 @@ export default function DashboardPage() {
       <Card>
         <PageHeader title="المؤشرات الرئيسية" />
         <div className="stats-grid">
+          <StatCard value={metrics.customers} label="العملاء" />
           <StatCard value={metrics.activeConversations} label="المحادثات النشطة" />
           <StatCard value={metrics.unreadMessages} label="الرسائل غير المقروءة" />
-          <StatCard value={metrics.customers} label="العملاء" />
           <StatCard value={metrics.openTickets} label="التذاكر المفتوحة" />
-          <StatCard value={metrics.upcomingAppointments} label="المواعيد القادمة" />
+          <StatCard value={metrics.upcomingAppointments.length} label="المواعيد القادمة" />
           <StatCard value={metrics.slaAlerts} label="تنبيهات SLA" />
           <StatCard value={metrics.connectedChannels} label="القنوات المتصلة" />
         </div>
@@ -271,77 +426,53 @@ export default function DashboardPage() {
       <div className="dashboard-grid">
         <Card>
           <PageHeader title="ملخص صندوق الوارد" />
-          <ul className="summary-list">
-            {metrics.inboxSummary.map((item) => (
-              <li key={item.label}>
-                <span>{item.value}</span>
-                <small>{item.label}</small>
-              </li>
-            ))}
-          </ul>
-          <div className="chart-card">
-            <h3>القنوات</h3>
-            <ul className="channel-list">
-              {metrics.channelsByType.map((channel) => (
-                <li key={channel.name}>
-                  <p>{channel.name}</p>
-                  <div className="progress-bar">
-                    <span style={{ width: channels.length ? `${Math.min(100, (channel.count / channels.length) * 100)}%` : '0%' }} />
-                  </div>
-                  <strong>{channel.count}</strong>
-                </li>
-              ))}
-              {!metrics.channelsByType.length ? <li><p>لا توجد قنوات مسجلة</p><strong>0</strong></li> : null}
-            </ul>
-          </div>
+          <SummaryList items={metrics.inboxSummary} />
         </Card>
 
         <Card>
-          <PageHeader title="مؤشرات التشغيل" />
-          <ul className="summary-list">
-            {metrics.operatingSummary.map((item) => (
-              <li key={item.label}>
-                <span>{item.value}</span>
-                <small>{item.label}</small>
-              </li>
-            ))}
-          </ul>
-          <div className="chart-card">
-            <h3>التذاكر حسب الحالة</h3>
-            <ul className="channel-list">
-              {metrics.ticketStatuses.map((status) => (
-                <li key={status.label}>
-                  <p>{status.label}</p>
-                  <div className="progress-bar">
-                    <span style={{ width: tickets.length ? `${Math.min(100, (status.value / tickets.length) * 100)}%` : '0%' }} />
-                  </div>
-                  <strong>{status.value}</strong>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <PageHeader title="أداء التذاكر" />
+          <SummaryList items={metrics.ticketPerformance} />
+        </Card>
+      </div>
+
+      <Card>
+        <PageHeader title="المواعيد القادمة" />
+        <div className="activity-feed">
+          {metrics.upcomingAppointments.slice(0, 3).map((appointment) => (
+            <article key={appointment.id} className="activity-item">
+              <small>{appointment.customerName ?? 'عميل غير محدد'}</small>
+              <p>{appointment.title ?? 'موعد قادم'}</p>
+              <small>{formatDate(appointment.startAt)} · {meetingTypeLabel(appointment.meetingType)} · {appointmentStatusLabel(appointment.status)}</small>
+            </article>
+          ))}
+          {!metrics.upcomingAppointments.length ? <p className="notification-empty">لا توجد مواعيد قادمة ضمن الشركة الحالية.</p> : null}
+        </div>
+      </Card>
+
+      <div className="dashboard-grid">
+        <Card>
+          <PageHeader title="SLA ومستوى الخدمة" />
+          <SummaryList items={metrics.slaSummary} />
+        </Card>
+
+        <Card>
+          <PageHeader title="الأتمتة والوكيل الذكي" />
+          <SummaryList items={metrics.automationSummary} />
         </Card>
       </div>
 
       <div className="dashboard-grid">
         <Card>
-          <PageHeader title="مستوى الخدمة SLA" />
-          <ul className="summary-list">
-            {metrics.slaSummary.map((item) => (
-              <li key={item.label}>
-                <span>{item.value}</span>
-                <small>{item.label}</small>
-              </li>
-            ))}
-          </ul>
+          <PageHeader title="استخدام الاشتراك" />
+          <SummaryList items={metrics.subscriptionUsage} />
         </Card>
 
         <Card>
           <PageHeader title="توصيات تنفيذية" />
           <ul className="summary-list">
-            <li><small>راقب المحادثات غير المقروءة لتقليل وقت الاستجابة.</small></li>
-            <li><small>راجع التذاكر المتأخرة لتحسين مستوى الخدمة.</small></li>
-            <li><small>فعّل الأتمتة للمهام المتكررة.</small></li>
+            {metrics.recommendations.map((recommendation) => (
+              <li key={recommendation}><small>{recommendation}</small></li>
+            ))}
           </ul>
         </Card>
       </div>
