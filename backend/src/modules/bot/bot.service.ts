@@ -6,6 +6,9 @@ import { WhatsAppOutboundMessageType } from '../whatsapp/whatsapp-send.dto'
 import { WhatsAppSendService } from '../whatsapp/whatsapp-send.service'
 import type { InboundBotMessage, TestBotMessageDto, UpdateBotSettingsDto } from './dto'
 
+const DEFAULT_APPOINTMENT_TIMEZONE = 'Asia/Riyadh'
+const DEFAULT_APPOINTMENT_DURATION_MINUTES = 30
+
 const DEFAULT_WELCOME = 'أهلًا بك 👋\nكيف نقدر نخدمك؟\n1. حجز موعد\n2. الدعم الفني\n3. متابعة طلب\n4. التحدث مع موظف'
 const DEFAULT_HANDOFF = 'تم تحويلك لأحد موظفينا، سيتم الرد عليك قريبًا.'
 
@@ -52,6 +55,15 @@ type BotSendContext = {
   inboundMessageId: string
   botStateId?: string
   step?: string
+}
+
+type ParsedAppointmentDateTime = {
+  startAt: Date
+  endAt: Date
+  timezone: string
+  durationMinutes: number
+  dateLabel: string
+  timeLabel: string
 }
 
 @Injectable()
@@ -362,13 +374,30 @@ export class BotService {
     }
 
     data.meetingType = this.meetingType(input.content)
-    const appointment = await this.createAppointment(input, settings, data)
+    const created = await this.createAppointment(input, settings, data)
+    if (!created) {
+      delete data.date
+      delete data.time
+      delete data.meetingType
+      await this.updateState(state.id, data, 'date')
+      await this.sendBotReply({
+        tenantId: input.tenantId,
+        conversationId: input.conversationId,
+        recipient: input.customerPhone,
+        message: 'لم أتمكن من فهم التاريخ أو الوقت. فضلاً أرسل التاريخ بصيغة مثل: غداً أو 2026-06-01، ثم الوقت مثل: 11 صباحاً أو 16:00.',
+        inboundMessageId: input.externalMessageId,
+        botStateId: state.id,
+        step: 'date',
+      })
+      return { step: 'date', reason: 'invalid_appointment_datetime' }
+    }
+    const { appointment, parsed } = created
     await this.completeState(state.id, data)
     await this.sendBotReply({
       tenantId: input.tenantId,
       conversationId: input.conversationId,
       recipient: input.customerPhone,
-      message: `تم تسجيل طلب الموعد بنجاح. رقم الموعد: ${appointment.id}`,
+      message: `تم تسجيل طلب الموعد بنجاح.\nالتاريخ: ${parsed.dateLabel}\nالوقت: ${parsed.timeLabel}\nرقم الموعد: ${appointment.id}`,
       inboundMessageId: input.externalMessageId,
       botStateId: state.id,
       step: 'completed',
@@ -447,8 +476,9 @@ export class BotService {
   }
 
   private async createAppointment(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, data: Record<string, unknown>) {
-    const startAt = this.parsePreferredDateTime(String(data.date ?? ''), String(data.time ?? ''))
-    const endAt = new Date(startAt.getTime() + settings.defaultAppointmentDurationMinutes * 60_000)
+    const tenantSchedule = await this.getTenantAppointmentSettings(input.tenantId)
+    const parsed = this.parsePreferredDateTimeInTenantZone(String(data.date ?? ''), String(data.time ?? ''), tenantSchedule.timezone, tenantSchedule.durationMinutes)
+    if (!parsed) return null
     const appointment = await this.prisma.appointment.create({
       data: {
         tenantId: input.tenantId,
@@ -458,8 +488,14 @@ export class BotService {
         assignedTeamId: settings.defaultAssignedTeamId,
         title: `موعد ${String(data.appointmentType ?? 'عميل')}`,
         description: `تم إنشاء الموعد بواسطة وكيل واتساب. التاريخ المطلوب: ${String(data.date ?? '')} ${String(data.time ?? '')}`,
-        startAt,
-        endAt,
+        notes: [
+          `originalDateInput: ${String(data.date ?? '')}`,
+          `originalTimeInput: ${String(data.time ?? '')}`,
+          `parsedTimezone: ${parsed.timezone}`,
+          `parsedDateTime: ${parsed.dateLabel} ${parsed.timeLabel}`,
+        ].join('\n'),
+        startAt: parsed.startAt,
+        endAt: parsed.endAt,
         meetingType: data.meetingType as 'PHONE' | 'ONLINE' | 'IN_PERSON',
       },
     })
@@ -476,7 +512,7 @@ export class BotService {
       priority: NotificationPriority.MEDIUM,
       metadata: { source: 'whatsapp-bot' },
     })
-    return appointment
+    return { appointment, parsed }
   }
 
   private async createTicket(input: InboundBotMessage, settings: Awaited<ReturnType<BotService['getSettings']>>, data: Record<string, unknown>) {
@@ -760,6 +796,169 @@ export class BotService {
     const [hour, minute = '00'] = timeMatch.split(':')
     start.setHours(Number(hour), Number(minute), 0, 0)
     return start
+  }
+
+  private async getTenantAppointmentSettings(tenantId: string) {
+    const settings = await this.prisma.tenantSettings.findUnique({
+      where: { tenantId },
+      select: { timezone: true, defaultAppointmentDurationMinutes: true },
+    })
+    return {
+      timezone: this.validTimeZone(settings?.timezone) ? settings?.timezone ?? DEFAULT_APPOINTMENT_TIMEZONE : DEFAULT_APPOINTMENT_TIMEZONE,
+      durationMinutes: this.positiveInteger(settings?.defaultAppointmentDurationMinutes) ?? DEFAULT_APPOINTMENT_DURATION_MINUTES,
+    }
+  }
+
+  private parsePreferredDateTimeInTenantZone(dateText: string, timeText: string, timezone: string, durationMinutes: number): ParsedAppointmentDateTime | null {
+    const dateParts = this.parseAppointmentDate(dateText, timezone)
+    const timeParts = this.parseAppointmentTime(timeText)
+    if (!dateParts || !timeParts) return null
+
+    const startAt = this.localDateTimeToDate({ ...dateParts, ...timeParts }, timezone)
+    const endAt = new Date(startAt.getTime() + durationMinutes * 60_000)
+    return {
+      startAt,
+      endAt,
+      timezone,
+      durationMinutes,
+      dateLabel: this.formatDateInTimeZone(startAt, timezone),
+      timeLabel: this.formatTimeInTimeZone(startAt, timezone),
+    }
+  }
+
+  private parseAppointmentDate(dateText: string, timezone: string): { year: number; month: number; day: number } | null {
+    const text = this.normalizeArabicInput(dateText)
+    const today = this.datePartsInTimeZone(new Date(), timezone)
+    const relativeDays = text === 'اليوم'
+      ? 0
+      : ['غدا', 'غداً', 'بكره', 'بكرة'].includes(text)
+        ? 1
+        : text === 'بعد بكره' || text === 'بعد بكرة'
+          ? 2
+          : null
+    if (relativeDays !== null) return this.addDays(today, relativeDays)
+
+    const explicit = text.match(/^(\d{1,4})[-/](\d{1,2})[-/](\d{1,4})$/)
+    if (!explicit) return null
+    const first = Number(explicit[1])
+    const second = Number(explicit[2])
+    const third = Number(explicit[3])
+    const year = explicit[1].length === 4 ? first : third
+    const month = second
+    const day = explicit[1].length === 4 ? third : first
+    if (!this.validDateParts(year, month, day)) return null
+    return { year, month, day }
+  }
+
+  private parseAppointmentTime(timeText: string): { hour: number; minute: number } | null {
+    const text = this.normalizeArabicInput(timeText)
+    const match = text.match(/(\d{1,2})(?::(\d{1,2}))?/)
+    if (!match) return null
+    let hour = Number(match[1])
+    const minute = Number(match[2] ?? '0')
+    if (!Number.isInteger(hour) || !Number.isInteger(minute) || minute < 0 || minute > 59) return null
+
+    const isAm = /(^|\s)(ص|صباحا|صباح)(\s|$)/.test(text)
+    const isPm = /(^|\s)(م|مساء|مساءا|عصرا|عصر)(\s|$)/.test(text)
+    if (isAm && isPm) return null
+    if (isAm || isPm) {
+      if (hour < 1 || hour > 12) return null
+      if (isAm && hour === 12) hour = 0
+      if (isPm && hour < 12) hour += 12
+    } else if (hour < 0 || hour > 23 || (hour >= 1 && hour <= 12)) {
+      return null
+    }
+    return { hour, minute }
+  }
+
+  private normalizeArabicInput(value: string) {
+    return value
+      .trim()
+      .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x660))
+      .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x6f0))
+      .replace(/[\u064b-\u065f\u0670]/g, '')
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+  }
+
+  private datePartsInTimeZone(date: Date, timezone: string) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      calendar: 'gregory',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date)
+    const value = (type: string) => Number(parts.find((part) => part.type === type)?.value)
+    return { year: value('year'), month: value('month'), day: value('day') }
+  }
+
+  private addDays(parts: { year: number; month: number; day: number }, days: number) {
+    const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days))
+    return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() }
+  }
+
+  private validDateParts(year: number, month: number, day: number) {
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false
+    if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return false
+    const date = new Date(Date.UTC(year, month - 1, day))
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  }
+
+  private localDateTimeToDate(parts: { year: number; month: number; day: number; hour: number; minute: number }, timezone: string) {
+    const localTimestamp = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute)
+    let utcTimestamp = localTimestamp - this.timeZoneOffsetMs(new Date(localTimestamp), timezone)
+    utcTimestamp = localTimestamp - this.timeZoneOffsetMs(new Date(utcTimestamp), timezone)
+    return new Date(utcTimestamp)
+  }
+
+  private timeZoneOffsetMs(date: Date, timezone: string) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      calendar: 'gregory',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(date)
+    const value = (type: string) => Number(parts.find((part) => part.type === type)?.value)
+    const asUtc = Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'), value('second'))
+    return asUtc - date.getTime()
+  }
+
+  private formatDateInTimeZone(date: Date, timezone: string) {
+    const parts = this.datePartsInTimeZone(date, timezone)
+    return `${String(parts.day).padStart(2, '0')}-${String(parts.month).padStart(2, '0')}-${parts.year}`
+  }
+
+  private formatTimeInTimeZone(date: Date, timezone: string) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(date)
+    const value = (type: string) => parts.find((part) => part.type === type)?.value ?? '00'
+    return `${value('hour')}:${value('minute')}`
+  }
+
+  private validTimeZone(timezone?: string | null) {
+    if (!timezone) return false
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  private positiveInteger(value?: number | null) {
+    return Number.isInteger(value) && Number(value) > 0 ? Number(value) : null
   }
 
   private async validateAssignments(tenantId: string, dto: UpdateBotSettingsDto) {
