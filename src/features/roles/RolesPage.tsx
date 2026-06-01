@@ -36,7 +36,7 @@ type RoleForm = {
 }
 
 const moduleGroups: Array<{ id: string; label: string; permissions: CrmPermission[] }> = [
-  { id: 'dashboard', label: 'لوحة القيادة', permissions: ['dashboard.view'] },
+  { id: 'dashboard', label: 'الملخص التنفيذي', permissions: ['dashboard.view'] },
   { id: 'inbox', label: 'صندوق الوارد', permissions: ['inbox.view', 'inbox.reply', 'inbox.assign'] },
   { id: 'customers', label: 'العملاء', permissions: ['customers.view', 'customers.manage'] },
   { id: 'tickets', label: 'التذاكر', permissions: ['tickets.view', 'tickets.manage'] },

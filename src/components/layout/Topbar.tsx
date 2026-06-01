@@ -13,8 +13,8 @@ import { NotificationCenter } from '../../features/notifications'
 import { RealtimeHealthIndicator } from './RealtimeHealthIndicator'
 
 const pageTitles: Record<string, string> = {
-  '/': 'لوحة القيادة',
-  '/dashboard': 'لوحة القيادة',
+  '/': 'الملخص التنفيذي',
+  '/dashboard': 'الملخص التنفيذي',
   '/tenants': 'المستشارون والوكلاء',
   '/users': 'المستخدمون',
   '/roles': 'الأدوار والصلاحيات',
@@ -46,6 +46,8 @@ const roleLabels: Record<string, string> = {
 }
 
 const pageSubtitles: Record<string, string> = {
+  '/': 'نظرة تنفيذية على أداء العملاء، المحادثات، التذاكر، المواعيد، الأتمتة، ومستوى الخدمة داخل الشركة الحالية.',
+  '/dashboard': 'نظرة تنفيذية على أداء العملاء، المحادثات، التذاكر، المواعيد، الأتمتة، ومستوى الخدمة داخل الشركة الحالية.',
   '/inbox': 'مساحة موحدة لمحادثات العملاء عبر القنوات.',
   '/platform': 'إدارة منصة SaaS والشركات المشتركة من منظور مالك المنصة.',
   '/platform/companies': 'أساس إدارة الشركات المستأجرة في نموذج SaaS.',
@@ -76,7 +78,7 @@ export function Topbar() {
         </button>
         <div className="topbar-title">
           <p className="topbar-overline">{pageSubtitles[location.pathname] ?? 'مرحباً بك في منصة ذكاء بلا حدود · Unlimited Intelligence'}</p>
-          <h1>{pageTitles[location.pathname] ?? 'لوحة القيادة'}</h1>
+          <h1>{pageTitles[location.pathname] ?? 'الملخص التنفيذي'}</h1>
         </div>
       </div>
 

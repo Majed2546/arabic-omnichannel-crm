@@ -18,7 +18,7 @@ export type CrmRole = {
 }
 
 const permissionLabels: Record<PermissionKey, { label: string; group: string }> = {
-  'dashboard.view': { label: 'عرض لوحة القيادة', group: 'اللوحة' },
+  'dashboard.view': { label: 'عرض الملخص التنفيذي', group: 'الملخص التنفيذي' },
   'inbox.view': { label: 'عرض الوارد', group: 'الوارد' },
   'inbox.reply': { label: 'الرد على المحادثات', group: 'الوارد' },
   'inbox.assign': { label: 'إسناد المحادثات', group: 'الوارد' },

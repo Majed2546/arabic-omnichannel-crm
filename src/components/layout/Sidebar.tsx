@@ -36,7 +36,7 @@ const navigation: Array<{
   permission: CrmPermission
   platformOnly?: boolean
 }> = [
-  { path: '/', label: 'لوحة القيادة', icon: LayoutDashboard, allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
+  { path: '/', label: 'الملخص التنفيذي', icon: LayoutDashboard, allowedRoles: ['admin', 'support', 'analyst'], permission: 'dashboard.view' },
   { path: '/platform', label: 'لوحة تحكم المنصة', icon: PanelsTopLeft, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/platform/companies', label: 'الشركات المشتركة', icon: Building2, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
   { path: '/platform/onboarding-requests', label: 'طلبات الاشتراك', icon: ClipboardList, allowedRoles: ['admin'], permission: 'settings.manage', platformOnly: true },
