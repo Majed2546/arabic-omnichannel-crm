@@ -7458,13 +7458,6 @@ body {
   text-overflow: ellipsis;
 }
 
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: #f1f5f9;
-  color: var(--saas-navy);
-  box-shadow: none;
-}
 
 .sidebar-link:hover {
   background: #f7fafc;
@@ -7490,7 +7483,6 @@ body {
 }
 
 .sidebar-link.active .sidebar-icon {
-.sidebar-link.active::after {
   background: var(--saas-green);
   color: #ffffff;
 }
@@ -7978,6 +7970,8 @@ td,
 /* Inbox layout polish: UI-only empty and balanced states */
 .app-main:has(.inbox-layout) {
   max-width: 1640px;
+}
+
 /* Inbox workspace balance pass */
 .app-main:has(.inbox-layout) {
   max-width: 1760px;
@@ -11240,6 +11234,9 @@ body:has(.inbox-layout) {
   .user-management-card dl,
   .user-management-card header {
     grid-template-columns: 1fr;
+  }
+
+  .chat-composer {
   gap: 8px;
   min-height: 66px;
   padding: 9px 10px;
@@ -11305,6 +11302,7 @@ body:has(.inbox-layout) {
 
 .context-activity-list article p {
   margin-bottom: 2px;
+}
 }
 
 @media (max-width: 1480px) {
