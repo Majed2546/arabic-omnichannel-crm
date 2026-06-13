@@ -314,6 +314,7 @@ export default function WorkflowsPage() {
   function refreshRules() {
     if (!currentTenantId) return
     setLoading(true)
+    setRules([])
     fetchAutomationRules({ triggerType: triggerFilter, isActive: activeFilter })
       .then(setRules)
       .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل قواعد الأتمتة', 'warning'))
@@ -322,6 +323,7 @@ export default function WorkflowsPage() {
 
   function refreshLogs() {
     if (!currentTenantId) return
+    setLogs([])
     fetchAutomationLogs({})
       .then(setLogs)
       .catch(() => setLogs([]))

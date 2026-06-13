@@ -143,6 +143,7 @@ export default function ReportsPage() {
 
   function refresh() {
     setLoading(true)
+    setBundle(null)
     fetchReportsBundle(filters)
       .then(setBundle)
       .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل التقارير', 'warning'))
