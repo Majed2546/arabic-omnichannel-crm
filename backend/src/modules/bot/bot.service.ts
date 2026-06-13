@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { BotFlowType, BotStateStatus, MessageSenderType, MessageStatus, MessageType, NotificationPriority, Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { RealtimeService } from '../realtime/realtime.service'
 import { WhatsAppOutboundMessageType } from '../whatsapp/whatsapp-send.dto'
 import { WhatsAppSendService } from '../whatsapp/whatsapp-send.service'
 import type { InboundBotMessage, TestBotMessageDto, UpdateBotSettingsDto } from './dto'
@@ -73,6 +74,7 @@ export class BotService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeService,
     private readonly whatsappSend: WhatsAppSendService,
   ) {}
 
@@ -633,6 +635,24 @@ export class BotService {
         }),
       },
     })
+    await this.prisma.conversation.update({
+      where: { id: context.conversationId, tenantId: context.tenantId },
+      data: {
+        lastMessagePreview: context.message.slice(0, 280),
+        lastMessageAt: saved.createdAt,
+        updatedAt: saved.createdAt,
+      },
+    })
+    this.realtime.publishDomainEvent('message.created', context.tenantId, {
+      id: saved.id,
+      conversationId: saved.conversationId,
+      channelId: saved.channelId,
+      senderType: saved.senderType,
+      content: saved.content,
+      messageType: saved.messageType,
+      status: saved.status,
+      createdAt: saved.createdAt.toISOString(),
+    }, 'queue')
     try {
       await this.whatsappSend.enqueueExistingMessage({
         tenantId: context.tenantId,

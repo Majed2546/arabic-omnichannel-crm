@@ -58,6 +58,26 @@ function reduceRealtimeEvent(
     )
   }
 
+  if (event.type === 'message.updated') {
+    return conversations.map((conversation) =>
+      conversation.id === event.conversationId
+        ? {
+            ...conversation,
+            updatedAt: event.updatedAt,
+            messages: conversation.messages.map((message) =>
+              message.id === event.messageId
+                ? {
+                    ...message,
+                    deliveryStatus: event.deliveryStatus,
+                    botFailed: message.botFailed && event.deliveryStatus === 'failed',
+                  }
+                : message,
+            ),
+          }
+        : conversation,
+    )
+  }
+
   if (event.type === 'conversation.assigned') {
     return conversations.map((conversation) =>
       conversation.id === event.conversationId

@@ -19,7 +19,6 @@ import {
   type AgentPresence,
   type Conversation,
   type ConversationPriority,
-  type SupportQueue,
 } from './inboxMock'
 
 type InboxFilter = 'all' | 'unread' | 'pending' | 'resolved' | 'unclassified'
@@ -131,7 +130,6 @@ function formatSlaCountdown(conversation: Conversation, now: number) {
 export default function UnifiedInboxPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const conversations = useInboxStore((state) => state.conversations)
-  const agents = useInboxStore((state) => state.agents)
   const selectedId = useInboxStore((state) => state.selectedId)
   const selectConversation = useInboxStore((state) => state.selectConversation)
   const clearSelection = useInboxStore((state) => state.clearSelection)
@@ -139,8 +137,6 @@ export default function UnifiedInboxPage() {
   const addInternalNote = useInboxStore((state) => state.addInternalNote)
   const retryMessage = useInboxStore((state) => state.retryMessage)
   const assignConversation = useInboxStore((state) => state.assignConversation)
-  const assignConversationToAgent = useInboxStore((state) => state.assignConversationToAgent)
-  const moveConversationQueue = useInboxStore((state) => state.moveConversationQueue)
   const escalateConversation = useInboxStore((state) => state.escalateConversation)
   const resolveConversation = useInboxStore((state) => state.resolveConversation)
   const markUnread = useInboxStore((state) => state.markUnread)
@@ -203,11 +199,6 @@ export default function UnifiedInboxPage() {
       conversationMatchesSearch(conversation, search),
     ),
     [activeFilter, conversations, search],
-  )
-
-  const queueNames = useMemo(
-    () => Array.from(new Set(conversations.map((conversation) => conversation.queue).filter(Boolean))),
-    [conversations],
   )
 
   const unreadTotal = useMemo(
@@ -511,6 +502,42 @@ export default function UnifiedInboxPage() {
     }
   }
 
+  async function saveQuickAssignment(nextUserId: string, nextTeamId = assignmentTeamId) {
+    if (!selectedConversation) return
+    try {
+      await assignInboxConversation(selectedConversation.id, {
+        assignedUserId: nextUserId || undefined,
+        assignedTeamId: nextTeamId || undefined,
+      })
+      const items = await fetchInboxConversations()
+      replaceConversations(items)
+      showToast('تم تحديث إسناد المحادثة', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر تحديث الإسناد', 'warning')
+    }
+  }
+
+  async function saveQuickTeamAssignment(nextTeamId: string) {
+    if (!selectedConversation) return
+    setAssignmentTeamId(nextTeamId)
+    try {
+      await assignInboxConversation(selectedConversation.id, {
+        assignedUserId: selectedConversation.assignee.id === 'unassigned' ? undefined : selectedConversation.assignee.id,
+        assignedTeamId: nextTeamId || undefined,
+      })
+      const items = await fetchInboxConversations()
+      replaceConversations(items)
+      showToast('تم تحديث فريق المحادثة', 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'تعذر تحديث الفريق', 'warning')
+    }
+  }
+
+  function currentAssignedTeamId() {
+    const assignedTeam = assignmentTeams.find((team) => team.name === selectedConversation?.assignee.team)
+    return assignedTeam?.id ?? ''
+  }
+
   async function handleBotReset() {
     if (!selectedConversation) return
     const conversationId = selectedConversation.id
@@ -685,21 +712,23 @@ export default function UnifiedInboxPage() {
                     <select
                       className="ops-select"
                       value={selectedConversation.assignee.id}
-                      onChange={(event) => assignConversationToAgent(selectedConversation.id, event.target.value)}
+                      onChange={(event) => void saveQuickAssignment(event.target.value)}
                       aria-label="إسناد إلى وكيل"
                     >
-                      {agents.length ? agents.map((agent) => (
-                        <option key={agent.id} value={agent.id}>{agent.name}</option>
-                      )) : <option value="unassigned">غير مسند</option>}
+                      <option value="unassigned">غير مسند</option>
+                      {assignmentUsers.map((agent) => (
+                        <option key={agent.id} value={agent.id}>{agent.name || agent.email || agent.id}</option>
+                      ))}
                     </select>
                     <select
                       className="ops-select"
-                      value={selectedConversation.queue}
-                      onChange={(event) => moveConversationQueue(selectedConversation.id, event.target.value as SupportQueue)}
-                      aria-label="نقل القائمة"
+                      value={currentAssignedTeamId()}
+                      onChange={(event) => void saveQuickTeamAssignment(event.target.value)}
+                      aria-label="إسناد إلى فريق"
                     >
-                      {queueNames.map((queue) => (
-                        <option key={queue} value={queue}>{queue}</option>
+                      <option value="">غير مسند لفريق</option>
+                      {assignmentTeams.map((team) => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
                       ))}
                     </select>
                     <AppButton

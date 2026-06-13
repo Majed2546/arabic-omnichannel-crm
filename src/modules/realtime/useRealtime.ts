@@ -20,6 +20,18 @@ import { usePresenceStore } from './presenceStore'
 
 function toLegacyEvent(event: RealtimeEnvelope): RealtimeEvent | null {
   const updatedAt = 'الآن'
+  const deliveryStatusMap: Record<string, 'pending' | 'sent' | 'delivered' | 'read' | 'failed'> = {
+    PENDING: 'pending',
+    SENT: 'sent',
+    DELIVERED: 'delivered',
+    READ: 'read',
+    FAILED: 'failed',
+    pending: 'pending',
+    sent: 'sent',
+    delivered: 'delivered',
+    read: 'read',
+    failed: 'failed',
+  }
 
   if (event.type === 'message.created') {
     const payload = event.payload as MessageCreatedPayload
@@ -39,26 +51,24 @@ function toLegacyEvent(event: RealtimeEnvelope): RealtimeEvent | null {
         body,
         author: payload.author ?? (isCustomer ? 'عميل' : isBot ? 'الوكيل' : isSystem ? 'النظام' : 'الفريق'),
         sentAt: updatedAt,
+        deliveryStatus: deliveryStatusMap[payload.status ?? ''],
       },
     }
   }
 
   if (event.type === 'message.updated' || event.type === 'message.read') {
     const payload = event.payload as MessageUpdatedPayload & MessageReadPayload
+    const messageId = payload.messageId ?? payload.id
+    const deliveryStatus = event.type === 'message.read'
+      ? 'read'
+      : deliveryStatusMap[payload.deliveryStatus ?? payload.status ?? '']
+    if (!messageId || !deliveryStatus) return null
     return {
-      type: 'message.created',
+      type: 'message.updated',
       conversationId: payload.conversationId,
-      unreadIncrement: 0,
-      lastMessage: event.type === 'message.read' ? `تمت قراءة الرسالة بواسطة ${payload.readBy}` : 'تم تحديث حالة الرسالة',
+      messageId,
+      deliveryStatus,
       updatedAt,
-      message: {
-        id: `${event.id}-receipt`,
-        direction: 'incoming',
-        kind: 'internal_note',
-        body: event.type === 'message.read' ? `تمت قراءة الرسالة ${payload.messageId}` : `تحديث الرسالة ${payload.messageId}: ${payload.deliveryStatus}`,
-        author: 'النظام',
-        sentAt: updatedAt,
-      },
     }
   }
 
@@ -135,6 +145,7 @@ function handleNotificationEvent(event: RealtimeEnvelope) {
       message: payload.message,
       source: event.source,
     })
+    window.dispatchEvent(new CustomEvent('crm:notification-created'))
   }
 
   if (event.type === 'sla.warning') {

@@ -87,6 +87,16 @@ export function NotificationCenter() {
   }, [refresh])
 
   useEffect(() => {
+    function handleRealtimeNotification() {
+      setUnreadCount((count) => count + 1)
+      window.setTimeout(refresh, 600)
+    }
+
+    window.addEventListener('crm:notification-created', handleRealtimeNotification)
+    return () => window.removeEventListener('crm:notification-created', handleRealtimeNotification)
+  }, [refresh])
+
+  useEffect(() => {
     if (!open) return
     refresh()
     updatePanelPosition()

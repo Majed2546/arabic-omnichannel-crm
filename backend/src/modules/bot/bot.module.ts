@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CommonModule } from '../../common/common.module'
 import { DatabaseModule } from '../../database/database.module'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { RealtimeModule } from '../realtime/realtime.module'
 import { WhatsAppModule } from '../whatsapp/whatsapp.module'
 import { BotController } from './bot.controller'
 import { BotService } from './bot.service'
@@ -11,6 +12,7 @@ import { BotService } from './bot.service'
     CommonModule,
     DatabaseModule,
     NotificationsModule,
+    RealtimeModule,
     forwardRef(() => WhatsAppModule),
   ],
   controllers: [BotController],

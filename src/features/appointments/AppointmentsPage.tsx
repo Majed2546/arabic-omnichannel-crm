@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { CheckCircle2, Edit3, MessageCircle, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle2, Edit3, ExternalLink, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { AppButton } from '../../components/ui/AppButton'
@@ -144,8 +144,19 @@ function statusTone(status: AppointmentStatus) {
   return 'info'
 }
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' })
+const DEFAULT_TENANT_TIMEZONE = 'Asia/Riyadh'
+
+function isValidTimeZone(value: string) {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value }).format(new Date())
+    return true
+  } catch {
+    return false
+  }
+}
+
+function formatDateTime(value: string, timeZone: string) {
+  return new Date(value).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short', timeZone })
 }
 
 function providerLabel(value?: string | null) {
@@ -176,6 +187,7 @@ export default function AppointmentsPage() {
   const [modalOpen, setModalOpen] = useState(searchParams.get('new') === '1')
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
   const [form, setForm] = useState<AppointmentFormState>(() => defaultForm(searchParams))
+  const [tenantTimezone, setTenantTimezone] = useState(DEFAULT_TENANT_TIMEZONE)
 
   function refreshAppointments() {
     fetchAppointments({ date, status, customerId, assignedUserId, assignedTeamId })
@@ -194,9 +206,17 @@ export default function AppointmentsPage() {
     setCustomers([])
     setAssignmentUsers([])
     setTeams([])
+    setTenantTimezone(DEFAULT_TENANT_TIMEZONE)
     fetchCustomers()
       .then(setCustomers)
       .catch(() => setCustomers([]))
+    apiFetch(apiUrl('/settings'))
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload) => {
+        const timezone = typeof payload?.timezone === 'string' ? payload.timezone : ''
+        setTenantTimezone(isValidTimeZone(timezone) ? timezone : DEFAULT_TENANT_TIMEZONE)
+      })
+      .catch(() => setTenantTimezone(DEFAULT_TENANT_TIMEZONE))
     apiFetch(apiUrl('/users?userType=AGENT,CONSULTANT,SUPERVISOR&status=ACTIVE'))
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((payload) => setAssignmentUsers(Array.isArray(payload) ? payload : []))
@@ -275,7 +295,12 @@ export default function AppointmentsPage() {
       showToast('لا يوجد رابط اجتماع لنسخه', 'warning')
       return
     }
-    await navigator.clipboard.writeText(link)
+    try {
+      await navigator.clipboard.writeText(link)
+    } catch {
+      showToast('تعذر نسخ الرابط من المتصفح', 'warning')
+      return
+    }
     showToast('تم نسخ رابط الاجتماع', 'success')
   }
 
@@ -321,13 +346,13 @@ export default function AppointmentsPage() {
                 <header>
                   <div>
                     <h3>{appointment.title}</h3>
-                    <p>{appointment.customerName ?? 'عميل'} · {formatDateTime(appointment.startAt)}</p>
+                    <p>{appointment.customerName ?? 'عميل'} · {formatDateTime(appointment.startAt, tenantTimezone)}</p>
                   </div>
                   <StatusBadge label={statusLabels[appointment.status]} tone={statusTone(appointment.status)} />
                 </header>
                 <dl>
                   <div><dt>النوع</dt><dd>{meetingTypeLabels[appointment.meetingType]}</dd></div>
-                  <div><dt>النهاية</dt><dd>{formatDateTime(appointment.endAt)}</dd></div>
+                  <div><dt>النهاية</dt><dd>{formatDateTime(appointment.endAt, tenantTimezone)}</dd></div>
                   <div><dt>المستشار</dt><dd>{appointment.assignedUserName || appointment.assignedUserId || 'غير محدد'}</dd></div>
                   <div><dt>الفريق</dt><dd>{appointment.assignedTeamName || appointment.assignedTeamId || 'غير مسند'}</dd></div>
                   <div><dt>الموقع/الرابط</dt><dd>{appointment.meetingLink || appointment.location || 'غير محدد'}</dd></div>
@@ -338,6 +363,7 @@ export default function AppointmentsPage() {
                 <div className="appointment-actions">
                   {appointment.conversationId ? <Link className="app-button app-button-secondary control-safe text-safe" to={`/inbox?conversationId=${appointment.conversationId}`}>فتح المحادثة</Link> : null}
                   {appointment.visualMeetingId ? <Link className="app-button app-button-secondary control-safe text-safe" to="/meetings">فتح الاجتماع</Link> : null}
+                  {appointment.visualMeetingLink || appointment.meetingLink ? <a className="app-button app-button-secondary control-safe text-safe" href={appointment.visualMeetingLink ?? appointment.meetingLink ?? undefined} target="_blank" rel="noreferrer"><ExternalLink size={15} /> فتح الرابط</a> : null}
                   {appointment.visualMeetingLink || appointment.meetingLink ? <AppButton variant="ghost" onClick={() => copyMeetingLink(appointment.visualMeetingLink ?? appointment.meetingLink)}>نسخ الرابط</AppButton> : null}
                   {canManage ? <AppButton variant="ghost" onClick={() => openEdit(appointment)}><Edit3 size={15} /> تعديل</AppButton> : null}
                   {canManage ? <AppButton variant="ghost" onClick={() => changeStatus(appointment, 'CONFIRMED')}><CheckCircle2 size={15} /> تأكيد</AppButton> : null}
@@ -358,7 +384,7 @@ export default function AppointmentsPage() {
           <div className="appointment-timeline">
             {timelineAppointments.map((appointment) => (
               <article key={appointment.id}>
-                <time>{new Date(appointment.startAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</time>
+                <time>{new Date(appointment.startAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', timeZone: tenantTimezone })}</time>
                 <div>
                   <strong>{appointment.title}</strong>
                   <small>{appointment.customerName ?? 'عميل'} · {statusLabels[appointment.status]}</small>

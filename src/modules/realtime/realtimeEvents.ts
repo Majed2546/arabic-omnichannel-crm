@@ -38,14 +38,18 @@ export type MessageCreatedPayload = {
 
 export type MessageUpdatedPayload = {
   conversationId: string
-  messageId: string
-  deliveryStatus: 'sent' | 'delivered' | 'read' | 'failed'
+  id?: string
+  messageId?: string
+  status?: string
+  deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
 }
 
 export type MessageReadPayload = {
   conversationId: string
-  messageId: string
+  id?: string
+  messageId?: string
   readBy: string
+  status?: string
 }
 
 export type ConversationAssignedPayload = {

@@ -10,6 +10,7 @@ import type {
 export type RealtimeEventName =
   | 'conversation.created'
   | 'message.created'
+  | 'message.updated'
   | 'conversation.assigned'
   | 'conversation.status_changed'
   | 'conversation.sla_warning'
@@ -31,6 +32,14 @@ export type MessageCreatedEvent = {
   message: ConversationMessage
   unreadIncrement: number
   lastMessage: string
+  updatedAt: string
+}
+
+export type MessageUpdatedEvent = {
+  type: 'message.updated'
+  conversationId: string
+  messageId: string
+  deliveryStatus: NonNullable<ConversationMessage['deliveryStatus']>
   updatedAt: string
 }
 
@@ -103,6 +112,7 @@ export type AgentPresenceChangedEvent = {
 export type RealtimeEvent =
   | ConversationCreatedEvent
   | MessageCreatedEvent
+  | MessageUpdatedEvent
   | ConversationAssignedEvent
   | ConversationStatusChangedEvent
   | ConversationSlaWarningEvent
