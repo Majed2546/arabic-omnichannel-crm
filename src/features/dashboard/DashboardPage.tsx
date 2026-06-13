@@ -1,110 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Card } from '../../components/ui/Card'
-import { StatCard } from '../../components/ui/StatCard'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { useTenant } from '../../tenants/useTenant'
+import { Card } from '../../components/ui/Card'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { LoadingState } from '../../components/ui/LoadingState'
+import { StatCard } from '../../components/ui/StatCard'
 import { apiFetch, apiUrl } from '../../lib/apiClient'
-import { unwrapItems } from '../../lib/restUtils'
-
-type DashboardConversation = {
-  id: string
-  status?: string
-  priority?: string
-  unreadCount?: number
-  channel?: { type?: string } | null
-  createdAt?: string
-  updatedAt?: string
-  lastMessageAt?: string | null
-}
-
-type DashboardNotification = {
-  id: string
-  title?: string
-  priority?: string
-  readAt?: string | null
-  createdAt?: string
-  updatedAt?: string
-}
-
-type DashboardChannel = {
-  id: string
-  type?: string
-  status?: string
-}
-
-type DashboardTicket = {
-  id: string
-  title?: string
-  status?: string
-  priority?: string
-  slaStatus?: string | null
-  tags?: string[]
-  createdAt?: string
-  updatedAt?: string
-}
-
-type DashboardAppointment = {
-  id: string
-  title?: string
-  customerName?: string | null
-  status?: string
-  meetingType?: string
-  startAt?: string
-  createdAt?: string
-  updatedAt?: string
-  description?: string | null
-}
-
-type DashboardAutomationRule = {
-  id: string
-  name?: string
-  isActive?: boolean
-  updatedAt?: string
-}
-
-type DashboardAutomationLog = {
-  id: string
-  ruleName?: string | null
-  status?: string
-  createdAt?: string
-}
-
-type DashboardCustomer = {
-  id: string
-}
-
-type DashboardUser = {
-  id: string
-}
-
-type DashboardBotSettings = {
-  isEnabled?: boolean
-  appointmentEnabled?: boolean
-  ticketEnabled?: boolean
-}
-
-type DashboardUsageCounts = {
-  usersCount?: number
-  channelsCount?: number
-  monthlyConversationsCount?: number
-  monthlyMessagesCount?: number
-}
-
-type DashboardBillingTenant = DashboardUsageCounts & {
-  tenantId?: string
-  plan?: string
-  maxUsers?: number
-  maxChannels?: number
-  monthlyConversationLimit?: number
-  monthlyMessageLimit?: number
-  usage?: DashboardUsageCounts
-}
-
-type DashboardBillingUsage = {
-  platform?: boolean
-  tenant?: DashboardBillingTenant | null
-  tenants?: DashboardBillingTenant[]
-}
+import { useTenant } from '../../tenants/useTenant'
 
 type SummaryItem = {
   label: string
@@ -112,59 +14,104 @@ type SummaryItem = {
   hint?: string
 }
 
-async function fetchItems<T>(path: string): Promise<T[]> {
-  const response = await apiFetch(apiUrl(path))
-  if (!response.ok) return []
-  return unwrapItems<T>(await response.json())
+type ExecutiveAppointment = {
+  id: string
+  title?: string | null
+  customerName?: string | null
+  startAt?: string | null
+  status?: string | null
+  meetingType?: string | null
+  assignedUserName?: string | null
+  assignedTeamName?: string | null
 }
 
-async function fetchOne<T>(path: string): Promise<T | null> {
-  const response = await apiFetch(apiUrl(path))
-  if (!response.ok) return null
-  return response.json() as Promise<T>
+type ActivityItem = {
+  id?: string
+  title?: string | null
+  content?: string | null
+  status?: string | null
+  senderType?: string | null
+  startAt?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+type ExecutiveSummary = {
+  tenant?: {
+    tenantName?: string
+    plan?: string
+  } | null
+  kpis: {
+    customers: number
+    activeConversations: number
+    unreadMessages: number
+    openTickets: number
+    upcomingAppointments: number
+    slaAlerts: number
+    unreadNotifications: number
+    connectedChannels: number
+  }
+  inbox: {
+    total: number
+    unread: number
+    pendingReply: number
+    inProgress: number
+    lastInboundAt?: string | null
+  }
+  tickets: {
+    open: number
+    inProgress: number
+    resolved: number
+    highPriority: number
+    slaBreached: number
+  }
+  appointments: ExecutiveAppointment[]
+  sla: {
+    onTrack: number
+    warning: number
+    breached: number
+    met: number
+  }
+  automation: {
+    activeRules: number
+    lastRun?: ActivityItem | null
+    botEnabled: boolean
+    botCreatedTickets: number
+    botCreatedAppointments: number
+  }
+  subscription: {
+    plan: string
+    users: number
+    maxUsers: number
+    channels: number
+    maxChannels: number
+    monthlyConversations: number
+    monthlyConversationLimit: number
+    monthlyMessages: number
+    monthlyMessageLimit: number
+    usagePercent: number
+  }
+  latestActivity: {
+    message?: ActivityItem | null
+    ticket?: ActivityItem | null
+    appointment?: ActivityItem | null
+    notification?: ActivityItem | null
+    automation?: ActivityItem | null
+  }
+}
+
+function formatNumber(value?: number | null) {
+  return Number(value ?? 0).toLocaleString('ar-SA')
 }
 
 function formatDate(value?: string | null) {
   if (!value) return 'لا يوجد توقيت'
-  return new Date(value).toLocaleString('ar-SA')
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'لا يوجد توقيت'
+  return date.toLocaleString('ar-SA')
 }
 
-function latestByDate<T>(items: T[], getDate: (item: T) => string | null | undefined) {
-  return [...items]
-    .filter((item) => getDate(item))
-    .sort((first, second) => new Date(getDate(second) ?? 0).getTime() - new Date(getDate(first) ?? 0).getTime())[0]
-}
-
-function countByStatus<T extends { status?: string }>(items: T[], statuses: string[]) {
-  return items.filter((item) => statuses.includes(item.status ?? '')).length
-}
-
-function percent(used: number, limit?: number) {
-  if (!limit || limit <= 0) return 0
-  return Math.min(100, Math.round((used / limit) * 100))
-}
-
-function meetingTypeLabel(type?: string) {
-  const labels: Record<string, string> = {
-    IN_PERSON: 'حضوري',
-    PHONE: 'اتصال',
-    ONLINE: 'أونلاين',
-  }
-  return labels[type ?? ''] ?? 'غير محدد'
-}
-
-function appointmentStatusLabel(status?: string) {
-  const labels: Record<string, string> = {
-    SCHEDULED: 'مجدول',
-    CONFIRMED: 'مؤكد',
-    CANCELLED: 'ملغي',
-    COMPLETED: 'مكتمل',
-    NO_SHOW: 'لم يحضر',
-  }
-  return labels[status ?? ''] ?? 'غير محدد'
-}
-
-function planLabel(plan?: string) {
+function planLabel(plan?: string | null) {
   const labels: Record<string, string> = {
     STARTER: 'Starter',
     PROFESSIONAL: 'Professional',
@@ -173,9 +120,37 @@ function planLabel(plan?: string) {
   return labels[plan ?? ''] ?? 'غير محددة'
 }
 
+function meetingTypeLabel(type?: string | null) {
+  const labels: Record<string, string> = {
+    IN_PERSON: 'حضوري',
+    PHONE: 'اتصال',
+    ONLINE: 'أونلاين',
+  }
+  return labels[type ?? ''] ?? 'غير محدد'
+}
+
+function statusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    SCHEDULED: 'مجدول',
+    CONFIRMED: 'مؤكد',
+    CANCELLED: 'ملغي',
+    COMPLETED: 'مكتمل',
+    NO_SHOW: 'لم يحضر',
+    OPEN: 'مفتوحة',
+    IN_PROGRESS: 'قيد المعالجة',
+    WAITING_CUSTOMER: 'بانتظار العميل',
+    RESOLVED: 'تم الحل',
+    CLOSED: 'مغلقة',
+    SUCCESS: 'ناجح',
+    FAILED: 'فشل',
+    SKIPPED: 'تم التجاوز',
+  }
+  return labels[status ?? ''] ?? 'غير محدد'
+}
+
 function SummaryList({ items }: { items: SummaryItem[] }) {
   return (
-    <ul className="summary-list">
+    <ul className="summary-list executive-summary-list">
       {items.map((item) => (
         <li key={item.label}>
           <span>{item.value}</span>
@@ -186,302 +161,231 @@ function SummaryList({ items }: { items: SummaryItem[] }) {
   )
 }
 
+function activityText(item: ActivityItem | null | undefined, fallback: string) {
+  return item?.title ?? item?.content ?? fallback
+}
+
+async function fetchExecutiveSummary(signal: AbortSignal) {
+  const response = await apiFetch(apiUrl('/reports/executive-summary'), { signal })
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '')
+    throw new Error(detail || 'تعذر تحميل الملخص التنفيذي')
+  }
+  return response.json() as Promise<ExecutiveSummary>
+}
+
 export default function DashboardPage() {
   const { currentTenant, currentTenantId } = useTenant()
-  const [conversations, setConversations] = useState<DashboardConversation[]>([])
-  const [notifications, setNotifications] = useState<DashboardNotification[]>([])
-  const [channels, setChannels] = useState<DashboardChannel[]>([])
-  const [tickets, setTickets] = useState<DashboardTicket[]>([])
-  const [appointments, setAppointments] = useState<DashboardAppointment[]>([])
-  const [automationRules, setAutomationRules] = useState<DashboardAutomationRule[]>([])
-  const [automationLogs, setAutomationLogs] = useState<DashboardAutomationLog[]>([])
-  const [customers, setCustomers] = useState<DashboardCustomer[]>([])
-  const [users, setUsers] = useState<DashboardUser[]>([])
-  const [botSettings, setBotSettings] = useState<DashboardBotSettings | null>(null)
-  const [billingUsage, setBillingUsage] = useState<DashboardBillingUsage | null>(null)
+  const [summary, setSummary] = useState<ExecutiveSummary | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let disposed = false
-    setConversations([])
-    setNotifications([])
-    setChannels([])
-    setTickets([])
-    setAppointments([])
-    setAutomationRules([])
-    setAutomationLogs([])
-    setCustomers([])
-    setUsers([])
-    setBotSettings(null)
-    setBillingUsage(null)
+    const controller = new AbortController()
 
-    async function loadDashboard() {
+    async function loadSummary() {
       if (!currentTenantId) return
-      const [
-        nextConversations,
-        nextNotifications,
-        nextChannels,
-        nextTickets,
-        nextAppointments,
-        nextAutomationRules,
-        nextAutomationLogs,
-        nextCustomers,
-        nextUsers,
-        nextBotSettings,
-        nextBillingUsage,
-      ] = await Promise.all([
-        fetchItems<DashboardConversation>('/conversations?limit=100'),
-        fetchItems<DashboardNotification>('/notifications'),
-        fetchItems<DashboardChannel>('/channels'),
-        fetchItems<DashboardTicket>('/tickets'),
-        fetchItems<DashboardAppointment>('/appointments'),
-        fetchItems<DashboardAutomationRule>('/automation/rules'),
-        fetchItems<DashboardAutomationLog>('/automation/logs'),
-        fetchItems<DashboardCustomer>('/customers?limit=100'),
-        fetchItems<DashboardUser>('/users'),
-        fetchOne<DashboardBotSettings>('/bot/settings'),
-        fetchOne<DashboardBillingUsage>('/billing/usage'),
-      ])
+      setIsLoading(true)
+      setError(null)
 
-      if (disposed) return
-      setConversations(nextConversations)
-      setNotifications(nextNotifications)
-      setChannels(nextChannels)
-      setTickets(nextTickets)
-      setAppointments(nextAppointments)
-      setAutomationRules(nextAutomationRules)
-      setAutomationLogs(nextAutomationLogs)
-      setCustomers(nextCustomers)
-      setUsers(nextUsers)
-      setBotSettings(nextBotSettings)
-      setBillingUsage(nextBillingUsage)
+      try {
+        const nextSummary = await fetchExecutiveSummary(controller.signal)
+        setSummary(nextSummary)
+      } catch (nextError) {
+        if (controller.signal.aborted) return
+        setSummary(null)
+        setError(nextError instanceof Error ? nextError.message : 'تعذر تحميل الملخص التنفيذي')
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false)
+      }
     }
 
-    loadDashboard()
-    const interval = window.setInterval(loadDashboard, 10_000)
+    loadSummary()
+    const interval = window.setInterval(loadSummary, 30_000)
 
     return () => {
-      disposed = true
+      controller.abort()
       window.clearInterval(interval)
     }
   }, [currentTenantId])
 
-  const metrics = useMemo(() => {
-    const now = Date.now()
-    const activeConversations = conversations.filter((conversation) =>
-      !['CLOSED', 'RESOLVED'].includes(conversation.status ?? ''),
-    )
-    const unreadMessages = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0)
-    const pendingReply = countByStatus(conversations, ['OPEN', 'NEW', 'PENDING_AGENT', 'SLA_WARNING', 'SLA_BREACHED'])
-    const inProgressConversations = countByStatus(conversations, ['IN_PROGRESS', 'ASSIGNED'])
-    const connectedChannels = channels.filter((channel) =>
-      ['ACTIVE', 'CONNECTED'].includes(channel.status ?? ''),
-    ).length
-    const openTickets = tickets.filter((ticket) => !['RESOLVED', 'CLOSED'].includes(ticket.status ?? '')).length
-    const resolvedTickets = countByStatus(tickets, ['RESOLVED', 'CLOSED'])
-    const inProgressTickets = countByStatus(tickets, ['IN_PROGRESS'])
-    const highPriorityTickets = tickets.filter((ticket) => ['HIGH', 'URGENT'].includes(ticket.priority ?? '')).length
-    const slaWarning = tickets.filter((ticket) => ticket.slaStatus === 'WARNING').length +
-      conversations.filter((conversation) => conversation.status === 'SLA_WARNING').length
-    const slaBreached = tickets.filter((ticket) => ticket.slaStatus === 'BREACHED').length +
-      conversations.filter((conversation) => conversation.status === 'SLA_BREACHED').length
-    const slaAlerts = slaWarning + slaBreached
-    const slaOnTrack = tickets.filter((ticket) => ['ON_TRACK', 'PAUSED'].includes(ticket.slaStatus ?? '')).length
-    const slaMet = tickets.filter((ticket) => ticket.slaStatus === 'MET').length
-    const upcomingAppointments = appointments
-      .filter((appointment) =>
-        !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(appointment.status ?? '') &&
-        new Date(appointment.startAt ?? appointment.createdAt ?? now).getTime() >= now,
-      )
-      .sort((first, second) => new Date(first.startAt ?? first.createdAt ?? now).getTime() - new Date(second.startAt ?? second.createdAt ?? now).getTime())
-    const latestConversation = latestByDate(conversations, (conversation) =>
-      conversation.lastMessageAt ?? conversation.updatedAt ?? conversation.createdAt,
-    )
-    const latestTicket = latestByDate(tickets, (ticket) => ticket.updatedAt ?? ticket.createdAt)
-    const latestAppointment = latestByDate(appointments, (appointment) => appointment.startAt ?? appointment.updatedAt)
-    const latestNotification = latestByDate(notifications, (notification) => notification.updatedAt ?? notification.createdAt)
-    const latestAutomationLog = latestByDate(automationLogs, (log) => log.createdAt)
-    const latestAutomationRule = latestByDate(automationRules, (rule) => rule.updatedAt)
-    const activeAutomationRules = automationRules.filter((rule) => rule.isActive).length
-    const botCreatedTickets = tickets.filter((ticket) =>
-      ticket.tags?.some((tag) => ['وكيل آلي', 'whatsapp-bot', 'bot'].includes(tag)),
-    ).length
-    const botCreatedAppointments = appointments.filter((appointment) =>
-      appointment.description?.includes('وكيل واتساب') || appointment.title?.includes('وكيل واتساب'),
-    ).length
-    const usageTenant = billingUsage?.tenant ?? billingUsage?.tenants?.find((tenant) => tenant.tenantId === currentTenantId) ?? billingUsage?.tenants?.[0]
-    const usage = usageTenant?.usage ?? usageTenant
-    const monthlyConversations = Number(usage?.monthlyConversationsCount ?? conversations.length)
-    const monthlyMessages = Number(usage?.monthlyMessagesCount ?? unreadMessages)
-    const monthlyConversationLimit = Number(usageTenant?.monthlyConversationLimit ?? 0)
-    const monthlyMessageLimit = Number(usageTenant?.monthlyMessageLimit ?? 0)
-    const usagePercent = Math.max(percent(monthlyConversations, monthlyConversationLimit), percent(monthlyMessages, monthlyMessageLimit))
+  const sections = useMemo(() => {
+    if (!summary) return null
+
     const recommendations = [
-      unreadMessages > 10 ? 'راجع الرسائل غير المقروءة لتقليل وقت الاستجابة.' : null,
-      openTickets > 10 ? 'وزّع التذاكر على الفريق.' : null,
-      slaBreached > 0 ? 'راجع عناصر SLA المتأخرة.' : null,
-      activeAutomationRules === 0 ? 'فعّل الأتمتة للمهام المتكررة.' : null,
+      summary.kpis.unreadMessages > 0 ? 'راجع الرسائل غير المقروءة لتقليل وقت الاستجابة.' : null,
+      summary.kpis.openTickets > 0 ? 'وزّع التذاكر المفتوحة على الفريق.' : null,
+      summary.sla.breached > 0 ? 'راجع عناصر SLA المتأخرة فورًا.' : null,
+      summary.automation.activeRules === 0 ? 'فعّل الأتمتة للمهام المتكررة.' : null,
+      summary.kpis.connectedChannels === 0 ? 'راجع إعدادات القنوات لبدء استقبال المحادثات.' : null,
     ].filter((item): item is string => Boolean(item))
 
     return {
-      activeConversations: activeConversations.length,
-      unreadMessages,
-      customers: customers.length,
-      openTickets,
-      upcomingAppointments,
-      slaAlerts,
-      connectedChannels,
-      inboxSummary: [
-        { label: 'إجمالي المحادثات', value: conversations.length },
-        { label: 'غير مقروء', value: unreadMessages },
-        { label: 'بانتظار الرد', value: pendingReply },
-        { label: 'قيد المعالجة', value: inProgressConversations },
-        { label: 'آخر رسالة واردة', value: latestConversation ? formatDate(latestConversation.lastMessageAt ?? latestConversation.updatedAt ?? latestConversation.createdAt) : 'لا توجد رسائل' },
+      kpis: [
+        { label: 'العملاء', value: summary.kpis.customers },
+        { label: 'المحادثات النشطة', value: summary.kpis.activeConversations },
+        { label: 'الرسائل غير المقروءة', value: summary.kpis.unreadMessages },
+        { label: 'التذاكر المفتوحة', value: summary.kpis.openTickets },
+        { label: 'المواعيد القادمة', value: summary.kpis.upcomingAppointments },
+        { label: 'تنبيهات SLA', value: summary.kpis.slaAlerts },
+        { label: 'الإشعارات غير المقروءة', value: summary.kpis.unreadNotifications },
+        { label: 'القنوات المتصلة', value: summary.kpis.connectedChannels },
       ],
-      ticketPerformance: [
-        { label: 'مفتوحة', value: openTickets },
-        { label: 'قيد المعالجة', value: inProgressTickets },
-        { label: 'تم الحل', value: resolvedTickets },
-        { label: 'عالية الأولوية', value: highPriorityTickets },
-        { label: 'متأخرة حسب SLA', value: slaBreached },
+      inbox: [
+        { label: 'إجمالي المحادثات', value: summary.inbox.total },
+        { label: 'غير مقروء', value: summary.inbox.unread },
+        { label: 'بانتظار الرد', value: summary.inbox.pendingReply },
+        { label: 'قيد المعالجة', value: summary.inbox.inProgress },
+        { label: 'آخر رسالة واردة', value: summary.inbox.lastInboundAt ? formatDate(summary.inbox.lastInboundAt) : 'لا توجد رسائل واردة' },
       ],
-      slaSummary: [
-        { label: 'ضمن الوقت', value: slaOnTrack },
-        { label: 'قريب من التأخير', value: slaWarning },
-        { label: 'متأخر', value: slaBreached },
-        { label: 'تم الالتزام', value: slaMet },
+      tickets: [
+        { label: 'مفتوحة', value: summary.tickets.open },
+        { label: 'قيد المعالجة', value: summary.tickets.inProgress },
+        { label: 'تم الحل', value: summary.tickets.resolved },
+        { label: 'عالية الأولوية', value: summary.tickets.highPriority },
+        { label: 'متأخرة حسب SLA', value: summary.tickets.slaBreached },
       ],
-      automationSummary: [
-        { label: 'قواعد الأتمتة المفعلة', value: activeAutomationRules },
-        { label: 'آخر تنفيذ أتمتة', value: latestAutomationLog ? formatDate(latestAutomationLog.createdAt) : 'لا يوجد تنفيذ' },
-        { label: 'حالة وكيل واتساب الذكي', value: botSettings?.isEnabled ? 'مفعل' : 'غير مفعل' },
-        { label: 'تذاكر/مواعيد أنشأها الوكيل', value: botCreatedTickets + botCreatedAppointments },
+      sla: [
+        { label: 'ضمن الوقت', value: summary.sla.onTrack },
+        { label: 'قريب من التأخير', value: summary.sla.warning },
+        { label: 'متأخر', value: summary.sla.breached },
+        { label: 'تم الالتزام', value: summary.sla.met },
       ],
-      subscriptionUsage: [
-        { label: 'الباقة الحالية', value: planLabel(usageTenant?.plan) },
-        { label: 'المستخدمون', value: Number(usage?.usersCount ?? users.length), hint: usageTenant?.maxUsers ? `من ${usageTenant.maxUsers}` : undefined },
-        { label: 'القنوات', value: Number(usage?.channelsCount ?? channels.length), hint: usageTenant?.maxChannels ? `من ${usageTenant.maxChannels}` : undefined },
-        { label: 'محادثات الشهر', value: monthlyConversations, hint: monthlyConversationLimit ? `من ${monthlyConversationLimit}` : undefined },
-        { label: 'رسائل الشهر', value: monthlyMessages, hint: monthlyMessageLimit ? `من ${monthlyMessageLimit}` : undefined },
-        { label: 'نسبة الاستخدام', value: `${usagePercent}%` },
+      automation: [
+        { label: 'قواعد الأتمتة المفعلة', value: summary.automation.activeRules },
+        { label: 'آخر تنفيذ أتمتة', value: summary.automation.lastRun ? `${formatDate(summary.automation.lastRun.createdAt)} · ${statusLabel(summary.automation.lastRun.status)}` : 'لا يوجد تنفيذ' },
+        { label: 'حالة وكيل واتساب الذكي', value: summary.automation.botEnabled ? 'مفعل' : 'غير مفعل' },
+        { label: 'عدد التذاكر التي أنشأها الوكيل', value: summary.automation.botCreatedTickets },
+        { label: 'عدد المواعيد التي أنشأها الوكيل', value: summary.automation.botCreatedAppointments },
       ],
-      recentActivity: [
-        {
-          id: 'latest-conversation',
-          label: 'آخر محادثة',
-          text: latestConversation ? `محادثة ${latestConversation.status ?? 'نشطة'}` : 'لا توجد محادثات حديثة',
-          time: formatDate(latestConversation?.lastMessageAt ?? latestConversation?.updatedAt ?? latestConversation?.createdAt),
-        },
-        {
-          id: 'latest-ticket',
-          label: 'آخر تذكرة',
-          text: latestTicket?.title ?? 'لا توجد تذاكر حديثة',
-          time: formatDate(latestTicket?.updatedAt ?? latestTicket?.createdAt),
-        },
-        {
-          id: 'latest-appointment',
-          label: 'آخر موعد',
-          text: latestAppointment?.title ?? 'لا توجد مواعيد حديثة',
-          time: formatDate(latestAppointment?.startAt ?? latestAppointment?.updatedAt),
-        },
-        {
-          id: 'latest-notification',
-          label: 'آخر إشعار',
-          text: latestNotification?.title ?? 'لا توجد إشعارات حديثة',
-          time: formatDate(latestNotification?.updatedAt ?? latestNotification?.createdAt),
-        },
-        {
-          id: 'latest-automation-rule',
-          label: 'آخر قاعدة أتمتة',
-          text: latestAutomationRule?.name ?? 'لا توجد قواعد أتمتة',
-          time: formatDate(latestAutomationRule?.updatedAt),
-        },
+      subscription: [
+        { label: 'الباقة الحالية', value: planLabel(summary.subscription.plan) },
+        { label: 'المستخدمون', value: formatNumber(summary.subscription.users), hint: `من ${formatNumber(summary.subscription.maxUsers)}` },
+        { label: 'القنوات', value: formatNumber(summary.subscription.channels), hint: `من ${formatNumber(summary.subscription.maxChannels)}` },
+        { label: 'محادثات الشهر', value: formatNumber(summary.subscription.monthlyConversations), hint: `من ${formatNumber(summary.subscription.monthlyConversationLimit)}` },
+        { label: 'رسائل الشهر', value: formatNumber(summary.subscription.monthlyMessages), hint: `من ${formatNumber(summary.subscription.monthlyMessageLimit)}` },
+        { label: 'نسبة الاستخدام', value: `${formatNumber(summary.subscription.usagePercent)}%` },
+      ],
+      activity: [
+        { label: 'آخر رسالة', text: activityText(summary.latestActivity.message, 'لا توجد رسائل حديثة'), time: formatDate(summary.latestActivity.message?.createdAt) },
+        { label: 'آخر تذكرة', text: activityText(summary.latestActivity.ticket, 'لا توجد تذاكر حديثة'), time: formatDate(summary.latestActivity.ticket?.updatedAt ?? summary.latestActivity.ticket?.createdAt) },
+        { label: 'آخر موعد', text: activityText(summary.latestActivity.appointment, 'لا توجد مواعيد حديثة'), time: formatDate(summary.latestActivity.appointment?.startAt ?? summary.latestActivity.appointment?.updatedAt) },
+        { label: 'آخر إشعار', text: activityText(summary.latestActivity.notification, 'لا توجد إشعارات حديثة'), time: formatDate(summary.latestActivity.notification?.createdAt) },
+        { label: 'آخر تنفيذ أتمتة', text: activityText(summary.latestActivity.automation, 'لا يوجد تنفيذ أتمتة حديث'), time: formatDate(summary.latestActivity.automation?.createdAt) },
       ],
       recommendations: recommendations.length ? recommendations : ['المؤشرات مستقرة حالياً. راقب المؤشرات الرئيسية بشكل دوري.'],
     }
-  }, [appointments, automationLogs, automationRules, billingUsage, botSettings, channels, conversations, currentTenantId, customers, notifications, tickets, users])
+  }, [summary])
 
-  return (
-    <div className="page-layout">
-      <Card>
+  if (isLoading && !summary) {
+    return (
+      <div className="page-layout executive-page">
         <PageHeader
           title="الملخص التنفيذي"
           description="نظرة تنفيذية على أداء العملاء، المحادثات، التذاكر، المواعيد، الأتمتة، ومستوى الخدمة داخل الشركة الحالية."
         />
-        <p className="notification-empty">{currentTenant?.displayName ?? currentTenant?.name ?? 'الشركة الحالية'}</p>
-      </Card>
+        <LoadingState message="جاري تحميل الملخص التنفيذي للشركة الحالية..." />
+      </div>
+    )
+  }
 
-      <Card>
-        <PageHeader title="المؤشرات الرئيسية" />
-        <div className="stats-grid">
-          <StatCard value={metrics.customers} label="العملاء" />
-          <StatCard value={metrics.activeConversations} label="المحادثات النشطة" />
-          <StatCard value={metrics.unreadMessages} label="الرسائل غير المقروءة" />
-          <StatCard value={metrics.openTickets} label="التذاكر المفتوحة" />
-          <StatCard value={metrics.upcomingAppointments.length} label="المواعيد القادمة" />
-          <StatCard value={metrics.slaAlerts} label="تنبيهات SLA" />
-          <StatCard value={metrics.connectedChannels} label="القنوات المتصلة" />
-        </div>
-      </Card>
+  if (error && !summary) {
+    return (
+      <div className="page-layout executive-page">
+        <PageHeader
+          title="الملخص التنفيذي"
+          description="نظرة تنفيذية على أداء العملاء، المحادثات، التذاكر، المواعيد، الأتمتة، ومستوى الخدمة داخل الشركة الحالية."
+        />
+        <ErrorState title="تعذر تحميل الملخص التنفيذي" message="تحقق من الاتصال أو صلاحيات الشركة الحالية ثم حاول مرة أخرى." />
+      </div>
+    )
+  }
 
-      <div className="dashboard-grid">
+  if (!summary || !sections) {
+    return (
+      <div className="page-layout executive-page">
+        <EmptyState title="لا توجد بيانات" message="ستظهر المؤشرات التنفيذية عند توفر بيانات داخل الشركة الحالية." />
+      </div>
+    )
+  }
+
+  return (
+    <div className="page-layout executive-page">
+      <PageHeader
+        title="الملخص التنفيذي"
+        description="نظرة تنفيذية على أداء العملاء، المحادثات، التذاكر، المواعيد، الأتمتة، ومستوى الخدمة داخل الشركة الحالية."
+      />
+
+      <p className="notification-empty executive-tenant-label">
+        {currentTenant?.displayName ?? currentTenant?.name ?? summary.tenant?.tenantName ?? 'الشركة الحالية'}
+        {isLoading ? ' · يتم تحديث البيانات...' : ''}
+      </p>
+
+      <section className="stats-grid executive-kpi-grid" aria-label="المؤشرات الرئيسية">
+        {sections.kpis.map((metric) => (
+          <StatCard key={metric.label} value={formatNumber(metric.value)} label={metric.label} />
+        ))}
+      </section>
+
+      <section className="dashboard-grid">
         <Card>
           <PageHeader title="ملخص صندوق الوارد" />
-          <SummaryList items={metrics.inboxSummary} />
+          <SummaryList items={sections.inbox} />
         </Card>
 
         <Card>
           <PageHeader title="أداء التذاكر" />
-          <SummaryList items={metrics.ticketPerformance} />
+          <SummaryList items={sections.tickets} />
         </Card>
-      </div>
+      </section>
 
       <Card>
         <PageHeader title="المواعيد القادمة" />
-        <div className="activity-feed">
-          {metrics.upcomingAppointments.slice(0, 3).map((appointment) => (
+        <div className="activity-feed executive-appointments">
+          {summary.appointments.map((appointment) => (
             <article key={appointment.id} className="activity-item">
               <small>{appointment.customerName ?? 'عميل غير محدد'}</small>
-              <p>{appointment.title ?? 'موعد قادم'}</p>
-              <small>{formatDate(appointment.startAt)} · {meetingTypeLabel(appointment.meetingType)} · {appointmentStatusLabel(appointment.status)}</small>
+              <p>{formatDate(appointment.startAt)} · {meetingTypeLabel(appointment.meetingType)} · {statusLabel(appointment.status)}</p>
+              <small>{appointment.assignedUserName ?? appointment.assignedTeamName ?? 'لا يوجد مسؤول محدد'} · {appointment.title ?? 'موعد قادم'}</small>
             </article>
           ))}
-          {!metrics.upcomingAppointments.length ? <p className="notification-empty">لا توجد مواعيد قادمة ضمن الشركة الحالية.</p> : null}
+          {!summary.appointments.length ? <p className="notification-empty">لا توجد مواعيد قادمة ضمن الشركة الحالية.</p> : null}
         </div>
       </Card>
 
-      <div className="dashboard-grid">
+      <section className="dashboard-grid">
         <Card>
-          <PageHeader title="SLA ومستوى الخدمة" />
-          <SummaryList items={metrics.slaSummary} />
+          <PageHeader title="مستوى الخدمة SLA" />
+          <SummaryList items={sections.sla} />
         </Card>
 
         <Card>
-          <PageHeader title="الأتمتة والوكيل الذكي" />
-          <SummaryList items={metrics.automationSummary} />
+          <PageHeader title="الأتمتة ووكيل واتساب الذكي" />
+          <SummaryList items={sections.automation} />
         </Card>
-      </div>
+      </section>
 
-      <div className="dashboard-grid">
+      <section className="dashboard-grid">
         <Card>
           <PageHeader title="استخدام الاشتراك" />
-          <SummaryList items={metrics.subscriptionUsage} />
+          <SummaryList items={sections.subscription} />
         </Card>
 
         <Card>
           <PageHeader title="توصيات تنفيذية" />
-          <ul className="summary-list">
-            {metrics.recommendations.map((recommendation) => (
+          <ul className="summary-list executive-recommendations">
+            {sections.recommendations.map((recommendation) => (
               <li key={recommendation}><small>{recommendation}</small></li>
             ))}
           </ul>
         </Card>
-      </div>
+      </section>
 
       <Card>
         <PageHeader title="آخر النشاط" />
         <div className="activity-feed">
-          {metrics.recentActivity.map((activity) => (
-            <article key={activity.id} className="activity-item">
+          {sections.activity.map((activity) => (
+            <article key={activity.label} className="activity-item">
               <small>{activity.label}</small>
               <p>{activity.text}</p>
               <small>{activity.time}</small>

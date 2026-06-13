@@ -49,6 +49,16 @@ export class ReportsController {
     return this.reports.usage(this.scope(tenantId, query, user), query)
   }
 
+  @Get('executive-summary')
+  @RequirePermissions('dashboard.view')
+  executiveSummary(@Headers('x-tenant-id') tenantId: string | undefined, @Query() query: ReportsQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    const requestedTenantId = query.tenantId || tenantId
+    return this.reports.executiveSummary({
+      isPlatform: this.tenantAccess.isSuperAdmin(user),
+      tenantId: this.tenantAccess.requireTenantAccess({ requestedTenantId, user }),
+    })
+  }
+
   private scope(headerTenantId: string | undefined, query: ReportsQueryDto, user: AuthenticatedUser) {
     const isPlatform = this.tenantAccess.isSuperAdmin(user)
     const requestedTenantId = query.tenantId || headerTenantId
