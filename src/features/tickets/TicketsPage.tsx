@@ -317,6 +317,7 @@ export default function TicketsPage() {
   function refreshTickets() {
     if (!currentTenantId) return
     setLoading(true)
+    setTickets([])
     fetchTickets({ status, priority, category, customerId, assignedUserId, assignedTeamId })
       .then(setTickets)
       .catch((error) => showToast(error instanceof Error ? error.message : 'تعذر تحميل التذاكر', 'warning'))
@@ -330,6 +331,9 @@ export default function TicketsPage() {
 
   useEffect(() => {
     if (!currentTenantId) return
+    setCustomers([])
+    setAssignmentUsers([])
+    setTeams([])
     fetchCustomers({})
       .then(setCustomers)
       .catch(() => setCustomers([]))

@@ -12,6 +12,9 @@ type KeycloakPayload = {
   name?: string
   email?: string
   preferred_username?: string
+  tenant?: string
+  tenant_id?: string
+  tenantId?: string
   realm_access?: { roles?: string[] }
   resource_access?: Record<string, { roles?: string[] }>
   groups?: string[]
@@ -172,7 +175,7 @@ function createUserFromKeycloakToken(token: string): AuthUser {
     role,
     roles,
     platformRole,
-    tenant: 'Keycloak',
+    tenant: payload.tenant_id ?? payload.tenantId ?? payload.tenant,
     permissions: ROLE_PERMISSIONS[role],
   }
 }

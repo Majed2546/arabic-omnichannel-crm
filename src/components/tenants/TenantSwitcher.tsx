@@ -5,7 +5,7 @@ import { AppSelect } from '../ui/AppSelect'
 export function TenantSwitcher() {
   const { tenants, currentTenantId, setCurrentTenantId, canAccessTenant } = useTenant()
   const { user } = useAuth()
-  const canSwitchTenant = user?.platformRole === 'SUPER_ADMIN' || user?.roles?.includes('local-admin')
+  const canSwitchTenant = user?.platformRole === 'SUPER_ADMIN'
 
   if (!canSwitchTenant) return null
 

@@ -148,6 +148,7 @@ export default function UsersPage() {
   function loadUsers() {
     if (!currentTenantId) return
     setLoading(true)
+    setUsers([])
     const params = new URLSearchParams()
     if (search.trim()) params.set('search', search.trim())
     if (roleId) params.set('roleId', roleId)
@@ -157,12 +158,16 @@ export default function UsersPage() {
 
     apiFetch(apiUrl(`/users${params.toString() ? `?${params.toString()}` : ''}`))
       .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((payload) => setUsers(Array.isArray(payload) ? payload.map(normalizeUser) : []))
+      .then((payload) => {
+        const normalizedUsers = Array.isArray(payload) ? payload.map(normalizeUser) : []
+        setUsers(isAgentsView ? normalizedUsers.filter((item) => operationalUserTypes.includes(item.userType)) : normalizedUsers)
+      })
       .catch(() => setUsers([]))
       .finally(() => setLoading(false))
   }
 
   function loadRoles() {
+    setRoles([])
     apiFetch(apiUrl('/roles'))
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((payload) => setRoles(Array.isArray(payload) ? payload.map(normalizeRole) : []))

@@ -200,6 +200,7 @@ export default function DashboardPage() {
       }
     }
 
+    setSummary(null)
     loadSummary()
     const interval = window.setInterval(loadSummary, 30_000)
 

@@ -185,11 +185,15 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     if (!currentTenantId) return
+    setAppointments([])
     refreshAppointments()
   }, [currentTenantId, date, status, customerId, assignedUserId, assignedTeamId])
 
   useEffect(() => {
     if (!currentTenantId) return
+    setCustomers([])
+    setAssignmentUsers([])
+    setTeams([])
     fetchCustomers()
       .then(setCustomers)
       .catch(() => setCustomers([]))

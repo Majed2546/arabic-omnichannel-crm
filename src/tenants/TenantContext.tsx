@@ -136,7 +136,7 @@ type RemoteTenant = Partial<Tenant> & {
 function normalizeTenant(item: RemoteTenant): Tenant {
   const id = String(item.id ?? item.slug ?? 'default-tenant')
   const name = String(item.name ?? id)
-  const displayName = item.displayName ?? item.settings?.companyDisplayName ?? name
+  const displayName = item.settings?.companyDisplayName ?? item.displayName ?? name
   return {
     id,
     name,

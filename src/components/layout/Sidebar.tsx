@@ -66,7 +66,7 @@ const navigation: Array<{
 export function Sidebar() {
   const { isPanelOpen, setPanelOpen } = useUiStore()
   const { canAccess, can, user, logout } = useAuth()
-  const canAccessPlatform = user?.platformRole === 'SUPER_ADMIN' || user?.roles?.includes('local-admin')
+  const canAccessPlatform = user?.platformRole === 'SUPER_ADMIN'
 
   return (
     <aside className={`sidebar ${isPanelOpen ? 'sidebar-open' : ''}`}>

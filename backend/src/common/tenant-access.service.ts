@@ -14,6 +14,10 @@ export class TenantAccessService {
 
   getCurrentTenantId(input: { requestedTenantId?: string; user?: AuthenticatedUser }) {
     const authMode = this.config.get<AuthMode>('auth.mode') ?? 'local'
+    if (this.isSuperAdmin(input.user)) {
+      return input.requestedTenantId || input.user?.tenantId || DEFAULT_TENANT_ID
+    }
+
     if (authMode !== 'keycloak') {
       return input.requestedTenantId || input.user?.tenantId || DEFAULT_TENANT_ID
     }

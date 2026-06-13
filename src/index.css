@@ -9285,14 +9285,77 @@ body:has(.inbox-layout) {
 
 /* Release 26 MVP stabilization */
 .notification-panel.notification-panel-portal {
-  z-index: 9999;
+  z-index: 12000;
 }
 
 .modal-backdrop,
 .signup-modal-backdrop,
 .platform-modal-backdrop {
+  position: fixed;
+  inset: 0;
   align-items: center;
   justify-content: center;
+  place-items: center;
+  z-index: 10000;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px;
+}
+
+.customer-modal,
+.platform-modal,
+.signup-modal {
+  margin: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-shell,
+.app-main,
+.app-content,
+.page-layout,
+.app-card,
+.panel-panel,
+.card-safe,
+.stats-grid,
+.dashboard-grid,
+.reports-section-grid,
+.users-card-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-content,
+.page-layout {
+  overflow-x: clip;
+}
+
+.app-button,
+.empty-action,
+.secondary-button,
+.topbar-control,
+.status-badge,
+.badge,
+.priority-badge,
+.status-pill {
+  max-width: 100%;
+}
+
+.app-button,
+.empty-action,
+.secondary-button {
+  white-space: normal;
+}
+
+.summary-list li,
+.activity-item,
+.api-notification-item,
+.notification-row,
+.user-management-card,
+.platform-table-wrapper {
+  overflow-wrap: anywhere;
 }
 
 .sidebar-label,
