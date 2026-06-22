@@ -221,6 +221,9 @@ export default function RolesPage() {
       <div className="roles-warning">
         بعض الصلاحيات النظامية لا يمكن تعديلها في هذا الإصدار.
       </div>
+      <div className="roles-warning">
+        سلوك الأدوار: المشاهد Viewer للقراءة فقط ولا يظهر ضمن قوائم الإسناد كموظف أو مستشار. الموظف والمستشار والمشرف فقط يمكن إسناد المحادثات والتذاكر والمواعيد لهم.
+      </div>
 
       <section className="roles-layout">
         <AppCard className="roles-list-panel">

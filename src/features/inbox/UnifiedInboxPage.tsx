@@ -18,6 +18,7 @@ import {
   inboxRealtimeConfig,
   type AgentPresence,
   type Conversation,
+  type ConversationMessageAttachment,
   type ConversationPriority,
 } from './inboxMock'
 
@@ -164,7 +165,9 @@ export default function UnifiedInboxPage() {
   const [inboxLoadError, setInboxLoadError] = useState<string | null>(null)
   const [composerError, setComposerError] = useState<string | null>(null)
   const [isSendingReply, setSendingReply] = useState(false)
+  const [selectedAttachments, setSelectedAttachments] = useState<ConversationMessageAttachment[]>([])
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const threadRef = useRef<HTMLDivElement | null>(null)
   const threadEndRef = useRef<HTMLDivElement | null>(null)
@@ -416,8 +419,28 @@ export default function UnifiedInboxPage() {
 
   function insertQuickReply(content: string) {
     setReply((current) => current ? `${current}\n${content}` : content)
-    setQuickRepliesOpen(false)
     window.requestAnimationFrame(() => composerRef.current?.focus())
+  }
+
+  function handleAttachmentSelection(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? [])
+    if (!files.length) return
+
+    setSelectedAttachments((current) => [
+      ...current,
+      ...files.map((file) => ({
+        id: `local-attachment-${file.name}-${file.lastModified}-${file.size}`,
+        name: file.name,
+        size: file.size,
+        type: file.type || 'application/octet-stream',
+        status: 'unsupported' as const,
+      })),
+    ])
+    event.target.value = ''
+  }
+
+  function removeAttachment(attachmentId: string) {
+    setSelectedAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId))
   }
 
   function handleTemplatePlaceholder(template?: WhatsAppTemplate) {
@@ -434,14 +457,28 @@ export default function UnifiedInboxPage() {
 
   async function submitComposer() {
     const body = reply.trim()
-    if (!body || !selectedConversation || isSendingReply) return
+    if (!selectedConversation || isSendingReply) return
+    if (!body) {
+      if (selectedAttachments.length) {
+        showToast('أضف نص الرسالة لأن إرسال المرفقات غير مفعل بعد في هذا الإصدار.', 'warning')
+      }
+      return
+    }
 
     setComposerError(null)
 
     if (composerMode === 'internal') {
+      if (selectedAttachments.length) {
+        showToast('المرفقات متاحة لرد العميل فقط. أزل المرفقات أو غيّر نوع الرسالة إلى رد للعميل.', 'warning')
+        return
+      }
       addInternalNote(selectedConversation.id, body, 'المستخدم الحالي')
       showToast('تمت إضافة الملاحظة الداخلية', 'success')
+      if (selectedAttachments.length) {
+        showToast('المرفقات ظاهرة في المحادثة محليًا. إرسال وسائط واتساب غير مربوط بعد.', 'info')
+      }
       setReply('')
+      setSelectedAttachments([])
       resetComposerHeight()
       return
     }
@@ -460,9 +497,14 @@ export default function UnifiedInboxPage() {
         'المستخدم الحالي',
         result.messageId,
         result.status === 'SENT' ? 'sent' : 'pending',
+        selectedAttachments,
       )
+      if (selectedAttachments.length) {
+        showToast('المرفقات ظاهرة في المحادثة محليًا. إرسال وسائط واتساب غير مربوط بعد.', 'info')
+      }
       showToast('تم إرسال الرد عبر واتساب', 'success')
       setReply('')
+      setSelectedAttachments([])
       resetComposerHeight()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'تعذر إرسال الرسالة'
@@ -765,6 +807,16 @@ export default function UnifiedInboxPage() {
                 >
                   {message.kind === 'internal_note' ? <b className="internal-note-badge">ملاحظة داخلية</b> : null}
                   <p>{message.body}</p>
+                  {message.attachments?.length ? (
+                    <div className="message-attachment-list">
+                      {message.attachments.map((attachment) => (
+                        <span key={attachment.id}>
+                          {attachment.name}
+                          <small>{attachment.status === 'unsupported' ? 'مرفق ظاهر محليًا' : 'مرفق'}</small>
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                   {message.botFailed ? <b className="bot-failed-label">تعذر إرسال رد الوكيل. يمكنك إعادة تشغيل الوكيل أو تحويل المحادثة لموظف.</b> : null}
                   <footer>
                     {!grouped ? <span>{message.author}</span> : null}
@@ -801,6 +853,17 @@ export default function UnifiedInboxPage() {
 
             {canReply ? (
               <form className={`chat-composer ${composerMode === 'internal' ? 'internal-mode' : ''}`} onSubmit={handleSubmit}>
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  multiple
+                  className="composer-file-input"
+                  onChange={handleAttachmentSelection}
+                  aria-label="اختيار مرفقات"
+                />
+                <AppButton variant="ghost" className="composer-tool-button" onClick={() => attachmentInputRef.current?.click()}>
+                  إرفاق
+                </AppButton>
                 <AppButton variant="ghost" className="composer-tool-button" onClick={() => showToast('اختيار الرموز جاهز للربط', 'success')}>
                   🙂
                 </AppButton>
@@ -836,6 +899,17 @@ export default function UnifiedInboxPage() {
                   placeholder={composerMode === 'internal' ? 'اكتب ملاحظة داخلية للفريق...' : 'اكتب رداً واضغط Enter للإرسال...'}
                   aria-label={composerMode === 'internal' ? 'نص الملاحظة الداخلية' : 'نص الرد'}
                 />
+                {selectedAttachments.length ? (
+                  <div className="composer-attachment-list">
+                    {selectedAttachments.map((attachment) => (
+                      <span key={attachment.id}>
+                        {attachment.name}
+                        <button type="button" onClick={() => removeAttachment(attachment.id)} aria-label={`إزالة ${attachment.name}`}>×</button>
+                      </span>
+                    ))}
+                    <small>المرفقات ستظهر محليًا بعد الإرسال؛ رفع وسائط واتساب غير مفعل بعد.</small>
+                  </div>
+                ) : null}
                 <AppButton type="submit" variant="primary" className="composer-send-button">
                   {isSendingReply ? 'جار الإرسال' : composerMode === 'internal' ? 'حفظ' : 'إرسال'}
                 </AppButton>

@@ -57,6 +57,8 @@ function targetPath(notification: ApiNotification) {
   if (notification.conversationId) return `/inbox?conversationId=${notification.conversationId}`
   if (notification.targetType === 'TICKET' && notification.targetId) return `/tickets?ticketId=${notification.targetId}`
   if (notification.targetType === 'APPOINTMENT' && notification.targetId) return `/appointments?appointmentId=${notification.targetId}`
+  if (notification.targetType === 'CUSTOMER' && notification.targetId) return `/customers?customerId=${notification.targetId}`
+  if ((notification.targetType === 'SLA' || notification.type === 'SLA_WARNING' || notification.type === 'SLA_BREACHED') && notification.targetId) return `/sla?status=${notification.type === 'SLA_BREACHED' ? 'BREACHED' : 'WARNING'}`
   return ''
 }
 

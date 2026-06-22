@@ -188,6 +188,7 @@ export default function AppointmentsPage() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
   const [form, setForm] = useState<AppointmentFormState>(() => defaultForm(searchParams))
   const [tenantTimezone, setTenantTimezone] = useState(DEFAULT_TENANT_TIMEZONE)
+  const selectedAppointmentId = searchParams.get('appointmentId') ?? ''
 
   function refreshAppointments() {
     fetchAppointments({ date, status, customerId, assignedUserId, assignedTeamId })
@@ -238,6 +239,10 @@ export default function AppointmentsPage() {
   const timelineAppointments = useMemo(
     () => [...appointments].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
     [appointments],
+  )
+  const visibleAppointments = useMemo(
+    () => selectedAppointmentId ? appointments.filter((appointment) => appointment.id === selectedAppointmentId) : appointments,
+    [appointments, selectedAppointmentId],
   )
 
   function openCreate() {
@@ -341,7 +346,7 @@ export default function AppointmentsPage() {
             </div>
           </div>
           <div className="appointment-card-list">
-            {appointments.map((appointment) => (
+            {visibleAppointments.map((appointment) => (
               <article key={appointment.id} className="appointment-card">
                 <header>
                   <div>
@@ -372,7 +377,7 @@ export default function AppointmentsPage() {
                 </div>
               </article>
             ))}
-            {!appointments.length ? <EmptyState title="لا توجد مواعيد" message="غيّر الفلاتر أو احجز موعدًا جديدًا للعميل." /> : null}
+            {!visibleAppointments.length ? <EmptyState title="لا توجد مواعيد" message={selectedAppointmentId ? 'تعذر فتح الموعد المطلوب ضمن الشركة الحالية.' : 'غيّر الفلاتر أو احجز موعدًا جديدًا للعميل.'} /> : null}
           </div>
         </section>
 

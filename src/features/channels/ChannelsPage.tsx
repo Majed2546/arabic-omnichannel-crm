@@ -573,13 +573,16 @@ export default function ChannelsPage() {
                       </AppButton>
                     </>
                   ) : (
-                    <AppButton
-                      disabled
-                      variant="secondary"
-                      title="قريبًا"
-                    >
-                      إعداد الربط
-                    </AppButton>
+                    <>
+                      <AppButton
+                        disabled
+                        variant="secondary"
+                        title="قريبًا"
+                      >
+                        إعداد الربط
+                      </AppButton>
+                      <span className="channel-coming-soon">إعداد هذه القناة غير منفذ بعد ويتطلب تهيئة مزود القناة.</span>
+                    </>
                   )}
                 </div>
               </article>

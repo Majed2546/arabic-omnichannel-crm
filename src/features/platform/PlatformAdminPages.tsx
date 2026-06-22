@@ -53,6 +53,10 @@ const operationModeLabels: Record<OnboardingOperationMode, string> = {
 
 const channelOptions = ['WHATSAPP', 'EMAIL', 'WEBCHAT', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'VOICE', 'X']
 
+function isFinalRequestStatus(status: OnboardingRequestStatus) {
+  return status === 'activated' || status === 'rejected'
+}
+
 function RequestStatusBadge({ status }: { status: OnboardingRequestStatus }) {
   const tone = status === 'activated'
     ? 'success'
@@ -453,7 +457,7 @@ function OnboardingRequestsTable({
         </thead>
         <tbody>
           {requests.map((request) => (
-            <tr key={request.id}>
+            <tr key={request.id} className={isFinalRequestStatus(request.status) ? 'readonly-row' : ''}>
               <td>
                 <div className="platform-company-cell">
                   <span>{request.organizationName.charAt(0)}</span>
@@ -471,15 +475,19 @@ function OnboardingRequestsTable({
               <td>
                 <div className="platform-actions">
                   <AppButton variant="ghost" onClick={() => onSelect(request)}>عرض</AppButton>
-                  <AppButton variant="ghost" onClick={() => onEdit(request)}>تعديل</AppButton>
-                  <select value={request.status} onChange={(event) => onStatus(request, event.target.value as OnboardingRequestStatus)} aria-label="تغيير حالة الطلب">
+                  {!isFinalRequestStatus(request.status) ? <AppButton variant="ghost" onClick={() => onEdit(request)}>تعديل</AppButton> : null}
+                  <select disabled={isFinalRequestStatus(request.status)} value={request.status} onChange={(event) => onStatus(request, event.target.value as OnboardingRequestStatus)} aria-label="تغيير حالة الطلب">
                     {Object.keys(requestStatusLabels).map((status) => (
                       <option key={status} value={status}>{requestStatusLabels[status as OnboardingRequestStatus]}</option>
                     ))}
                   </select>
+                  {request.status === 'new' || request.status === 'waiting_for_info' ? <AppButton variant="ghost" onClick={() => onStatus(request, 'under_review')}>بدء المراجعة</AppButton> : null}
+                  {request.status === 'under_review' ? <AppButton variant="ghost" onClick={() => onStatus(request, 'ready_to_create')}>قبول مبدئي</AppButton> : null}
+                  {!isFinalRequestStatus(request.status) ? <AppButton variant="ghost" onClick={() => onStatus(request, 'rejected')}>رفض</AppButton> : null}
+                  {isFinalRequestStatus(request.status) ? <AppButton variant="ghost" onClick={() => onStatus(request, 'under_review')}>إعادة فتح</AppButton> : null}
                   <AppButton
                     variant="primary"
-                    disabled={request.status === 'activated' || request.status === 'rejected'}
+                    disabled={request.status !== 'ready_to_create'}
                     onClick={() => onCreateTenant(request)}
                   >
                     إنشاء شركة من الطلب

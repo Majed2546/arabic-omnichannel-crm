@@ -610,7 +610,7 @@ export default function CustomersPage() {
                     <article key={ticket.id}>
                       <strong>{ticket.title}</strong>
                       <small>{ticketStatusLabels[ticket.status]} · {ticket.category || 'بدون تصنيف'} · {formatDate(ticket.dueAt)}</small>
-                      <Link to={`/tickets?customerId=${selectedCustomer.id}`}>فتح التذاكر</Link>
+                      <Link to={`/tickets?ticketId=${ticket.id}`}>فتح التذكرة</Link>
                     </article>
                   )) : <EmptyState title="لا توجد تذاكر مرتبطة" message="يمكنك إنشاء تذكرة متابعة من ملف العميل." />}
                 </div>

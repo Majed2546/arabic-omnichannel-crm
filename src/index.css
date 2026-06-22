@@ -3706,7 +3706,7 @@ td {
   bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto auto auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   min-height: 72px;
@@ -9286,6 +9286,70 @@ body:has(.inbox-layout) {
 /* Release 26 MVP stabilization */
 .notification-panel.notification-panel-portal {
   z-index: 12000;
+}
+
+.composer-file-input {
+  display: none;
+}
+
+.composer-attachment-list,
+.message-attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.composer-attachment-list {
+  grid-column: 1 / -1;
+  align-items: center;
+}
+
+.composer-attachment-list span,
+.message-attachment-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(280px, 100%);
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.82rem;
+}
+
+.composer-attachment-list button {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.18);
+  color: inherit;
+  cursor: pointer;
+}
+
+.composer-attachment-list small,
+.message-attachment-list small {
+  color: var(--text-muted);
+}
+
+.billing-flow-card,
+.readonly-note {
+  color: var(--text-muted);
+}
+
+.billing-flow-card strong,
+.readonly-note {
+  color: var(--text);
+}
+
+.readonly-row {
+  opacity: 0.78;
+}
+
+.channel-coming-soon {
+  color: var(--text-muted);
+  font-size: 0.84rem;
 }
 
 .modal-backdrop,

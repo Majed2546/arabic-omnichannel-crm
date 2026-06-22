@@ -162,6 +162,15 @@ export default function BillingPage() {
         actions={!isSuperAdmin ? <AppButton variant="primary" onClick={() => showToast('تم تسجيل طلب الترقية كإجراء Placeholder', 'info')}>طلب ترقية</AppButton> : null}
       />
 
+      <AppCard className="billing-flow-card">
+        <strong>{isSuperAdmin ? 'مسار إنشاء أو ربط الاشتراك' : 'طريقة تعديل الاشتراك'}</strong>
+        <p>
+          {isSuperAdmin
+            ? 'أنشئ الشركة من طلب اشتراك مقبول في طلبات الاشتراك، أو افتح الشركات المشتركة لتعديل الباقة والحالة وربط الاشتراك مباشرة بالشركة.'
+            : 'هذه الصفحة للعرض والمتابعة. تغيير الباقة يتم عبر طلب ترقية أو عبر مسؤول المنصة بعد اعتماد طلب الاشتراك.'}
+        </p>
+      </AppCard>
+
       <section className="billing-plan-grid">
         {plans.map((plan) => (
           <AppCard key={plan.id} className="billing-plan-card">

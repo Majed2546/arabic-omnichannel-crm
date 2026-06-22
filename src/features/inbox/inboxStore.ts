@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { RealtimeEvent } from '../../modules/realtime/eventBus'
 import {
   type Conversation,
+  type ConversationMessageAttachment,
   type ConversationPriority,
   type MessageDeliveryStatus,
   type QueueAgent,
@@ -15,7 +16,7 @@ type InboxState = {
   replaceConversations: (conversations: Conversation[]) => void
   selectConversation: (conversationId: string) => void
   clearSelection: () => void
-  addOutgoingReply: (conversationId: string, body: string, author: string, messageId?: string, deliveryStatus?: MessageDeliveryStatus) => void
+  addOutgoingReply: (conversationId: string, body: string, author: string, messageId?: string, deliveryStatus?: MessageDeliveryStatus, attachments?: ConversationMessageAttachment[]) => void
   retryMessage: (conversationId: string, messageId: string) => void
   addInternalNote: (conversationId: string, body: string, author: string) => void
   assignConversation: (conversationId: string) => void
@@ -223,7 +224,7 @@ export const useInboxStore = create<InboxState>((set, get) => ({
       ),
     })),
   clearSelection: () => set({ selectedId: '' }),
-  addOutgoingReply: (conversationId, body, author, messageId = `local-${Date.now()}`, deliveryStatus = 'pending') =>
+  addOutgoingReply: (conversationId, body, author, messageId = `local-${Date.now()}`, deliveryStatus = 'pending', attachments = []) =>
     {
       set((state) => ({
         conversations: state.conversations.map((conversation) =>
@@ -243,6 +244,7 @@ export const useInboxStore = create<InboxState>((set, get) => ({
                     author,
                     sentAt: 'الآن',
                     deliveryStatus,
+                    attachments,
                   },
                 ],
               }

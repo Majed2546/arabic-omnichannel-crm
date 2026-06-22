@@ -24,6 +24,15 @@ export type ConversationMessage = {
   deliveryStatus?: MessageDeliveryStatus
   kind?: 'message' | 'internal_note'
   botFailed?: boolean
+  attachments?: ConversationMessageAttachment[]
+}
+
+export type ConversationMessageAttachment = {
+  id: string
+  name: string
+  size: number
+  type: string
+  status: 'local' | 'sent' | 'unsupported'
 }
 
 export type Conversation = {

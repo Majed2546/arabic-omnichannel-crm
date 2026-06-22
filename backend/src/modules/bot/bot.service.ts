@@ -170,7 +170,22 @@ export class BotService {
   async handoff(tenantId: string, conversationId: string) {
     const conversation = await this.ensureConversation(tenantId, conversationId)
     const settings = await this.getSettings(tenantId)
-    await this.markHandoff(tenantId, conversationId, conversation.customerId, settings)
+    const state = await this.markHandoff(tenantId, conversationId, conversation.customerId, settings)
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: conversation.customerId, tenantId, deletedAt: null },
+      select: { phone: true },
+    })
+    if (customer?.phone) {
+      await this.sendBotReply({
+        tenantId,
+        conversationId,
+        recipient: customer.phone,
+        message: settings.handoffMessage,
+        inboundMessageId: `manual-handoff-${state.id}`,
+        botStateId: state.id,
+        step: 'handoff',
+      })
+    }
     return { handedOff: true, conversationId }
   }
 

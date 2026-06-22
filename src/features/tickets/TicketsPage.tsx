@@ -111,6 +111,10 @@ function slaTone(status?: TicketSlaStatus | null) {
   return 'info'
 }
 
+function isReadOnlyTicket(status: TicketStatus) {
+  return status === 'RESOLVED' || status === 'CLOSED'
+}
+
 function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' }) : 'غير محدد'
 }
@@ -296,10 +300,15 @@ export default function TicketsPage() {
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null)
   const [form, setForm] = useState<TicketFormState>(emptyForm)
   const [isLoading, setLoading] = useState(true)
+  const selectedTicketId = searchParams.get('ticketId') ?? ''
 
   const categories = useMemo(
     () => Array.from(new Set(tickets.map((ticket) => ticket.category).filter(Boolean))) as string[],
     [tickets],
+  )
+  const visibleTickets = useMemo(
+    () => selectedTicketId ? tickets.filter((ticket) => ticket.id === selectedTicketId) : tickets,
+    [selectedTicketId, tickets],
   )
 
   function buildInitialForm() {
@@ -450,10 +459,10 @@ export default function TicketsPage() {
       </AppCard>
 
       {isLoading ? <EmptyState title="جار تحميل التذاكر" message="نرتب قائمة المتابعة الحالية." /> : null}
-      {!isLoading && !tickets.length ? <EmptyState title="لا توجد تذاكر" message="أنشئ تذكرة من هنا أو من ملف العميل أو من صندوق الوارد." /> : null}
+      {!isLoading && !visibleTickets.length ? <EmptyState title="لا توجد تذاكر" message={selectedTicketId ? 'تعذر فتح التذكرة المطلوبة ضمن الشركة الحالية.' : 'أنشئ تذكرة من هنا أو من ملف العميل أو من صندوق الوارد.'} /> : null}
 
       <section className="ticket-card-grid">
-        {tickets.map((ticket) => (
+        {visibleTickets.map((ticket) => (
           <article key={ticket.id} className="ticket-card panel-panel">
             <header className="ticket-card-header">
               <div>
@@ -491,9 +500,11 @@ export default function TicketsPage() {
             </div>
 
             <footer className="ticket-actions">
-              {canManage ? <AppButton variant="ghost" onClick={() => openEdit(ticket)}><Edit3 size={15} /> تعديل</AppButton> : null}
-              {canManage && ticket.status !== 'RESOLVED' ? <AppButton variant="ghost" onClick={() => handleStatus(ticket, 'RESOLVED')}>تم الحل</AppButton> : null}
-              {canManage ? <AppButton variant="ghost" onClick={() => handleDelete(ticket)}><Trash2 size={15} /> حذف</AppButton> : null}
+              {isReadOnlyTicket(ticket.status) ? <span className="readonly-note">هذه التذكرة مقفلة للقراءة فقط. أعد فتحها قبل التعديل.</span> : null}
+              {canManage && !isReadOnlyTicket(ticket.status) ? <AppButton variant="ghost" onClick={() => openEdit(ticket)}><Edit3 size={15} /> تعديل</AppButton> : null}
+              {canManage && !isReadOnlyTicket(ticket.status) ? <AppButton variant="ghost" onClick={() => handleStatus(ticket, 'RESOLVED')}>تم الحل</AppButton> : null}
+              {canManage && isReadOnlyTicket(ticket.status) ? <AppButton variant="ghost" onClick={() => handleStatus(ticket, 'OPEN')}>إعادة فتح</AppButton> : null}
+              {canManage && !isReadOnlyTicket(ticket.status) ? <AppButton variant="ghost" onClick={() => handleDelete(ticket)}><Trash2 size={15} /> حذف</AppButton> : null}
             </footer>
           </article>
         ))}
